@@ -1,4 +1,4 @@
-import { base } from './client';
+import { getAirtableBase } from './client';
 import { Product, Agency } from './types';
 import { FieldSet } from 'airtable';
 
@@ -13,6 +13,7 @@ const mapToProduct = (record: any): Product => ({
 });
 
 export const getProducts = async (): Promise<Product[]> => {
+    const base = getAirtableBase();
     if (!base) {
         console.error('Airtable base not initialized. Check your environment variables.');
         return [];
@@ -25,6 +26,7 @@ export const getProducts = async (): Promise<Product[]> => {
 };
 
 export const getAgencyByEmail = async (email: string): Promise<Agency | null> => {
+    const base = getAirtableBase();
     if (!base) {
         console.error('Airtable base not initialized. Check your environment variables.');
         return null;
@@ -46,6 +48,7 @@ export const getAgencyByEmail = async (email: string): Promise<Agency | null> =>
 };
 
 export const createAgency = async (agency: Omit<Agency, 'id'>) => {
+    const base = getAirtableBase();
     if (!base) {
         throw new Error('Airtable base not initialized');
     }

@@ -1,17 +1,24 @@
 import Airtable from 'airtable';
 
-const getAirtableBase = () => {
+let cachedBase: any = null;
+
+export const getAirtableBase = () => {
+    // If we're already initialized and have a base, return it
+    if (cachedBase) return cachedBase;
+
     const apiKey = process.env.AIRTABLE_API_KEY;
     const baseId = process.env.AIRTABLE_BASE_ID;
 
     if (!apiKey || !baseId) {
-        // During build time, Next.js might import this. 
-        // We only want to throw if we're actually trying to use it in a request.
-        console.warn('Airtable credentials missing. This is expected during build if not provided.');
-        return null as any;
+        return null;
     }
 
-    return new Airtable({ apiKey }).base(baseId);
+    try {
+        const airtable = new Airtable({ apiKey });
+        cachedBase = airtable.base(baseId);
+        return cachedBase;
+    } catch (err) {
+        console.error('Failed to initialize Airtable client:', err);
+        return null;
+    }
 };
-
-export const base = getAirtableBase();
