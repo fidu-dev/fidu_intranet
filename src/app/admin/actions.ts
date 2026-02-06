@@ -20,12 +20,13 @@ export async function getAdminProducts() {
 
 export async function getAgencies(): Promise<Agency[]> {
     if (!(await isAdmin())) throw new Error('Unauthorized');
+    if (!base) return [];
 
     const records = await base('Agencies').select({
         view: 'Grid view'
     }).all();
 
-    return records.map(record => ({
+    return records.map((record: any) => ({
         id: record.id,
         name: record.fields['Name'] as string,
         email: record.fields['Email'] as string,
@@ -35,6 +36,7 @@ export async function getAgencies(): Promise<Agency[]> {
 
 export async function updateAgencyCommission(agencyId: string, newRate: number) {
     if (!(await isAdmin())) throw new Error('Unauthorized');
+    if (!base) throw new Error('Airtable not initialized');
 
     await base('Agencies').update([
         {
@@ -50,6 +52,7 @@ export async function updateAgencyCommission(agencyId: string, newRate: number) 
 
 export async function createNewAgency(name: string, email: string, commissionRate: number) {
     if (!(await isAdmin())) throw new Error('Unauthorized');
+    if (!base) throw new Error('Airtable not initialized');
 
     await base('Agencies').create([
         {
@@ -77,6 +80,7 @@ export interface SimulatedProduct {
 export async function getSimulatorProducts(agencyId: string): Promise<SimulatedProduct[]> {
     // Basic Admin Check (can be refined for "Sales" role later)
     if (!(await isAdmin())) throw new Error('Unauthorized');
+    if (!base) return [];
 
     // 1. Get Agency Commission
     const agencyRecord = await base('Agencies').find(agencyId);

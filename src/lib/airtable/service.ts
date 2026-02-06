@@ -13,6 +13,10 @@ const mapToProduct = (record: any): Product => ({
 });
 
 export const getProducts = async (): Promise<Product[]> => {
+    if (!base) {
+        console.error('Airtable base not initialized. Check your environment variables.');
+        return [];
+    }
     const records = await base('Products').select({
         view: 'Grid view'
     }).all();
@@ -21,6 +25,10 @@ export const getProducts = async (): Promise<Product[]> => {
 };
 
 export const getAgencyByEmail = async (email: string): Promise<Agency | null> => {
+    if (!base) {
+        console.error('Airtable base not initialized. Check your environment variables.');
+        return null;
+    }
     const records = await base('Agencies').select({
         filterByFormula: `{Email} = '${email}'`,
         maxRecords: 1
@@ -38,6 +46,9 @@ export const getAgencyByEmail = async (email: string): Promise<Agency | null> =>
 };
 
 export const createAgency = async (agency: Omit<Agency, 'id'>) => {
+    if (!base) {
+        throw new Error('Airtable base not initialized');
+    }
     return base('Agencies').create([
         {
             fields: {
