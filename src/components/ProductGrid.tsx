@@ -97,16 +97,16 @@ export function ProductGrid({ products }: ProductGridProps) {
                     <table className="w-full text-left border-collapse">
                         <thead>
                             <tr className="bg-gray-50/50 border-b border-gray-100">
-                                <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-tight w-20">Tipo</th>
-                                <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-tight">Destino</th>
-                                <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-tight">Serviço</th>
-                                <th className="px-4 py-3 text-[10px] font-bold text-gray-500 uppercase tracking-tight text-right">Neto (ADU)</th>
-                                <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-tight text-right">Neto (CHD)</th>
-                                <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-tight text-right">Neto (INF)</th>
-                                <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-tight">Pickup</th>
-                                <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-tight">Retorno</th>
-                                <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-tight">Temporada</th>
-                                <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-tight">Dias</th>
+                                <th className="px-4 py-3 text-[11px] font-bold text-gray-500 uppercase tracking-tight w-20">Tipo</th>
+                                <th className="px-4 py-3 text-[11px] font-bold text-gray-500 uppercase tracking-tight">Destino</th>
+                                <th className="px-4 py-3 text-[11px] font-bold text-gray-500 uppercase tracking-tight">Serviço</th>
+                                <th className="px-4 py-3 text-[11px] font-bold text-gray-500 uppercase tracking-tight text-right">Neto (ADU)</th>
+                                <th className="px-4 py-3 text-[11px] font-bold text-gray-500 uppercase tracking-tight text-right">Neto (CHD)</th>
+                                <th className="px-4 py-3 text-[11px] font-bold text-gray-500 uppercase tracking-tight text-right">Neto (INF)</th>
+                                <th className="px-4 py-3 text-[11px] font-bold text-gray-500 uppercase tracking-tight">Pickup</th>
+                                <th className="px-4 py-3 text-[11px] font-bold text-gray-500 uppercase tracking-tight">Retorno</th>
+                                <th className="px-4 py-3 text-[11px] font-bold text-gray-500 uppercase tracking-tight">Temporada</th>
+                                <th className="px-4 py-3 text-[11px] font-bold text-gray-500 uppercase tracking-tight">Dias</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-50">
