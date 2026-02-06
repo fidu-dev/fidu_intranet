@@ -32,7 +32,7 @@ export const getAgencyByEmail = async (email: string): Promise<Agency | null> =>
         return null;
     }
 
-    const records = await base('Table 1').select({
+    const records = await base('tblkVI2PX3jPgYKXF').select({
         filterByFormula: `{mail} = '${email}'`,
         maxRecords: 1
     }).all();
@@ -54,7 +54,7 @@ export const createAgency = async (agency: Omit<Agency, 'id'>) => {
         throw new Error('Airtable Agency base not initialized');
     }
 
-    await base('Table 1').create([
+    await base('tblkVI2PX3jPgYKXF').create([
         {
             fields: {
                 'Agency': agency.name,
