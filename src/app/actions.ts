@@ -14,41 +14,51 @@ export interface AgencyProduct {
 }
 
 export async function getAgencyProducts(): Promise<{ products: AgencyProduct[], error?: string }> {
-    const user = await currentUser();
+    try {
+        const user = await currentUser();
 
-    if (!user) {
-        return { products: [], error: 'Unauthorized' };
-    }
+        if (!user) {
+            return { products: [], error: 'Unauthorized' };
+        }
 
-    // Get Primary Email
-    const email = user.emailAddresses[0]?.emailAddress;
-    if (!email) {
-        return { products: [], error: 'No email found' };
-    }
+        // Get Primary Email
+        const email = user.emailAddresses[0]?.emailAddress;
+        if (!email) {
+            return { products: [], error: 'No email found for this user.' };
+        }
 
-    // Fetch Agency Commission
-    const agency = await getAgencyByEmail(email);
-    const commissionRate = agency ? agency.commissionRate : 0; // Default to 0 if not found (or handle as error)
+        // Fetch Agency Commission
+        const agency = await getAgencyByEmail(email);
+        const commissionRate = agency ? agency.commissionRate : 0;
 
-    // Fetch Base Products
-    const products = await getProducts();
+        // Fetch Base Products
+        const products = await getProducts();
 
-    // Calculate Final Price
-    const agencyProducts = products.map(product => {
-        // Logic: Base + (Base * Commission)
-        // Example: 100 + (100 * 0.10) = 110
-        const finalPrice = product.basePrice + (product.basePrice * commissionRate);
+        if (!products || products.length === 0) {
+            return { products: [] };
+        }
 
+        // Calculate Final Price
+        const agencyProducts = products.map(product => {
+            const finalPrice = product.basePrice + (product.basePrice * commissionRate);
+
+            return {
+                id: product.id,
+                destination: product.destination,
+                tourName: product.tourName,
+                category: product.category,
+                basePrice: product.basePrice,
+                consumerPrice: Math.round(finalPrice * 100) / 100,
+                imageUrl: product.imageUrl
+            };
+        });
+
+        return { products: agencyProducts };
+    } catch (err: any) {
+        console.error('Error in getAgencyProducts:', err);
         return {
-            id: product.id,
-            destination: product.destination,
-            tourName: product.tourName,
-            category: product.category,
-            basePrice: product.basePrice, // Exposed
-            consumerPrice: Math.round(finalPrice * 100) / 100, // Round to 2 decimals
-            imageUrl: product.imageUrl
+            products: [],
+            error: `Failed to load products: ${err.message || 'Unknown error'}. Check your connection and credentials.`
         };
-    });
-
-    return { products: agencyProducts };
+    }
 }
