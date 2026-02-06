@@ -4,11 +4,16 @@ import { AgencyProduct } from '@/app/actions';
 import { useState, useMemo, useCallback } from 'react';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, Info, Clock, Calendar, CheckCircle2, AlertCircle, ShoppingCart } from 'lucide-react';
+import { Search, Info, Clock, Calendar, CheckCircle2, AlertCircle, ShoppingCart, ArrowUpDown, ChevronUp, ChevronDown } from 'lucide-react';
 
 interface ProductGridProps {
     products: AgencyProduct[];
 }
+
+type SortConfig = {
+    key: keyof AgencyProduct | '';
+    direction: 'asc' | 'desc';
+};
 
 const DESTINATION_COLORS: Record<string, string> = {
     'SANTIAGO': '#3b5998', // Fidu Blue
@@ -27,34 +32,76 @@ const getDestinationColor = (dest: string) => {
 
 export function ProductGrid({ products }: ProductGridProps) {
     const [searchTerm, setSearchTerm] = useState('');
-    const [categoryFilter, setCategoryFilter] = useState('all');
+    const [categoryFilter, setCategoryFilter] = useState('REG');
     const [destinationFilter, setDestinationFilter] = useState('all');
+    const [seasonFilter, setSeasonFilter] = useState('all');
+    const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'tourName', direction: 'asc' });
 
     // Extract unique filters
     const categories = useMemo(() => Array.from(new Set(products.map(p => p.category))).sort(), [products]);
     const destinations = useMemo(() => Array.from(new Set(products.map(p => p.destination))).sort(), [products]);
+    const seasons = useMemo(() => {
+        const allSeasons = products.map(p => p.temporada).filter(Boolean) as string[];
+        return Array.from(new Set(allSeasons)).sort();
+    }, [products]);
 
-    // Filter logic
+    const requestSort = (key: keyof AgencyProduct) => {
+        let direction: 'asc' | 'desc' = 'asc';
+        if (sortConfig.key === key && sortConfig.direction === 'asc') {
+            direction = 'desc';
+        }
+        setSortConfig({ key, direction });
+    };
+
+    // Filter and Sort logic
     const filteredProducts = useMemo(() => {
-        return products.filter(product => {
+        let result = products.filter(product => {
             const matchesSearch =
                 (product.tourName?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
                 (product.destination?.toLowerCase() || '').includes(searchTerm.toLowerCase());
             const matchesCategory = categoryFilter === 'all' || product.category === categoryFilter;
             const matchesDestination = destinationFilter === 'all' || product.destination === destinationFilter;
+            const matchesSeason = seasonFilter === 'all' || product.temporada === seasonFilter;
 
-            return matchesSearch && matchesCategory && matchesDestination;
+            return matchesSearch && matchesCategory && matchesDestination && matchesSeason;
         });
-    }, [products, searchTerm, categoryFilter, destinationFilter]);
+
+        if (sortConfig.key) {
+            result.sort((a, b) => {
+                const aValue = a[sortConfig.key as keyof AgencyProduct];
+                const bValue = b[sortConfig.key as keyof AgencyProduct];
+
+                if (aValue === undefined || aValue === null) return 1;
+                if (bValue === undefined || bValue === null) return -1;
+
+                if (aValue < bValue) {
+                    return sortConfig.direction === 'asc' ? -1 : 1;
+                }
+                if (aValue > bValue) {
+                    return sortConfig.direction === 'asc' ? 1 : -1;
+                }
+                return 0;
+            });
+        }
+
+        return result;
+    }, [products, searchTerm, categoryFilter, destinationFilter, seasonFilter, sortConfig]);
 
     const formatPrice = (price: number) => {
         return price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 0 });
     };
 
+    const SortIcon = ({ columnKey }: { columnKey: keyof AgencyProduct }) => {
+        if (sortConfig.key !== columnKey) return <ArrowUpDown className="ml-1 h-3 w-3 opacity-30" />;
+        return sortConfig.direction === 'asc' ?
+            <ChevronUp className="ml-1 h-3 w-3 text-[#3b5998]" /> :
+            <ChevronDown className="ml-1 h-3 w-3 text-[#3b5998]" />;
+    };
+
     return (
         <div className="space-y-6">
             {/* Filters Bar */}
-            <div className="flex flex-col md:flex-row gap-4 items-center bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+            <div className="flex flex-col lg:flex-row gap-4 items-center bg-white p-4 rounded-xl shadow-sm border border-gray-100">
                 <div className="relative flex-1 w-full">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-4 w-4" />
                     <Input
@@ -64,9 +111,9 @@ export function ProductGrid({ products }: ProductGridProps) {
                         onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
                     />
                 </div>
-                <div className="flex gap-2 w-full md:w-auto">
+                <div className="flex flex-wrap gap-2 w-full lg:w-auto">
                     <Select value={destinationFilter} onValueChange={setDestinationFilter}>
-                        <SelectTrigger className="w-full md:w-40 border-gray-200 rounded-lg">
+                        <SelectTrigger className="flex-1 lg:w-40 border-gray-200 rounded-lg">
                             <SelectValue placeholder="Destino" />
                         </SelectTrigger>
                         <SelectContent>
@@ -78,13 +125,25 @@ export function ProductGrid({ products }: ProductGridProps) {
                     </Select>
 
                     <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                        <SelectTrigger className="w-full md:w-40 border-gray-200 rounded-lg">
+                        <SelectTrigger className="flex-1 lg:w-40 border-gray-200 rounded-lg">
                             <SelectValue placeholder="Serviço" />
                         </SelectTrigger>
                         <SelectContent>
                             <SelectItem value="all">Todos os Serviços</SelectItem>
                             {categories.map(cat => (
                                 <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+
+                    <Select value={seasonFilter} onValueChange={setSeasonFilter}>
+                        <SelectTrigger className="flex-1 lg:w-40 border-gray-200 rounded-lg">
+                            <SelectValue placeholder="Temporada" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">Todas as Temporadas</SelectItem>
+                            {seasons.map(s => (
+                                <SelectItem key={s} value={s}>{s}</SelectItem>
                             ))}
                         </SelectContent>
                     </Select>
@@ -97,15 +156,50 @@ export function ProductGrid({ products }: ProductGridProps) {
                     <table className="w-full text-left border-collapse">
                         <thead>
                             <tr className="bg-gray-50/50 border-b border-gray-100">
-                                <th className="px-4 py-3 text-[11px] font-bold text-gray-500 uppercase tracking-tight w-20">Tipo</th>
-                                <th className="px-4 py-3 text-[11px] font-bold text-gray-500 uppercase tracking-tight">Destino</th>
-                                <th className="px-4 py-3 text-[11px] font-bold text-gray-500 uppercase tracking-tight">Serviço</th>
-                                <th className="px-4 py-3 text-[11px] font-bold text-gray-500 uppercase tracking-tight text-right">Neto (ADU)</th>
-                                <th className="px-4 py-3 text-[11px] font-bold text-gray-500 uppercase tracking-tight text-right">Neto (CHD)</th>
-                                <th className="px-4 py-3 text-[11px] font-bold text-gray-500 uppercase tracking-tight text-right">Neto (INF)</th>
+                                <th
+                                    className="px-4 py-3 text-[11px] font-bold text-gray-500 uppercase tracking-tight w-20 cursor-pointer hover:bg-gray-100 transition-colors"
+                                    onClick={() => requestSort('category')}
+                                >
+                                    <div className="flex items-center">Tipo <SortIcon columnKey="category" /></div>
+                                </th>
+                                <th
+                                    className="px-4 py-3 text-[11px] font-bold text-gray-500 uppercase tracking-tight cursor-pointer hover:bg-gray-100 transition-colors"
+                                    onClick={() => requestSort('destination')}
+                                >
+                                    <div className="flex items-center">Destino <SortIcon columnKey="destination" /></div>
+                                </th>
+                                <th
+                                    className="px-4 py-3 text-[11px] font-bold text-gray-500 uppercase tracking-tight cursor-pointer hover:bg-gray-100 transition-colors"
+                                    onClick={() => requestSort('tourName')}
+                                >
+                                    <div className="flex items-center">Serviço <SortIcon columnKey="tourName" /></div>
+                                </th>
+                                <th
+                                    className="px-4 py-3 text-[11px] font-bold text-gray-500 uppercase tracking-tight text-right cursor-pointer hover:bg-gray-100 transition-colors"
+                                    onClick={() => requestSort('netoPriceAdulto')}
+                                >
+                                    <div className="flex items-center justify-end">Neto (ADU) <SortIcon columnKey="netoPriceAdulto" /></div>
+                                </th>
+                                <th
+                                    className="px-4 py-3 text-[11px] font-bold text-gray-500 uppercase tracking-tight text-right cursor-pointer hover:bg-gray-100 transition-colors"
+                                    onClick={() => requestSort('netoPriceMenor')}
+                                >
+                                    <div className="flex items-center justify-end">Neto (CHD) <SortIcon columnKey="netoPriceMenor" /></div>
+                                </th>
+                                <th
+                                    className="px-4 py-3 text-[11px] font-bold text-gray-500 uppercase tracking-tight text-right cursor-pointer hover:bg-gray-100 transition-colors"
+                                    onClick={() => requestSort('netoPriceBebe')}
+                                >
+                                    <div className="flex items-center justify-end">Neto (INF) <SortIcon columnKey="netoPriceBebe" /></div>
+                                </th>
                                 <th className="px-4 py-3 text-[11px] font-bold text-gray-500 uppercase tracking-tight">Pickup</th>
                                 <th className="px-4 py-3 text-[11px] font-bold text-gray-500 uppercase tracking-tight">Retorno</th>
-                                <th className="px-4 py-3 text-[11px] font-bold text-gray-500 uppercase tracking-tight">Temporada</th>
+                                <th
+                                    className="px-4 py-3 text-[11px] font-bold text-gray-500 uppercase tracking-tight cursor-pointer hover:bg-gray-100 transition-colors"
+                                    onClick={() => requestSort('temporada')}
+                                >
+                                    <div className="flex items-center">Temporada <SortIcon columnKey="temporada" /></div>
+                                </th>
                                 <th className="px-4 py-3 text-[11px] font-bold text-gray-500 uppercase tracking-tight">Dias</th>
                             </tr>
                         </thead>
