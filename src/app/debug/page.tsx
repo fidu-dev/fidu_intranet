@@ -1,45 +1,42 @@
 import { getAirtableBase } from '@/lib/airtable/client';
+import { currentUser } from '@clerk/nextjs/server';
 
 export default async function DebugPage() {
+    const user = await currentUser();
     const apiKey = process.env.AIRTABLE_API_KEY;
     const baseId = process.env.AIRTABLE_BASE_ID;
     const clerkKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
 
-    let libraryTest = "Não iniciado";
-    let fetchTest = "Não iniciado";
+    let productsTest = "Não iniciado";
+    let agenciesTest = "Não iniciado";
     let rawError = "";
 
-    // Test 1: Library
+    const base = getAirtableBase();
+
+    // Test 1: Products
     try {
-        const base = getAirtableBase();
         if (base) {
             await base('Products').select({ maxRecords: 1 }).firstPage();
-            libraryTest = "✅ Sucesso (Livraria conectou!)";
+            productsTest = "✅ Sucesso";
         } else {
-            libraryTest = "❌ Falha: Cliente não inicializado (Base é null)";
+            productsTest = "❌ Base nula";
         }
     } catch (e: any) {
-        libraryTest = `❌ Erro da Livraria: ${e.message}`;
-        rawError = JSON.stringify(e, null, 2);
+        productsTest = `❌ Erro: ${e.message}`;
+        rawError += `Produtos: ${e.message}\n`;
     }
 
-    // Test 2: Direct Fetch
-    if (apiKey && baseId) {
-        try {
-            const res = await fetch(`https://api.airtable.com/v0/${baseId}/Products?maxRecords=1`, {
-                headers: { Authorization: `Bearer ${apiKey}` },
-                cache: 'no-store'
-            });
-            if (res.ok) {
-                fetchTest = "✅ Sucesso (Fetch funcionou!)";
-            } else {
-                fetchTest = `❌ Erro no Fetch: Status ${res.status} ${res.statusText}`;
-                const body = await res.text();
-                rawError = rawError ? rawError + "\n\n" + body : body;
-            }
-        } catch (e: any) {
-            fetchTest = `❌ Falha no Fetch: ${e.message}`;
+    // Test 2: Agencies
+    try {
+        if (base) {
+            await base('Agencies').select({ maxRecords: 1 }).firstPage();
+            agenciesTest = "✅ Sucesso";
+        } else {
+            agenciesTest = "❌ Base nula";
         }
+    } catch (e: any) {
+        agenciesTest = `❌ Erro: ${e.message}`;
+        rawError += `Agências: ${e.message}\n`;
     }
 
     return (
@@ -48,10 +45,18 @@ export default async function DebugPage() {
 
             <div className="grid gap-6">
                 <div className="p-4 border rounded shadow-sm bg-gray-50">
+                    <h2 className="font-semibold text-lg border-b mb-2 pb-1 text-purple-600">0. Usuário Logado</h2>
+                    <div className="text-sm">
+                        <p><strong>Email:</strong> {user?.emailAddresses[0]?.emailAddress || 'Ninguém logado'}</p>
+                        <p><strong>ID Clerk:</strong> {user?.id || 'N/A'}</p>
+                    </div>
+                </div>
+
+                <div className="p-4 border rounded shadow-sm bg-gray-50">
                     <h2 className="font-semibold text-lg border-b mb-2 pb-1">1. Chaves no Servidor</h2>
                     <div className="grid grid-cols-2 gap-2 text-sm">
                         <span className="text-gray-500">API Key:</span>
-                        <span className="font-mono">{apiKey ? `${apiKey.substring(0, 8)}... (Length: ${apiKey.length})` : 'MISSING'}</span>
+                        <span className="font-mono">{apiKey ? `${apiKey.substring(0, 8)}...` : 'MISSING'}</span>
 
                         <span className="text-gray-500">Base ID:</span>
                         <span className="font-mono">{baseId ? baseId : 'MISSING'}</span>
@@ -62,10 +67,10 @@ export default async function DebugPage() {
                 </div>
 
                 <div className="p-4 border rounded shadow-sm">
-                    <h2 className="font-semibold text-lg border-b mb-2 pb-1 text-blue-600">2. Teste de Conexão</h2>
+                    <h2 className="font-semibold text-lg border-b mb-2 pb-1 text-blue-600">2. Teste de Tabelas (Airtable SDK)</h2>
                     <div className="space-y-2">
-                        <p><strong>Airtable Library:</strong> {libraryTest}</p>
-                        <p><strong>Direct Fetch/API:</strong> {fetchTest}</p>
+                        <p><strong>Tabela 'Products':</strong> {productsTest}</p>
+                        <p><strong>Tabela 'Agencies':</strong> {agenciesTest}</p>
                     </div>
                 </div>
 
@@ -80,8 +85,7 @@ export default async function DebugPage() {
             </div>
 
             <div className="mt-10 p-4 bg-yellow-50 border border-yellow-100 rounded text-sm text-yellow-800">
-                <strong>Sugestão:</strong> Se o Fetch falhar com 401, o Token definitivamente não é aceito pela API do Airtable vindo da Vercel.
-                Confirme se o Token não tem restrição de IP (IP Restrictions) e se o Base ID é exatamente o que aparece na URL do seu workspace.
+                <strong>Sugestão:</strong> Se o teste de 'Agencies' falhar com 404, verifique se a tabela existe com esse nome exato. Se falhar com 401, o Token não tem acesso a essa base no Airtable.
             </div>
         </div>
     );
