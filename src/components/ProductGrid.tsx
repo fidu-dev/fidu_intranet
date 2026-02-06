@@ -23,8 +23,9 @@ export function ProductGrid({ products }: ProductGridProps) {
     // Filter logic
     const filteredProducts = useMemo(() => {
         return products.filter(product => {
-            const matchesSearch = product.tourName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                product.destination.toLowerCase().includes(searchTerm.toLowerCase());
+            const matchesSearch =
+                (product.tourName?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+                (product.destination?.toLowerCase() || '').includes(searchTerm.toLowerCase());
             const matchesCategory = categoryFilter === 'all' || product.category === categoryFilter;
             const matchesDestination = destinationFilter === 'all' || product.destination === destinationFilter;
 

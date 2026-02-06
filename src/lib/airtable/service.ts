@@ -5,10 +5,10 @@ import { FieldSet } from 'airtable';
 // Helper to map record to Product
 const mapToProduct = (record: any): Product => ({
     id: record.id,
-    destination: record.fields['Destination'] as string,
-    tourName: record.fields['Tour Name'] as string,
-    category: record.fields['Category'] as string,
-    basePrice: record.fields['Base Price'] as number,
+    destination: record.fields['Destination'] as string || 'General',
+    tourName: record.fields['Tour Name'] as string || 'Unnamed Tour',
+    category: record.fields['Category'] as string || 'Other',
+    basePrice: record.fields['Base Price'] as number || 0,
     imageUrl: record.fields['Image']?.[0]?.url,
 });
 
