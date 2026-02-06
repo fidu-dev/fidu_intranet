@@ -142,7 +142,7 @@ export function ProductGrid({ products }: ProductGridProps) {
                                         className="px-4 py-4 text-right cursor-help"
                                         title={`Sugestão de Venda: ${formatPrice(product.salePriceMenor)}`}
                                     >
-                                        <span className="text-sm text-gray-600">
+                                        <span className="text-sm font-bold text-gray-900">
                                             {formatPrice(product.netoPriceMenor)}
                                         </span>
                                     </td>
@@ -150,7 +150,7 @@ export function ProductGrid({ products }: ProductGridProps) {
                                         className="px-4 py-4 text-right cursor-help"
                                         title={`Sugestão de Venda: ${formatPrice(product.salePriceBebe)}`}
                                     >
-                                        <span className="text-sm text-gray-400">
+                                        <span className="text-sm font-bold text-gray-900">
                                             {formatPrice(product.netoPriceBebe)}
                                         </span>
                                     </td>
