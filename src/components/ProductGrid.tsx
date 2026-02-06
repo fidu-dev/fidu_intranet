@@ -87,9 +87,10 @@ export function ProductGrid({ products }: ProductGridProps) {
                                 <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-tight">Destino</th>
                                 <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-tight">Serviço</th>
                                 <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-tight">Categoria</th>
-                                <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-tight text-right">Adulto</th>
-                                <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-tight text-right">Menor</th>
-                                <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-tight text-right">Bebê</th>
+                                <th className="px-4 py-3 text-[10px] font-bold text-[#3b5998] uppercase tracking-tight text-right bg-blue-50/30">Neto (ADU)</th>
+                                <th className="px-4 py-3 text-[10px] font-bold text-gray-500 uppercase tracking-tight text-right">Venda (ADU)</th>
+                                <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-tight text-right">Neto (CHD)</th>
+                                <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-tight text-right">Neto (INF)</th>
                                 <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-tight">Pickup</th>
                                 <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-tight">Retorno</th>
                                 <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-tight">Taxas</th>
@@ -102,19 +103,19 @@ export function ProductGrid({ products }: ProductGridProps) {
                                 <tr key={product.id} className="hover:bg-blue-50/30 transition-colors group">
                                     <td className="px-4 py-4">
                                         <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase ${product.category === 'REG' ? 'bg-yellow-100 text-yellow-700' :
-                                                product.category === 'PVD' ? 'bg-gray-100 text-gray-700' :
-                                                    'bg-blue-100 text-blue-700'
+                                            product.category === 'PVD' ? 'bg-gray-100 text-gray-700' :
+                                                'bg-blue-100 text-[#3b5998]'
                                             }`}>
                                             {product.category}
                                         </span>
                                     </td>
                                     <td className="px-4 py-4 whitespace-nowrap">
-                                        <span className="bg-blue-600 text-white text-[11px] font-medium px-3 py-1 rounded-full">
+                                        <span className="text-white text-[11px] font-medium px-3 py-1 rounded-full" style={{ backgroundColor: '#3b5998' }}>
                                             {product.destination}
                                         </span>
                                     </td>
                                     <td className="px-4 py-4 min-w-[200px]">
-                                        <div className="text-sm font-medium text-gray-900 group-hover:text-blue-700">
+                                        <div className="text-sm font-medium text-gray-900 group-hover:text-[#3b5998]">
                                             {product.tourName}
                                         </div>
                                     </td>
@@ -127,19 +128,24 @@ export function ProductGrid({ products }: ProductGridProps) {
                                             ))}
                                         </div>
                                     </td>
+                                    <td className="px-4 py-4 text-right bg-blue-50/10">
+                                        <span className="text-sm font-bold text-[#3b5998]">
+                                            {formatPrice(product.netoPriceAdulto)}
+                                        </span>
+                                    </td>
                                     <td className="px-4 py-4 text-right">
-                                        <span className="text-sm font-bold text-gray-900">
-                                            {formatPrice(product.consumerPrice)}
+                                        <span className="text-sm font-semibold text-gray-900">
+                                            {formatPrice(product.salePriceAdulto)}
                                         </span>
                                     </td>
                                     <td className="px-4 py-4 text-right">
                                         <span className="text-sm text-gray-600">
-                                            {formatPrice(product.consumerPriceMenor)}
+                                            {formatPrice(product.netoPriceMenor)}
                                         </span>
                                     </td>
                                     <td className="px-4 py-4 text-right">
                                         <span className="text-sm text-gray-400">
-                                            {formatPrice(product.consumerPriceBebe)}
+                                            {formatPrice(product.netoPriceBebe)}
                                         </span>
                                     </td>
                                     <td className="px-4 py-4 text-sm text-gray-500 font-mono">
