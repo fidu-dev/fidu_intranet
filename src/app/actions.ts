@@ -53,11 +53,20 @@ export async function getAgencyProducts(): Promise<{ products: AgencyProduct[], 
 
         // Fetch Agency Details
         const agency = await getAgencyByEmail(email);
-        const commissionRate = agency ? agency.commissionRate : 0;
+
+        // STRICT ACCESS CONTROL: Only allow agencies in the list
+        if (!agency) {
+            return {
+                products: [],
+                error: 'ACESSO NEGADO: Seu e-mail não está na lista de agentes autorizados. Por favor, entre em contato com a Fidu para habilitar seu acesso.'
+            };
+        }
+
+        const commissionRate = agency.commissionRate;
 
         const agencyInfo: AgencyInfo = {
             agentName: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username || 'Agente',
-            agencyName: agency?.name || 'Agência Independente',
+            agencyName: agency.name,
             commissionRate: commissionRate
         };
 
