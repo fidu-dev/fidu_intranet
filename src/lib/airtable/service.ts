@@ -1,4 +1,4 @@
-import { getAirtableBase } from './client';
+import { getProductBase, getAgencyBase } from './client';
 import { Product, Agency } from './types';
 import { FieldSet } from 'airtable';
 
@@ -13,7 +13,7 @@ const mapToProduct = (record: any): Product => ({
 });
 
 export const getProducts = async (): Promise<Product[]> => {
-    const base = getAirtableBase();
+    const base = getProductBase();
     if (!base) {
         console.error('Airtable base not initialized. Check your environment variables.');
         return [];
@@ -26,38 +26,40 @@ export const getProducts = async (): Promise<Product[]> => {
 };
 
 export const getAgencyByEmail = async (email: string): Promise<Agency | null> => {
-    const base = getAirtableBase();
+    const base = getAgencyBase();
     if (!base) {
-        console.error('Airtable base not initialized. Check your environment variables.');
+        console.error('Airtable Agency base not initialized. Check AIRTABLE_AGENCY_BASE_ID.');
         return null;
     }
-    const records = await base('Agencies').select({
-        filterByFormula: `{Email} = '${email}'`,
+
+    const records = await base('Table 1').select({
+        filterByFormula: `{mail} = '${email}'`,
         maxRecords: 1
-    }).firstPage();
+    }).all();
 
     if (records.length === 0) return null;
 
-    const fields = records[0].fields;
+    const record = records[0];
     return {
-        id: records[0].id,
-        name: fields['Name'] as string,
-        email: fields['Email'] as string,
-        commissionRate: fields['Commission Rate'] as number || 0,
+        id: record.id,
+        name: record.fields['Agency'] as string || record.fields['Name'] as string,
+        email: record.fields['mail'] as string,
+        commissionRate: record.fields['Comision_base'] as number || 0,
     };
 };
 
 export const createAgency = async (agency: Omit<Agency, 'id'>) => {
-    const base = getAirtableBase();
+    const base = getAgencyBase();
     if (!base) {
-        throw new Error('Airtable base not initialized');
+        throw new Error('Airtable Agency base not initialized');
     }
-    return base('Agencies').create([
+
+    await base('Table 1').create([
         {
             fields: {
-                'Name': agency.name,
-                'Email': agency.email,
-                'Commission Rate': agency.commissionRate,
+                'Agency': agency.name,
+                'mail': agency.email,
+                'Comision_base': agency.commissionRate
             }
         }
     ]);

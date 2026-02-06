@@ -1,7 +1,7 @@
 'use server'
 
 import { auth, currentUser } from '@clerk/nextjs/server';
-import { getAirtableBase } from '@/lib/airtable/client';
+import { getProductBase, getAgencyBase } from '@/lib/airtable/client';
 import { getProducts } from '@/lib/airtable/service';
 import { Agency } from '@/lib/airtable/types';
 
@@ -20,31 +20,31 @@ export async function getAdminProducts() {
 
 export async function getAgencies(): Promise<Agency[]> {
     if (!(await isAdmin())) throw new Error('Unauthorized');
-    const base = getAirtableBase();
+    const base = getAgencyBase();
     if (!base) return [];
 
-    const records = await base('Agencies').select({
-        view: 'Grid view'
-    }).all();
+    const records = await base('Table 1').select({
+        view: 'viwmCj8ZefKY7lqP6' // Grid view ID from URL if possible, or fallback to name
+    }).all().catch(() => base('Table 1').select().all());
 
     return records.map((record: any) => ({
         id: record.id,
-        name: record.fields['Name'] as string,
-        email: record.fields['Email'] as string,
-        commissionRate: record.fields['Commission Rate'] as number || 0,
+        name: record.fields['Agency'] as string || record.fields['Name'] as string,
+        email: record.fields['mail'] as string,
+        commissionRate: record.fields['Comision_base'] as number || 0,
     }));
 }
 
 export async function updateAgencyCommission(agencyId: string, newRate: number) {
     if (!(await isAdmin())) throw new Error('Unauthorized');
-    const base = getAirtableBase();
-    if (!base) throw new Error('Airtable not initialized');
+    const base = getAgencyBase();
+    if (!base) throw new Error('Airtable Agency base not initialized');
 
-    await base('Agencies').update([
+    await base('Table 1').update([
         {
             id: agencyId,
             fields: {
-                'Commission Rate': newRate
+                'Comision_base': newRate
             }
         }
     ]);
@@ -54,15 +54,15 @@ export async function updateAgencyCommission(agencyId: string, newRate: number) 
 
 export async function createNewAgency(name: string, email: string, commissionRate: number) {
     if (!(await isAdmin())) throw new Error('Unauthorized');
-    const base = getAirtableBase();
-    if (!base) throw new Error('Airtable not initialized');
+    const base = getAgencyBase();
+    if (!base) throw new Error('Airtable Agency base not initialized');
 
-    await base('Agencies').create([
+    await base('Table 1').create([
         {
             fields: {
-                'Name': name,
-                'Email': email,
-                'Commission Rate': commissionRate
+                'Agency': name,
+                'mail': email,
+                'Comision_base': commissionRate
             }
         }
     ]);
@@ -83,15 +83,15 @@ export interface SimulatedProduct {
 export async function getSimulatorProducts(agencyId: string): Promise<SimulatedProduct[]> {
     // Basic Admin Check (can be refined for "Sales" role later)
     if (!(await isAdmin())) throw new Error('Unauthorized');
-    const base = getAirtableBase();
+    const base = getAgencyBase();
     if (!base) return [];
 
     // 1. Get Agency Commission
-    const agencyRecord = await base('Agencies').find(agencyId);
+    const agencyRecord = await base('Table 1').find(agencyId);
     if (!agencyRecord) throw new Error('Agency not found');
 
     // Safety check: ensure rate is a number
-    const rate = (agencyRecord.fields['Commission Rate'] as number) || 0;
+    const rate = (agencyRecord.fields['Comision_base'] as number) || 0;
 
     // 2. Get All Products
     const products = await getProducts(); // This returns base prices
