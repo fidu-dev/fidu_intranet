@@ -132,16 +132,39 @@ export async function getMuralItems(userEmail?: string, userName?: string, agenc
         }
     }
 
-    return records.map((record: any) => {
+    const now = new Date();
+    const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
+
+    const itemsToUpdateStatus: { id: string, fields: any }[] = [];
+
+    const mappedItems = records.map((record: any) => {
         const fields = record.fields;
 
-        // Use 'Select' field for IsNew if 'IsNew' is missing, matching screenshot
-        const isNew = fields['Select'] === 'Novo!' || fields['IsNew'] === true;
+        // User mentioned 'Last update', falling back to 'Data' or 'Date'
+        const rawDate = fields['Last update'] || fields['Data'] || fields['Date'];
+        const itemDate = rawDate ? new Date(rawDate) : now;
+
+        // Condition: Less than 7 days ago
+        const isActuallyNew = (now.getTime() - itemDate.getTime()) < SEVEN_DAYS_MS;
+
+        // Sync Airtable 'New' column if requested (assuming it's a select or string field)
+        const currentNewValue = fields['New'];
+        const targetNewValue = isActuallyNew ? 'New' : null;
+
+        if (currentNewValue !== targetNewValue) {
+            itemsToUpdateStatus.push({
+                id: record.id,
+                fields: { 'New': targetNewValue }
+            });
+        }
+
+        // Use the calculated status for the UI
+        const isNew = isActuallyNew;
 
         // Flexible field mapping based on common names and screenshot
         const title = fields['Título'] || fields['Aviso'] || fields['Title'] || 'Sem título';
         const details = fields['Notes'] || fields['Detalhes'] || fields['Details'] || '';
-        const date = fields['Data'] || fields['Date'] || new Date().toISOString();
+        const date = rawDate || now.toISOString();
         const category = fields['Categoria'] || fields['Category'] || 'Geral';
 
         // Check if read by current user (check both email/name and linked record ID)
@@ -168,6 +191,19 @@ export async function getMuralItems(userEmail?: string, userName?: string, agenc
             isRead: !!isRead
         };
     });
+
+    // Proactively update Airtable 'New' tag if it changed (batch update)
+    if (itemsToUpdateStatus.length > 0) {
+        try {
+            const table = records[0]._table.name; // Get table name from record
+            await base(table).update(itemsToUpdateStatus.slice(0, 10)); // Max 10 per call
+            console.log(`Synced 'New' status for ${itemsToUpdateStatus.length} items in ${table}`);
+        } catch (e) {
+            console.warn('Failed to sync New status in Airtable:', e);
+        }
+    }
+
+    return mappedItems;
 }
 
 export async function markAsRead(muralId: string, userEmail: string, userName: string, agencyId: string): Promise<void> {

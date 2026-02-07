@@ -70,8 +70,8 @@ export function MuralGrid({ items }: MuralGridProps) {
                                                     <div className="w-2 h-2 rounded-full bg-[#3b5998] animate-pulse" title="Não lido" />
                                                 )}
                                                 {item.isNew && (
-                                                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-pink-100 text-pink-600 uppercase w-fit">
-                                                        Novo!
+                                                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-red-100 text-red-600 uppercase w-fit border border-red-200">
+                                                        Nova
                                                     </span>
                                                 )}
                                             </div>
