@@ -215,73 +215,53 @@ export async function getMuralItems(userEmail?: string, userName?: string, agenc
 
 export async function markAsRead(muralId: string, userEmail: string, userName: string, agencyId: string): Promise<void> {
     const base = getProductBase();
-    if (!base) return;
+    if (!base) {
+        console.error('❌ Product base not initialized');
+        return;
+    }
 
-    // Skip MuralReadLog - focus on the primary Lido field in Mural table
+    console.log(`📝 markAsRead called with:`, { muralId, userEmail, userName, agencyId });
 
-    // Update the "Lido" field in 'Mural' table with USERNAME as simple text
+    // Update the "Lido" multi-select field in 'Mural' table with userName
     const tablesToTry = ['Mural', '◉ No ar!'];
 
     for (const tableName of tablesToTry) {
         try {
+            console.log(`🔍 Trying table: ${tableName}`);
             const record = await base(tableName).find(muralId);
-            if (!record) continue;
 
-            const fields = record.fields;
-            // Lido is a text/select field - store usernames as text values
-            let currentLido = fields['Lido'] as any;
-
-            // Handle different field types
-            let newValue: any;
-
-            if (Array.isArray(currentLido)) {
-                // Multi-select or Linked Records - check if userName already exists
-                const lidoStrings = currentLido.map((item: any) =>
-                    typeof item === 'string' ? item : (item?.name || item?.email || '')
-                );
-
-                if (!lidoStrings.includes(userName)) {
-                    // For linked records, we need to append the agencyId (record ID)
-                    // For multi-select/text, we append the userName string
-                    if (typeof currentLido[0] === 'string' && currentLido[0].startsWith('rec')) {
-                        // Linked records - append agencyId
-                        newValue = [...currentLido, agencyId];
-                    } else {
-                        // Text array - append userName
-                        newValue = [...lidoStrings.filter(Boolean), userName];
-                    }
-                }
-            } else if (typeof currentLido === 'string') {
-                // Single text field - append comma-separated
-                if (!currentLido.includes(userName)) {
-                    newValue = currentLido ? `${currentLido}, ${userName}` : userName;
-                }
-            } else {
-                // Empty or null - set as single value (try as array first for multi-select)
-                newValue = [userName];
+            if (!record) {
+                console.log(`⚠️ Record not found in ${tableName}`);
+                continue;
             }
 
-            if (newValue !== undefined) {
-                try {
-                    await base(tableName).update(muralId, {
-                        'Lido': newValue
-                    });
-                    console.log(`✅ Successfully updated Lido field in ${tableName} with: ${JSON.stringify(newValue)}`);
-                } catch (updateError: any) {
-                    // If array fails, try as single string
-                    console.warn('Array update failed, trying as string:', updateError.message);
-                    await base(tableName).update(muralId, {
-                        'Lido': userName
-                    });
-                    console.log(`✅ Successfully updated Lido field as string in ${tableName}`);
-                }
-            } else {
+            console.log(`✅ Found record in ${tableName}:`, record.id);
+
+            // Lido is a multi-select field - it returns an array of strings (option names)
+            const currentLido = (record.fields['Lido'] as string[]) || [];
+            console.log(`📋 Current Lido values:`, currentLido);
+
+            // Check if userName is already in the list
+            if (currentLido.includes(userName)) {
                 console.log(`ℹ️ User ${userName} already in Lido field`);
+                return;
             }
 
+            // Add userName to the multi-select array
+            const newLidoValue = [...currentLido, userName];
+            console.log(`📝 New Lido value to set:`, newLidoValue);
+
+            // Update the record with the new multi-select value
+            await base(tableName).update(muralId, {
+                'Lido': newLidoValue
+            });
+
+            console.log(`✅ Successfully updated Lido field in ${tableName}`);
             return;
+
         } catch (e: any) {
-            console.error(`Error updating ${tableName}:`, e.message);
+            console.error(`❌ Error with table ${tableName}:`, e.message);
+            console.error(`Full error:`, e);
             continue;
         }
     }
