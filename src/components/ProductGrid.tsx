@@ -8,12 +8,7 @@ import { Search, Info, Clock, Calendar, CheckCircle2, AlertCircle, ShoppingCart,
 import { SalesSimulator } from './SalesSimulator';
 import { AgencyInfo } from '@/app/actions';
 import { Button } from '@/components/ui/button';
-
-export interface SimulatedProduct extends AgencyProduct {
-    adults: number;
-    children: number;
-    infants: number;
-}
+import { useCart } from './CartContext';
 
 interface ProductGridProps {
     products: AgencyProduct[];
@@ -42,13 +37,13 @@ const getDestinationColor = (dest: string) => {
 };
 
 export function ProductGrid({ products, isInternal, agencyInfo }: ProductGridProps) {
+    const { selectedProducts, addToCart, clearCart } = useCart();
     const [searchTerm, setSearchTerm] = useState('');
     const [categoryFilter, setCategoryFilter] = useState('REG');
     const [destinationFilter, setDestinationFilter] = useState('all');
     const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'tourName', direction: 'asc' });
 
-    // Simulator State
-    const [selectedProducts, setSelectedProducts] = useState<SimulatedProduct[]>([]);
+    // UI Local State
     const [isSimulatorOpen, setIsSimulatorOpen] = useState(false);
 
     // Extract unique filters
@@ -64,21 +59,8 @@ export function ProductGrid({ products, isInternal, agencyInfo }: ProductGridPro
     };
 
     const handleProductClick = (product: AgencyProduct) => {
-        setSelectedProducts(prev => {
-            if (prev.find(p => p.id === product.id)) return prev;
-            return [...prev, { ...product, adults: 1, children: 0, infants: 0 }];
-        });
+        addToCart(product);
         setIsSimulatorOpen(true);
-    };
-
-    const handleUpdatePax = (productId: string, field: 'adults' | 'children' | 'infants', value: number) => {
-        setSelectedProducts(prev => prev.map(p =>
-            p.id === productId ? { ...p, [field]: value } : p
-        ));
-    };
-
-    const handleRemoveProduct = (productId: string) => {
-        setSelectedProducts(prev => prev.filter(p => p.id !== productId));
     };
 
     // Filter and Sort logic
@@ -152,7 +134,7 @@ export function ProductGrid({ products, isInternal, agencyInfo }: ProductGridPro
                             variant="ghost"
                             size="sm"
                             className="text-white hover:bg-white/10"
-                            onClick={() => setSelectedProducts([])}
+                            onClick={clearCart}
                         >
                             <X className="h-4 w-4 mr-1" />
                             Limpar
@@ -305,7 +287,7 @@ export function ProductGrid({ products, isInternal, agencyInfo }: ProductGridPro
                                         </td>
                                         <td className="px-4 py-4 text-center">
                                             {isSelected ? (
-                                                <div className="bg-blue-600 text-white p-1.5 rounded-full inline-flex">
+                                                <div className="bg-blue-600 text-white p-1.5 rounded-full inline-flex border border-blue-600 shadow-sm shadow-blue-100">
                                                     <CheckCircle2 className="h-4 w-4" />
                                                 </div>
                                             ) : (
@@ -329,9 +311,6 @@ export function ProductGrid({ products, isInternal, agencyInfo }: ProductGridPro
             </div>
 
             <SalesSimulator
-                selectedProducts={selectedProducts}
-                onUpdatePax={handleUpdatePax}
-                onRemoveProduct={handleRemoveProduct}
                 isOpen={isSimulatorOpen}
                 onClose={() => setIsSimulatorOpen(false)}
                 agencyInfo={agencyInfo}
