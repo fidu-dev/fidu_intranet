@@ -55,12 +55,13 @@ export function PortalHeader({ agency }: PortalHeaderProps) {
                             </div>
                             <div className="flex flex-col text-right border-l pl-6">
                                 <span className="text-gray-400 text-[10px] uppercase font-bold tracking-wider">Agência</span>
-                                <div className="flex items-center gap-2 justify-end">
-                                    <span className="text-gray-900 font-semibold">{agency.agencyName}</span>
-                                    <span className="bg-blue-50 text-[#3b5998] px-1.5 py-0.5 rounded text-[10px] font-bold">
-                                        {(agency.commissionRate * 100).toFixed(0)}%
-                                    </span>
-                                </div>
+                                <span className="text-gray-900 font-semibold">{agency.agencyName}</span>
+                            </div>
+                            <div className="flex flex-col text-right border-l pl-6">
+                                <span className="text-gray-400 text-[10px] uppercase font-bold tracking-wider">Comissão</span>
+                                <span className="bg-blue-50 text-[#3b5998] px-2 py-0.5 rounded font-bold text-xs self-end">
+                                    {(agency.commissionRate * 100).toFixed(0)}%
+                                </span>
                             </div>
                         </div>
                     )}
