@@ -114,7 +114,7 @@ export function SalesSimulator({ selectedProducts, onRemoveProduct, isOpen, onCl
 
     return (
         <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
-            <SheetContent className="w-full sm:max-w-md overflow-y-auto">
+            <SheetContent className="w-full sm:max-w-md overflow-y-auto px-8 focus:outline-none">
                 <SheetHeader className="mb-6">
                     <SheetTitle className="text-[#3b5998] flex items-center gap-2">
                         {step === 'simulate' ? <ShoppingCart className="h-5 w-5" /> : <Calendar className="h-5 w-5" />}
@@ -137,9 +137,9 @@ export function SalesSimulator({ selectedProducts, onRemoveProduct, isOpen, onCl
                                     Nenhum passeio adicionado.
                                 </div>
                             ) : (
-                                <div className="space-y-2">
+                                <div className="space-y-3">
                                     {selectedProducts.map((p) => (
-                                        <div key={p.id} className="flex items-center justify-between p-3 bg-white border border-gray-100 rounded-lg shadow-sm group">
+                                        <div key={p.id} className="flex items-center justify-between p-4 bg-white border border-gray-100 rounded-xl shadow-sm group">
                                             <div className="flex flex-col">
                                                 <span className="text-sm font-bold text-gray-900 leading-tight">{p.tourName}</span>
                                                 <span className="text-[10px] text-gray-500 uppercase font-medium">{p.destination}</span>
@@ -159,7 +159,7 @@ export function SalesSimulator({ selectedProducts, onRemoveProduct, isOpen, onCl
                         </div>
 
                         {/* PAX Selectors */}
-                        <div className="grid grid-cols-3 gap-4 pt-2">
+                        <div className="grid grid-cols-3 gap-6 pt-4">
                             <div className="space-y-2">
                                 <Label>Adultos</Label>
                                 <Input
@@ -193,7 +193,7 @@ export function SalesSimulator({ selectedProducts, onRemoveProduct, isOpen, onCl
                         </div>
 
                         {/* Calculation Summary */}
-                        <div className="bg-gray-50 rounded-xl p-6 border border-gray-100 space-y-4">
+                        <div className="bg-gray-50 rounded-2xl p-8 border border-gray-100 space-y-5">
                             <div className="flex justify-between items-center">
                                 <span className="text-gray-500 text-sm font-medium">Total do Grupo</span>
                                 <span className="text-xl font-bold text-gray-900">{formatPrice(totals.total)}</span>
@@ -210,7 +210,7 @@ export function SalesSimulator({ selectedProducts, onRemoveProduct, isOpen, onCl
                             )}
                         </div>
 
-                        <div className="space-y-3 pt-2">
+                        <div className="space-y-4 pt-6">
                             <Button
                                 variant="outline"
                                 className="w-full h-12 gap-2 border-[#25D366] text-[#25D366] hover:bg-[#25D366] hover:text-white transition-all font-bold"
@@ -238,9 +238,9 @@ export function SalesSimulator({ selectedProducts, onRemoveProduct, isOpen, onCl
                         </div>
                     </div>
                 ) : (
-                    <div className="space-y-5">
-                        <div className="bg-blue-50/50 p-4 rounded-lg border border-blue-100 mb-4">
-                            <p className="text-xs text-blue-700 font-medium">
+                    <div className="space-y-8">
+                        <div className="bg-blue-50/50 p-6 rounded-2xl border border-blue-100 mb-6">
+                            <p className="text-[13px] text-blue-700 font-medium leading-relaxed">
                                 Consolidação: {selectedProducts.length} itens | {adults} ADU, {children} CHD, {infants} INF | Total: {formatPrice(totals.total)}
                             </p>
                         </div>
