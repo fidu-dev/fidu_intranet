@@ -1,6 +1,4 @@
-'use client';
-
-import { AgencyProduct } from '@/app/actions';
+import { AgencyProduct } from '@/lib/airtable/types';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { motion } from 'framer-motion';

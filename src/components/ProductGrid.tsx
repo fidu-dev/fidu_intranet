@@ -1,6 +1,6 @@
 'use client';
 
-import { AgencyProduct } from '@/app/actions';
+import { AgencyProduct } from '@/lib/airtable/types';
 import { useState, useMemo, useCallback } from 'react';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
