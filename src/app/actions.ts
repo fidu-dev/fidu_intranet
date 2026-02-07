@@ -1,7 +1,7 @@
 'use server'
 
 import { currentUser } from '@clerk/nextjs/server';
-import { getProducts, getAgencyByEmail } from '@/lib/airtable/service';
+import { getProducts, getAgencyByEmail, getMuralItems, markAsRead, getMuralReaders } from '@/lib/airtable/service';
 
 export interface AgencyInfo {
     agentName: string;
@@ -11,33 +11,7 @@ export interface AgencyInfo {
     isInternal: boolean;
 }
 
-export interface AgencyProduct {
-    id: string;
-    destination: string;
-    tourName: string;
-    category: string;
-    // Adulto
-    salePriceAdulto: number; // The retail price (Airtable value)
-    netoPriceAdulto: number; // What agency pays Fidu (Airtable - Commission)
-    // Menor
-    salePriceMenor: number;
-    netoPriceMenor: number;
-    // Bebê
-    salePriceBebe: number;
-    netoPriceBebe: number;
-
-    pickup?: string;
-    retorno?: string;
-    temporada?: string;
-    diasElegiveis?: string[];
-    subCategory?: string;
-    taxasExtras?: string;
-    description?: string;
-    inclusions?: string;
-    exclusions?: string;
-    requirements?: string;
-    imageUrl?: string;
-}
+import { AgencyProduct, MuralItem } from '@/lib/airtable/types';
 
 export async function getAgencyProducts(): Promise<{ products: AgencyProduct[], agency?: AgencyInfo, error?: string }> {
     try {
@@ -108,6 +82,10 @@ export async function getAgencyProducts(): Promise<{ products: AgencyProduct[], 
                     destination: product.destination,
                     tourName: product.tourName,
                     category: product.category,
+                    basePrice: product.basePrice,
+                    priceAdulto: product.priceAdulto,
+                    priceMenor: product.priceMenor,
+                    priceBebe: product.priceBebe,
                     // Adulto
                     salePriceAdulto: product.priceAdulto,
                     netoPriceAdulto: calculateNeto(product.priceAdulto),
@@ -139,5 +117,55 @@ export async function getAgencyProducts(): Promise<{ products: AgencyProduct[], 
             products: [],
             error: `Failed to load products: ${err.message || 'Unknown error'}. Check your connection and credentials.`
         };
+    }
+}
+
+export async function fetchMural(): Promise<{ items: MuralItem[], error?: string }> {
+    try {
+        const items = await getMuralItems();
+        return { items };
+    } catch (e) {
+        console.error('Error fetching mural:', e);
+        return { items: [], error: 'Erro ao carregar o mural.' };
+    }
+}
+
+export async function markMuralAsReadAction(muralId: string): Promise<{ success: boolean, error?: string }> {
+    try {
+        const user = await currentUser();
+        if (!user) throw new Error('Not authenticated');
+
+        const email = user.emailAddresses[0]?.emailAddress;
+        if (!email) throw new Error('No email found');
+
+        const agency = await getAgencyByEmail(email);
+        if (!agency) throw new Error('Agency not found');
+
+        const userName = `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username || 'Agente';
+
+        await markAsRead(muralId, email, userName, agency.id);
+        return { success: true };
+    } catch (e) {
+        console.error('Error marking mural as read:', e);
+        return { success: false, error: 'Erro ao confirmar leitura.' };
+    }
+}
+
+export async function fetchMuralReaders(muralId: string): Promise<{ readers: { userName: string, timestamp: string }[], error?: string }> {
+    try {
+        const user = await currentUser();
+        if (!user) throw new Error('Not authenticated');
+
+        const email = user.emailAddresses[0]?.emailAddress;
+        if (!email) throw new Error('No email found');
+
+        const agency = await getAgencyByEmail(email);
+        if (!agency) throw new Error('Agency not found');
+
+        const readers = await getMuralReaders(muralId, agency.id);
+        return { readers };
+    } catch (e) {
+        console.error('Error fetching mural readers:', e);
+        return { readers: [], error: 'Erro ao carregar lista de leitura.' };
     }
 }

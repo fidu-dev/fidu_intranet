@@ -1,5 +1,5 @@
 import { getProductBase, getAgencyBase } from './client';
-import { Product, Agency } from './types';
+import { Product, Agency, MuralItem, MuralReadLog } from './types';
 import { FieldSet } from 'airtable';
 
 // Helper to map record to Product
@@ -102,3 +102,56 @@ export const createAgency = async (agency: Omit<Agency, 'id'>) => {
         }
     ]);
 };
+
+export async function getMuralItems(): Promise<MuralItem[]> {
+    const base = getProductBase();
+    if (!base) return [];
+    const records = await base('◉ No ar!').select({
+        sort: [{ field: 'Data', direction: 'desc' }]
+    }).all();
+
+    return records.map((record: any) => ({
+        id: record.id,
+        date: record.fields['Data'] as string,
+        category: record.fields['Categoria'] as string,
+        title: record.fields['Título'] as string,
+        details: record.fields['Notes'] as string,
+        isNew: !!record.fields['IsNew']
+    }));
+}
+
+export async function markAsRead(muralId: string, userEmail: string, userName: string, agencyId: string): Promise<void> {
+    const base = getProductBase();
+    if (!base) return;
+    await base('MuralReadLog').create([
+        {
+            fields: {
+                'Mural': [muralId],
+                'UserEmail': userEmail,
+                'UserName': userName,
+                'AgencyId': agencyId,
+                'Timestamp': new Date().toISOString()
+            }
+        }
+    ]);
+}
+
+export async function getMuralReaders(muralId: string, agencyId?: string): Promise<{ userName: string, timestamp: string }[]> {
+    const base = getProductBase();
+    if (!base) return [];
+    let filter = `{Mural} = '${muralId}'`;
+
+    if (agencyId) {
+        filter = `AND({Mural} = '${muralId}', {AgencyId} = '${agencyId}')`;
+    }
+
+    const records = await base('MuralReadLog').select({
+        filterByFormula: filter,
+        sort: [{ field: 'Timestamp', direction: 'desc' }]
+    }).all();
+
+    return records.map((record: any) => ({
+        userName: record.fields['UserName'] as string,
+        timestamp: record.fields['Timestamp'] as string
+    }));
+}

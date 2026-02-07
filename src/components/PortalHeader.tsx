@@ -15,6 +15,7 @@ export function PortalHeader({ agency }: PortalHeaderProps) {
     const navItems = [
         { label: 'Tarifário', href: '/portal', icon: null },
         { label: 'Reservas', href: '/portal/reservas', icon: null, permission: agency?.canReserve },
+        { label: 'Mural', href: '/portal/mural', icon: null },
         { label: 'Portfólio', href: 'https://portfolio.fiduviagens.com.br', icon: null, external: true },
     ];
 

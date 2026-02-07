@@ -20,6 +20,15 @@ export interface Product {
     imageUrl?: string;
 }
 
+export interface AgencyProduct extends Product {
+    salePriceAdulto: number; // The retail price (Airtable value)
+    netoPriceAdulto: number; // What agency pays Fidu (Airtable - Commission)
+    salePriceMenor: number;
+    netoPriceMenor: number;
+    salePriceBebe: number;
+    netoPriceBebe: number;
+}
+
 export interface Agency {
     id: string;
     name: string;
@@ -28,4 +37,22 @@ export interface Agency {
     skills?: string[]; // Allowed destinations
     canReserve?: boolean; // Access to reservation page
     isInternal?: boolean; // Internal vendor (no commission display, see sale price)
+}
+
+export interface MuralItem {
+    id: string;
+    date: string;
+    category: 'Atualização de Valores' | 'Atualização de funcionamento' | string;
+    title: string;
+    details: string;
+    isNew: boolean;
+}
+
+export interface MuralReadLog {
+    id: string;
+    muralId: string;
+    userEmail: string;
+    userName: string;
+    agencyId: string;
+    timestamp: string;
 }
