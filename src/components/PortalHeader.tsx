@@ -30,7 +30,8 @@ export function PortalHeader({ agency }: PortalHeaderProps) {
 
                     <nav className="hidden md:flex items-center gap-1 border-l pl-6 ml-2">
                         {navItems.map((item) => {
-                            if (item.permission === false) return null;
+                            const hasPermission = item.permission !== false;
+                            if (!hasPermission) return null;
                             const isActive = pathname === item.href;
 
                             return (
