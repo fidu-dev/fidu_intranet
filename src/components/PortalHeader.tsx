@@ -58,12 +58,14 @@ export function PortalHeader({ agency }: PortalHeaderProps) {
                                 <span className="text-gray-400 text-[10px] uppercase font-bold tracking-wider">Agência</span>
                                 <span className="text-gray-900 font-semibold">{agency.agencyName}</span>
                             </div>
-                            <div className="flex flex-col text-right border-l pl-6">
-                                <span className="text-gray-400 text-[10px] uppercase font-bold tracking-wider">Comissão</span>
-                                <span className="bg-blue-50 text-[#3b5998] px-2 py-0.5 rounded font-bold text-xs self-end">
-                                    {(agency.commissionRate * 100).toFixed(0)}%
-                                </span>
-                            </div>
+                            {!agency.isInternal && (
+                                <div className="flex flex-col text-right border-l pl-6">
+                                    <span className="text-gray-400 text-[10px] uppercase font-bold tracking-wider">Comissão</span>
+                                    <span className="bg-blue-50 text-[#3b5998] px-2 py-0.5 rounded font-bold text-xs self-end">
+                                        {(agency.commissionRate * 100).toFixed(0)}%
+                                    </span>
+                                </div>
+                            )}
                         </div>
                     )}
                     <div className="h-8 w-[1px] bg-gray-100 hidden lg:block mx-2"></div>

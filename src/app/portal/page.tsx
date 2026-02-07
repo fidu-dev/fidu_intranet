@@ -19,7 +19,7 @@ export default async function Portal() {
                     {error}
                 </div>
             ) : (
-                <ProductGrid products={products} />
+                <ProductGrid products={products} isInternal={agency?.isInternal} />
             )}
 
             {products.length === 0 && !error && (

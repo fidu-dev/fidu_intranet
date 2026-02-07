@@ -8,6 +8,7 @@ export interface AgencyInfo {
     agencyName: string;
     commissionRate: number;
     canReserve: boolean;
+    isInternal: boolean;
 }
 
 export interface AgencyProduct {
@@ -72,7 +73,8 @@ export async function getAgencyProducts(): Promise<{ products: AgencyProduct[], 
             agentName: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username || 'Agente',
             agencyName: agency.name,
             commissionRate: commissionRate,
-            canReserve: isAdmin || !!agency.canReserve
+            canReserve: isAdmin || !!agency.canReserve,
+            isInternal: !!agency.isInternal
         };
 
         // Fetch Base Products

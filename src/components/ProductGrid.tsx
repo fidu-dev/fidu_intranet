@@ -8,6 +8,7 @@ import { Search, Info, Clock, Calendar, CheckCircle2, AlertCircle, ShoppingCart,
 
 interface ProductGridProps {
     products: AgencyProduct[];
+    isInternal?: boolean;
 }
 
 type SortConfig = {
@@ -30,7 +31,7 @@ const getDestinationColor = (dest: string) => {
     return DESTINATION_COLORS[key] || '#95a5a6'; // Default silver/gray
 };
 
-export function ProductGrid({ products }: ProductGridProps) {
+export function ProductGrid({ products, isInternal }: ProductGridProps) {
     const [searchTerm, setSearchTerm] = useState('');
     const [categoryFilter, setCategoryFilter] = useState('REG');
     const [destinationFilter, setDestinationFilter] = useState('all');
@@ -160,19 +161,19 @@ export function ProductGrid({ products }: ProductGridProps) {
                                     className="px-4 py-3 text-[11px] font-bold text-gray-500 uppercase tracking-tight text-right cursor-pointer hover:bg-gray-100 transition-colors"
                                     onClick={() => requestSort('netoPriceAdulto')}
                                 >
-                                    <div className="flex items-center justify-end">Neto (ADU) <SortIcon columnKey="netoPriceAdulto" /></div>
+                                    <div className="flex items-center justify-end">{isInternal ? 'Venda' : 'Neto'} (ADU) <SortIcon columnKey="netoPriceAdulto" /></div>
                                 </th>
                                 <th
                                     className="px-4 py-3 text-[11px] font-bold text-gray-500 uppercase tracking-tight text-right cursor-pointer hover:bg-gray-100 transition-colors"
                                     onClick={() => requestSort('netoPriceMenor')}
                                 >
-                                    <div className="flex items-center justify-end">Neto (CHD) <SortIcon columnKey="netoPriceMenor" /></div>
+                                    <div className="flex items-center justify-end">{isInternal ? 'Venda' : 'Neto'} (CHD) <SortIcon columnKey="netoPriceMenor" /></div>
                                 </th>
                                 <th
                                     className="px-4 py-3 text-[11px] font-bold text-gray-500 uppercase tracking-tight text-right cursor-pointer hover:bg-gray-100 transition-colors"
                                     onClick={() => requestSort('netoPriceBebe')}
                                 >
-                                    <div className="flex items-center justify-end">Neto (INF) <SortIcon columnKey="netoPriceBebe" /></div>
+                                    <div className="flex items-center justify-end">{isInternal ? 'Venda' : 'Neto'} (INF) <SortIcon columnKey="netoPriceBebe" /></div>
                                 </th>
                                 <th className="px-4 py-3 text-[11px] font-bold text-gray-500 uppercase tracking-tight">Pickup</th>
                                 <th className="px-4 py-3 text-[11px] font-bold text-gray-500 uppercase tracking-tight">Retorno</th>
@@ -202,27 +203,27 @@ export function ProductGrid({ products }: ProductGridProps) {
                                         </div>
                                     </td>
                                     <td
-                                        className="px-4 py-4 text-right cursor-help"
-                                        title={`Sugestão de Venda: ${formatPrice(product.salePriceAdulto)}`}
+                                        className={`px-4 py-4 text-right ${isInternal ? '' : 'cursor-help'}`}
+                                        title={isInternal ? undefined : `Sugestão de Venda: ${formatPrice(product.salePriceAdulto)}`}
                                     >
                                         <span className="text-sm font-bold text-gray-900">
-                                            {formatPrice(product.netoPriceAdulto)}
+                                            {formatPrice(isInternal ? product.salePriceAdulto : product.netoPriceAdulto)}
                                         </span>
                                     </td>
                                     <td
-                                        className="px-4 py-4 text-right cursor-help"
-                                        title={`Sugestão de Venda: ${formatPrice(product.salePriceMenor)}`}
+                                        className={`px-4 py-4 text-right ${isInternal ? '' : 'cursor-help'}`}
+                                        title={isInternal ? undefined : `Sugestão de Venda: ${formatPrice(product.salePriceMenor)}`}
                                     >
                                         <span className="text-sm font-bold text-gray-900">
-                                            {formatPrice(product.netoPriceMenor)}
+                                            {formatPrice(isInternal ? product.salePriceMenor : product.netoPriceMenor)}
                                         </span>
                                     </td>
                                     <td
-                                        className="px-4 py-4 text-right cursor-help"
-                                        title={`Sugestão de Venda: ${formatPrice(product.salePriceBebe)}`}
+                                        className={`px-4 py-4 text-right ${isInternal ? '' : 'cursor-help'}`}
+                                        title={isInternal ? undefined : `Sugestão de Venda: ${formatPrice(product.salePriceBebe)}`}
                                     >
                                         <span className="text-sm font-bold text-gray-900">
-                                            {formatPrice(product.netoPriceBebe)}
+                                            {formatPrice(isInternal ? product.salePriceBebe : product.netoPriceBebe)}
                                         </span>
                                     </td>
                                     <td className="px-4 py-4 text-sm text-gray-500 font-mono">

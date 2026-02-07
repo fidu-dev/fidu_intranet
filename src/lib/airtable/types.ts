@@ -27,4 +27,5 @@ export interface Agency {
     commissionRate: number; // e.g., 0.10 for 10%
     skills?: string[]; // Allowed destinations
     canReserve?: boolean; // Access to reservation page
+    isInternal?: boolean; // Internal vendor (no commission display, see sale price)
 }
