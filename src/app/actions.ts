@@ -155,6 +155,8 @@ export async function fetchMural(): Promise<{ items: MuralItem[], error?: string
 }
 
 export async function markMuralAsReadAction(muralId: string): Promise<{ success: boolean, error?: string }> {
+    console.log('🎯 markMuralAsReadAction called with muralId:', muralId);
+
     try {
         const user = await currentUser();
         if (!user) throw new Error('Not authenticated');
@@ -162,15 +164,23 @@ export async function markMuralAsReadAction(muralId: string): Promise<{ success:
         const email = user.emailAddresses[0]?.emailAddress;
         if (!email) throw new Error('No email found');
 
+        console.log('👤 User email:', email);
+
         const agency = await getAgencyByEmail(email);
         if (!agency) throw new Error('Agency not found');
 
+        console.log('🏢 Agency found:', { id: agency.id, name: agency.name, agentName: agency.agentName });
+
         const userName = agency.agentName || `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username || 'Agente';
 
+        console.log('📝 Calling markAsRead with:', { muralId, email, userName, agencyId: agency.id });
+
         await markAsRead(muralId, email, userName, agency.id);
+
+        console.log('✅ markAsRead completed successfully');
         return { success: true };
     } catch (e: any) {
-        console.error('Error marking mural as read:', e);
+        console.error('❌ Error marking mural as read:', e);
         return { success: false, error: e.message || 'Erro ao confirmar leitura.' };
     }
 }
