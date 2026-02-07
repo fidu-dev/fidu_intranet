@@ -36,6 +36,8 @@ export function PortalHeader({ agency }: PortalHeaderProps) {
                                 <Link
                                     key={item.href}
                                     href={item.href}
+                                    target={item.external ? "_blank" : undefined}
+                                    rel={item.external ? "noopener noreferrer" : undefined}
                                     className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${isActive
                                         ? 'bg-blue-50 text-[#3b5998]'
                                         : 'text-gray-600 hover:bg-gray-50'
