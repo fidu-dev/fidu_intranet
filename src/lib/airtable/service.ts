@@ -76,16 +76,16 @@ export const getAgencyByEmail = async (email: string): Promise<Agency | null> =>
 
     const record = records[0];
     const agencyNameField = record.fields['Agency'];
-    const agentNameField = record.fields['Name'];
+    const userNameField = record.fields['User']; // Key field for read log
 
     // Handle both string and lookup/array values
     const agencyName = (Array.isArray(agencyNameField) ? agencyNameField[0] : agencyNameField) as string;
-    const agentName = (Array.isArray(agentNameField) ? agentNameField[0] : agentNameField) as string;
+    const userName = (Array.isArray(userNameField) ? userNameField[0] : userNameField) as string;
 
     return {
         id: record.id,
-        name: agencyName || agentName || 'Agente',
-        agentName: agentName,
+        name: agencyName || userName || 'Agente',
+        agentName: userName, // This is the 'User' column value
         email: record.fields['mail'] as string,
         commissionRate: record.fields['Comision_base'] as number || 0,
         skills: record.fields['Skill'] as string[] || [],
@@ -217,26 +217,10 @@ export async function markAsRead(muralId: string, userEmail: string, userName: s
     const base = getProductBase();
     if (!base) return;
 
-    // 1. Try to record in MuralReadLog (detailed log) - Optional/Fallback
-    try {
-        await base('MuralReadLog').create([
-            {
-                fields: {
-                    'Mural': [muralId],
-                    'UserEmail': userEmail,
-                    'UserName': userName,
-                    'AgencyId': agencyId, // Use the provided agencyId (Access record ID)
-                    'Timestamp': new Date().toISOString()
-                }
-            }
-        ]);
-    } catch (e) {
-        // console.warn('MuralReadLog table may be missing or inaccessible:', e);
-    }
+    // Skip MuralReadLog - focus on the primary Lido field in Mural table
 
-    // 2. Update the "Lido" field in '◉ No ar!' or 'Mural' table
-    // IMPORTANT: Treat this as a Linked Record field to the 'Access' table (agencyId)
-    const tablesToTry = ['◉ No ar!', 'Mural'];
+    // Update the "Lido" field in 'Mural' table with USERNAME as simple text
+    const tablesToTry = ['Mural', '◉ No ar!'];
 
     for (const tableName of tablesToTry) {
         try {
@@ -244,24 +228,65 @@ export async function markAsRead(muralId: string, userEmail: string, userName: s
             if (!record) continue;
 
             const fields = record.fields;
-            // currentLido will be an array of record IDs if it's a linked record
-            const currentLido = fields['Lido'] as string[] || [];
+            // Lido is a text/select field - store usernames as text values
+            let currentLido = fields['Lido'] as any;
 
-            // Add the current agencyId (the ID of the record in the 'Access' table)
-            if (!currentLido.includes(agencyId)) {
-                const newValue = [...currentLido, agencyId];
+            // Handle different field types
+            let newValue: any;
 
-                await base(tableName).update(muralId, {
-                    'Lido': newValue
-                });
-                console.log(`Successfully updated Lido field (linked record) in ${tableName}`);
+            if (Array.isArray(currentLido)) {
+                // Multi-select or Linked Records - check if userName already exists
+                const lidoStrings = currentLido.map((item: any) =>
+                    typeof item === 'string' ? item : (item?.name || item?.email || '')
+                );
+
+                if (!lidoStrings.includes(userName)) {
+                    // For linked records, we need to append the agencyId (record ID)
+                    // For multi-select/text, we append the userName string
+                    if (typeof currentLido[0] === 'string' && currentLido[0].startsWith('rec')) {
+                        // Linked records - append agencyId
+                        newValue = [...currentLido, agencyId];
+                    } else {
+                        // Text array - append userName
+                        newValue = [...lidoStrings.filter(Boolean), userName];
+                    }
+                }
+            } else if (typeof currentLido === 'string') {
+                // Single text field - append comma-separated
+                if (!currentLido.includes(userName)) {
+                    newValue = currentLido ? `${currentLido}, ${userName}` : userName;
+                }
+            } else {
+                // Empty or null - set as single value (try as array first for multi-select)
+                newValue = [userName];
+            }
+
+            if (newValue !== undefined) {
+                try {
+                    await base(tableName).update(muralId, {
+                        'Lido': newValue
+                    });
+                    console.log(`✅ Successfully updated Lido field in ${tableName} with: ${JSON.stringify(newValue)}`);
+                } catch (updateError: any) {
+                    // If array fails, try as single string
+                    console.warn('Array update failed, trying as string:', updateError.message);
+                    await base(tableName).update(muralId, {
+                        'Lido': userName
+                    });
+                    console.log(`✅ Successfully updated Lido field as string in ${tableName}`);
+                }
+            } else {
+                console.log(`ℹ️ User ${userName} already in Lido field`);
             }
 
             return;
-        } catch (e) {
+        } catch (e: any) {
+            console.error(`Error updating ${tableName}:`, e.message);
             continue;
         }
     }
+
+    console.error('❌ Failed to update Lido field in any table');
 }
 
 export async function getMuralReaders(muralId: string, agencyId?: string, corporationName?: string): Promise<{ userName: string, timestamp: string }[]> {
@@ -270,62 +295,93 @@ export async function getMuralReaders(muralId: string, agencyId?: string, corpor
     if (!base || !agencyBase) return [];
 
     try {
-        // 1. Fetch the Mural item to get its 'Lido' linked records
+        // 1. Fetch the Mural item to get its 'Lido' field values
         let muralRecord;
         try {
-            muralRecord = await base('◉ No ar!').find(muralId);
-        } catch (e) {
             muralRecord = await base('Mural').find(muralId);
+        } catch (e) {
+            muralRecord = await base('◉ No ar!').find(muralId);
         }
 
-        if (!muralRecord) return [];
+        if (!muralRecord) {
+            console.log('Mural record not found:', muralId);
+            return [];
+        }
 
-        const lidoIds = muralRecord.fields['Lido'] as string[] || [];
-        if (lidoIds.length === 0) return [];
+        const lidoField = muralRecord.fields['Lido'];
+        console.log('📋 Lido field raw value:', JSON.stringify(lidoField));
 
-        // 2. Fetch those users from the 'Access' table
-        // Note: Filter by IDs and then filter by agency name in JS for maximum robustness
-        const records = await agencyBase('tblkVI2PX3jPgYKXF').select({
-            filterByFormula: `OR(${lidoIds.map(id => `RECORD_ID() = '${id}'`).join(', ')})`
-        }).all();
+        if (!lidoField) return [];
 
-        return records
+        // Handle different Lido field formats
+        let lidoValues: string[] = [];
+
+        if (Array.isArray(lidoField)) {
+            // Could be linked records (IDs) or multi-select (strings)
+            lidoValues = lidoField.map((item: any) => {
+                if (typeof item === 'string') return item;
+                if (item?.name) return item.name;
+                if (item?.email) return item.email;
+                return '';
+            }).filter(Boolean);
+        } else if (typeof lidoField === 'string') {
+            // Comma-separated string
+            lidoValues = lidoField.split(',').map(s => s.trim()).filter(Boolean);
+        }
+
+        console.log('📋 Parsed Lido values:', lidoValues);
+
+        if (lidoValues.length === 0) return [];
+
+        // 2. Check if these are record IDs (start with 'rec') or usernames
+        const isRecordIds = lidoValues.every(v => v.startsWith('rec'));
+
+        let matchingRecords: any[] = [];
+
+        if (isRecordIds) {
+            // Linked records - fetch from Access table by record ID
+            const records = await agencyBase('tblkVI2PX3jPgYKXF').select({
+                filterByFormula: `OR(${lidoValues.map(id => `RECORD_ID() = '${id}'`).join(', ')})`
+            }).all();
+            matchingRecords = records;
+        } else {
+            // Text usernames - fetch from Access table where User matches any of these values
+            // and Agency matches the corporation name
+            const records = await agencyBase('tblkVI2PX3jPgYKXF').select({
+                filterByFormula: corporationName
+                    ? `{Agency} = '${corporationName}'`
+                    : ''
+            }).all();
+
+            // Filter by User column matching any Lido value
+            matchingRecords = records.filter((record: any) => {
+                const userValue = record.fields['User'];
+                const userName = (Array.isArray(userValue) ? userValue[0] : userValue) as string;
+                return lidoValues.includes(userName);
+            });
+        }
+
+        console.log(`📋 Found ${matchingRecords.length} matching readers from agency ${corporationName}`);
+
+        // 3. Filter by agency if needed and return
+        return matchingRecords
             .filter((record: any) => {
                 const agencyValue = record.fields['Agency'];
                 const recordAgencyName = (Array.isArray(agencyValue) ? agencyValue[0] : agencyValue) as string;
-                return recordAgencyName === corporationName;
+                return !corporationName || recordAgencyName === corporationName;
             })
             .map((record: any) => {
-                const nameValue = record.fields['Name'];
+                const userValue = record.fields['User'];
                 const agencyValue = record.fields['Agency'];
                 return {
-                    userName: (Array.isArray(nameValue) ? nameValue[0] : nameValue) as string ||
+                    userName: (Array.isArray(userValue) ? userValue[0] : userValue) as string ||
                         (Array.isArray(agencyValue) ? agencyValue[0] : agencyValue) as string ||
                         'Usuário',
                     timestamp: new Date().toISOString()
                 };
             });
-    } catch (e) {
-        console.warn('Error fetching Mural readers via linked records:', e);
-
-        // Fallback to existing MuralReadLog approach if it exists
-        try {
-            let filter = `{Mural} = '${muralId}'`;
-            if (agencyId) {
-                filter = `AND({Mural} = '${muralId}', {AgencyId} = '${agencyId}')`;
-            }
-
-            const records = await base('MuralReadLog').select({
-                filterByFormula: filter,
-                sort: [{ field: 'Timestamp', direction: 'desc' }]
-            }).all();
-
-            return records.map((record: any) => ({
-                userName: record.fields['UserName'] as string,
-                timestamp: record.fields['Timestamp'] as string
-            }));
-        } catch (innerE) {
-            return [];
-        }
+    } catch (e: any) {
+        console.error('❌ Error fetching Mural readers:', e.message);
+        return [];
     }
 }
