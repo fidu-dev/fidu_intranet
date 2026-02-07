@@ -54,7 +54,7 @@ export async function getAgencyProducts(): Promise<{ products: AgencyProduct[], 
         // Fetch Mural items to check for unread
         let hasUnreadMural = false;
         try {
-            const muralItems = await getMuralItems(email, agencyInfo.agentName);
+            const muralItems = await getMuralItems(email, agencyInfo.agentName, agency.id);
             hasUnreadMural = muralItems.some(item => !item.isRead);
         } catch (e) {
             console.error('Error checking unread mural in Layout:', e);
@@ -133,9 +133,14 @@ export async function fetchMural(): Promise<{ items: MuralItem[], error?: string
     try {
         const user = await currentUser();
         const email = user?.emailAddresses[0]?.emailAddress;
-        const userName = user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() : undefined;
+        if (!email) throw new Error('No email found');
 
-        const items = await getMuralItems(email, userName);
+        const agency = await getAgencyByEmail(email);
+        if (!agency) throw new Error('Agency not found');
+
+        const userName = agency.agentName || `${user.firstName || ''} ${user.lastName || ''}`.trim();
+
+        const items = await getMuralItems(email, userName, agency.id);
         return { items };
     } catch (e: any) {
         console.error('Error fetching mural:', e);
@@ -154,7 +159,7 @@ export async function markMuralAsReadAction(muralId: string): Promise<{ success:
         const agency = await getAgencyByEmail(email);
         if (!agency) throw new Error('Agency not found');
 
-        const userName = `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username || 'Agente';
+        const userName = agency.agentName || `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username || 'Agente';
 
         await markAsRead(muralId, email, userName, agency.id);
         return { success: true };
@@ -175,7 +180,7 @@ export async function fetchMuralReaders(muralId: string): Promise<{ readers: { u
         const agency = await getAgencyByEmail(email);
         if (!agency) throw new Error('Agency not found');
 
-        const readers = await getMuralReaders(muralId, agency.id);
+        const readers = await getMuralReaders(muralId, agency.id, agency.name);
         return { readers };
     } catch (e) {
         console.error('Error fetching mural readers:', e);

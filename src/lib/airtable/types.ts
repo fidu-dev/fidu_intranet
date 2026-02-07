@@ -31,7 +31,8 @@ export interface AgencyProduct extends Product {
 
 export interface Agency {
     id: string;
-    name: string;
+    name: string; // Company/Agency name
+    agentName?: string; // Individual agent name
     email: string; // Linked to Clerk User Email
     commissionRate: number; // e.g., 0.10 for 10%
     skills?: string[]; // Allowed destinations
