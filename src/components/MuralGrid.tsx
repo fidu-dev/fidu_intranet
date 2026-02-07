@@ -15,11 +15,25 @@ export function MuralGrid({ items }: MuralGridProps) {
     const [selectedItem, setSelectedItem] = useState<MuralItem | null>(null);
 
     const filteredItems = useMemo(() => {
-        return items.filter(item =>
+        const filtered = items.filter(item =>
             item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
             item.details.toLowerCase().includes(searchTerm.toLowerCase()) ||
             item.category.toLowerCase().includes(searchTerm.toLowerCase())
         );
+
+        // Sort by priority: 1) Unread (!isRead), 2) New (isNew), 3) Read
+        return filtered.sort((a, b) => {
+            // Unread items first
+            if (!a.isRead && b.isRead) return -1;
+            if (a.isRead && !b.isRead) return 1;
+
+            // Among same read status, new items first
+            if (a.isNew && !b.isNew) return -1;
+            if (!a.isNew && b.isNew) return 1;
+
+            // Keep original date order for items with same status
+            return new Date(b.date).getTime() - new Date(a.date).getTime();
+        });
     }, [items, searchTerm]);
 
     const formatDate = (dateStr: string) => {
