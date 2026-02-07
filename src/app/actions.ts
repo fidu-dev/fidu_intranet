@@ -65,11 +65,14 @@ export async function getAgencyProducts(): Promise<{ products: AgencyProduct[], 
 
         const commissionRate = agency.commissionRate;
 
+        const role = user.publicMetadata?.role;
+        const isAdmin = role === 'admin' || email === 'rafael@fidu.com' || email === 'admin@fidu.com';
+
         const agencyInfo: AgencyInfo = {
             agentName: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username || 'Agente',
             agencyName: agency.name,
             commissionRate: commissionRate,
-            canReserve: !!agency.canReserve
+            canReserve: isAdmin || !!agency.canReserve
         };
 
         // Fetch Base Products
@@ -80,9 +83,6 @@ export async function getAgencyProducts(): Promise<{ products: AgencyProduct[], 
         }
 
         // Calculate Prices and Filter by Skill (Destination)
-        const role = user.publicMetadata?.role;
-        const isAdmin = role === 'admin' || email === 'rafael@fidu.com' || email === 'admin@fidu.com';
-
         const authorizedSkills = (agency.skills || []).map(s => s.toLowerCase().trim());
 
         const agencyProducts = products

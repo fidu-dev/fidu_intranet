@@ -35,8 +35,8 @@ export function PortalHeader({ agency }: PortalHeaderProps) {
                                     key={item.href}
                                     href={item.href}
                                     className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${isActive
-                                            ? 'bg-blue-50 text-[#3b5998]'
-                                            : 'text-gray-600 hover:bg-gray-50'
+                                        ? 'bg-blue-50 text-[#3b5998]'
+                                        : 'text-gray-600 hover:bg-gray-50'
                                         }`}
                                 >
                                     {item.label}
@@ -55,7 +55,12 @@ export function PortalHeader({ agency }: PortalHeaderProps) {
                             </div>
                             <div className="flex flex-col text-right border-l pl-6">
                                 <span className="text-gray-400 text-[10px] uppercase font-bold tracking-wider">Agência</span>
-                                <span className="text-gray-900 font-semibold">{agency.agencyName}</span>
+                                <div className="flex items-center gap-2 justify-end">
+                                    <span className="text-gray-900 font-semibold">{agency.agencyName}</span>
+                                    <span className="bg-blue-50 text-[#3b5998] px-1.5 py-0.5 rounded text-[10px] font-bold">
+                                        {(agency.commissionRate * 100).toFixed(0)}%
+                                    </span>
+                                </div>
                             </div>
                         </div>
                     )}
