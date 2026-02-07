@@ -81,6 +81,7 @@ export const getAgencyByEmail = async (email: string): Promise<Agency | null> =>
         email: record.fields['mail'] as string,
         commissionRate: record.fields['Comision_base'] as number || 0,
         skills: record.fields['Skill'] as string[] || [],
+        canReserve: record.fields['Reserva'] as boolean || false,
     };
 };
 
