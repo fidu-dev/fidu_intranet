@@ -174,19 +174,14 @@ export async function getMuralItems(userEmail?: string, userName?: string, agenc
         const date = rawDate || now.toISOString();
         const category = fields['Categoria'] || fields['Category'] || 'Geral';
 
-        // Check if read by current user (check both email/name and linked record ID)
-        const lidoField = fields['Lido'] as any[] || [];
-        const isRead = lidoField.some(reader => {
-            // Check by ID (Linked Record)
-            if (typeof reader === 'string') {
-                return reader === agencyId || reader === userName || reader === userEmail;
-            }
-            // Check by object (Collaborator)
-            if (typeof reader === 'object' && reader.email) {
-                return reader.email === userEmail;
-            }
-            return false;
-        });
+        // Check if read by current user
+        // Lido is multi-select - it returns an array of option name strings
+        const lidoField = fields['Lido'] as string[] || [];
+
+        // For multi-select, just check if userName is in the array
+        const isRead = lidoField.includes(userName || '') ||
+            lidoField.includes(userEmail || '') ||
+            lidoField.includes(agencyId || '');
 
         return {
             id: record.id,
