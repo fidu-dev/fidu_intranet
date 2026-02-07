@@ -4,9 +4,10 @@ import { AgencyProduct } from '@/lib/airtable/types';
 import { useState, useMemo, useCallback } from 'react';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, Info, Clock, Calendar, CheckCircle2, AlertCircle, ShoppingCart, ArrowUpDown, ChevronUp, ChevronDown, Calculator } from 'lucide-react';
+import { Search, Info, Clock, Calendar, CheckCircle2, AlertCircle, ShoppingCart, ArrowUpDown, ChevronUp, ChevronDown, Calculator, Plus, X } from 'lucide-react';
 import { SalesSimulator } from './SalesSimulator';
 import { AgencyInfo } from '@/app/actions';
+import { Button } from '@/components/ui/button';
 
 interface ProductGridProps {
     products: AgencyProduct[];
@@ -41,7 +42,7 @@ export function ProductGrid({ products, isInternal, agencyInfo }: ProductGridPro
     const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'tourName', direction: 'asc' });
 
     // Simulator State
-    const [selectedProduct, setSelectedProduct] = useState<AgencyProduct | null>(null);
+    const [selectedProducts, setSelectedProducts] = useState<AgencyProduct[]>([]);
     const [isSimulatorOpen, setIsSimulatorOpen] = useState(false);
 
     // Extract unique filters
@@ -54,6 +55,18 @@ export function ProductGrid({ products, isInternal, agencyInfo }: ProductGridPro
             direction = 'desc';
         }
         setSortConfig({ key, direction });
+    };
+
+    const handleProductClick = (product: AgencyProduct) => {
+        setSelectedProducts(prev => {
+            if (prev.find(p => p.id === product.id)) return prev;
+            return [...prev, product];
+        });
+        setIsSimulatorOpen(true);
+    };
+
+    const handleRemoveProduct = (productId: string) => {
+        setSelectedProducts(prev => prev.filter(p => p.id !== productId));
     };
 
     // Filter and Sort logic
@@ -102,6 +115,40 @@ export function ProductGrid({ products, isInternal, agencyInfo }: ProductGridPro
 
     return (
         <div className="space-y-6">
+            {/* Quick Actions Bar */}
+            {selectedProducts.length > 0 && (
+                <div className="flex items-center justify-between bg-blue-600 text-white p-4 rounded-xl shadow-lg shadow-blue-200 animate-in fade-in slide-in-from-top-4 duration-300">
+                    <div className="flex items-center gap-3">
+                        <div className="bg-white/20 p-2 rounded-lg">
+                            <ShoppingCart className="h-5 w-5" />
+                        </div>
+                        <div>
+                            <p className="text-sm font-bold">{selectedProducts.length} passeio(s) na simulação</p>
+                            <p className="text-[10px] text-blue-100 opacity-90">Clique no botão ao lado para ver o orçamento consolidado</p>
+                        </div>
+                    </div>
+                    <div className="flex gap-2">
+                        <Button
+                            variant="secondary"
+                            size="sm"
+                            className="bg-white text-blue-600 hover:bg-blue-50 font-bold"
+                            onClick={() => setIsSimulatorOpen(true)}
+                        >
+                            Ver Simulação
+                        </Button>
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-white hover:bg-white/10"
+                            onClick={() => setSelectedProducts([])}
+                        >
+                            <X className="h-4 w-4 mr-1" />
+                            Limpar
+                        </Button>
+                    </div>
+                </div>
+            )}
+
             {/* Filters Bar */}
             <div className="flex flex-col lg:flex-row gap-4 items-center bg-white p-4 rounded-xl shadow-sm border border-gray-100">
                 <div className="relative flex-1 w-full">
@@ -184,84 +231,80 @@ export function ProductGrid({ products, isInternal, agencyInfo }: ProductGridPro
                                 </th>
                                 <th className="px-4 py-3 text-[11px] font-bold text-gray-500 uppercase tracking-tight">Pickup</th>
                                 <th className="px-4 py-3 text-[11px] font-bold text-gray-500 uppercase tracking-tight">Retorno</th>
-                                <th className="px-4 py-3 text-[11px] font-bold text-gray-500 uppercase tracking-tight">Temporada</th>
-                                <th className="px-4 py-3 text-[11px] font-bold text-gray-500 uppercase tracking-tight">Dias</th>
+                                <th className="px-4 py-3 text-[11px] font-bold text-gray-500 uppercase tracking-tight text-center">Add</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-50">
-                            {filteredProducts.map((product) => (
-                                <tr
-                                    key={product.id}
-                                    className="hover:bg-blue-50/30 transition-colors group cursor-pointer"
-                                    onClick={() => {
-                                        setSelectedProduct(product);
-                                        setIsSimulatorOpen(true);
-                                    }}
-                                >
-                                    <td className="px-4 py-4">
-                                        <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase ${product.category === 'REG' ? 'bg-yellow-100 text-yellow-700' :
-                                            product.category === 'PVD' ? 'bg-gray-100 text-gray-700' :
-                                                'bg-blue-100 text-[#3b5998]'
-                                            }`}>
-                                            {product.category}
-                                        </span>
-                                    </td>
-                                    <td className="px-4 py-4 whitespace-nowrap">
-                                        <span className="text-white text-[11px] font-medium px-3 py-1 rounded-full shadow-sm" style={{ backgroundColor: getDestinationColor(product.destination) }}>
-                                            {product.destination}
-                                        </span>
-                                    </td>
-                                    <td className="px-4 py-4 min-w-[200px]">
-                                        <div className="text-sm font-medium text-gray-900 group-hover:text-[#3b5998]">
-                                            {product.tourName}
-                                        </div>
-                                    </td>
-                                    <td
-                                        className={`px-4 py-4 text-right ${isInternal ? '' : 'cursor-help'}`}
-                                        title={isInternal ? undefined : `Sugestão de Venda: ${formatPrice(product.salePriceAdulto)}`}
+                            {filteredProducts.map((product) => {
+                                const isSelected = selectedProducts.find(p => p.id === product.id);
+                                return (
+                                    <tr
+                                        key={product.id}
+                                        className={`hover:bg-blue-50/30 transition-colors group cursor-pointer ${isSelected ? 'bg-blue-50/40' : ''}`}
+                                        onClick={() => handleProductClick(product)}
                                     >
-                                        <span className="text-sm font-bold text-gray-900">
-                                            {formatPrice(isInternal ? product.salePriceAdulto : product.netoPriceAdulto)}
-                                        </span>
-                                    </td>
-                                    <td
-                                        className={`px-4 py-4 text-right ${isInternal ? '' : 'cursor-help'}`}
-                                        title={isInternal ? undefined : `Sugestão de Venda: ${formatPrice(product.salePriceMenor)}`}
-                                    >
-                                        <span className="text-sm font-bold text-gray-900">
-                                            {formatPrice(isInternal ? product.salePriceMenor : product.netoPriceMenor)}
-                                        </span>
-                                    </td>
-                                    <td
-                                        className={`px-4 py-4 text-right ${isInternal ? '' : 'cursor-help'}`}
-                                        title={isInternal ? undefined : `Sugestão de Venda: ${formatPrice(product.salePriceBebe)}`}
-                                    >
-                                        <span className="text-sm font-bold text-gray-900">
-                                            {formatPrice(isInternal ? product.salePriceBebe : product.netoPriceBebe)}
-                                        </span>
-                                    </td>
-                                    <td className="px-4 py-4 text-sm text-gray-500 font-mono">
-                                        {product.pickup || '--:--'}
-                                    </td>
-                                    <td className="px-4 py-4 text-sm text-gray-500 font-mono">
-                                        {product.retorno || '--:--'}
-                                    </td>
-                                    <td className="px-4 py-4">
-                                        <span className="text-xs bg-cyan-50 text-cyan-700 px-2 py-1 rounded border border-cyan-100 whitespace-nowrap">
-                                            {product.temporada}
-                                        </span>
-                                    </td>
-                                    <td className="px-4 py-4">
-                                        <div className="flex flex-wrap gap-1 max-w-[150px]">
-                                            {product.diasElegiveis?.map(dia => (
-                                                <span key={dia} className="text-[9px] bg-purple-50 text-purple-600 px-1.5 py-0.5 rounded border border-purple-100">
-                                                    {dia}
-                                                </span>
-                                            ))}
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))}
+                                        <td className="px-4 py-4">
+                                            <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase ${product.category === 'REG' ? 'bg-yellow-100 text-yellow-700' :
+                                                product.category === 'PVD' ? 'bg-gray-100 text-gray-700' :
+                                                    'bg-blue-100 text-[#3b5998]'
+                                                }`}>
+                                                {product.category}
+                                            </span>
+                                        </td>
+                                        <td className="px-4 py-4 whitespace-nowrap">
+                                            <span className="text-white text-[11px] font-medium px-3 py-1 rounded-full shadow-sm" style={{ backgroundColor: getDestinationColor(product.destination) }}>
+                                                {product.destination}
+                                            </span>
+                                        </td>
+                                        <td className="px-4 py-4 min-w-[200px]">
+                                            <div className="text-sm font-medium text-gray-900 group-hover:text-[#3b5998]">
+                                                {product.tourName}
+                                            </div>
+                                        </td>
+                                        <td
+                                            className={`px-4 py-4 text-right ${isInternal ? '' : 'cursor-help'}`}
+                                            title={isInternal ? undefined : `Sugestão de Venda: ${formatPrice(product.salePriceAdulto)}`}
+                                        >
+                                            <span className="text-sm font-bold text-gray-900">
+                                                {formatPrice(isInternal ? product.salePriceAdulto : product.netoPriceAdulto)}
+                                            </span>
+                                        </td>
+                                        <td
+                                            className={`px-4 py-4 text-right ${isInternal ? '' : 'cursor-help'}`}
+                                            title={isInternal ? undefined : `Sugestão de Venda: ${formatPrice(product.salePriceMenor)}`}
+                                        >
+                                            <span className="text-sm font-bold text-gray-900">
+                                                {formatPrice(isInternal ? product.salePriceMenor : product.netoPriceMenor)}
+                                            </span>
+                                        </td>
+                                        <td
+                                            className={`px-4 py-4 text-right ${isInternal ? '' : 'cursor-help'}`}
+                                            title={isInternal ? undefined : `Sugestão de Venda: ${formatPrice(product.salePriceBebe)}`}
+                                        >
+                                            <span className="text-sm font-bold text-gray-900">
+                                                {formatPrice(isInternal ? product.salePriceBebe : product.netoPriceBebe)}
+                                            </span>
+                                        </td>
+                                        <td className="px-4 py-4 text-sm text-gray-500 font-mono">
+                                            {product.pickup || '--:--'}
+                                        </td>
+                                        <td className="px-4 py-4 text-sm text-gray-500 font-mono">
+                                            {product.retorno || '--:--'}
+                                        </td>
+                                        <td className="px-4 py-4 text-center">
+                                            {isSelected ? (
+                                                <div className="bg-blue-600 text-white p-1.5 rounded-full inline-flex">
+                                                    <CheckCircle2 className="h-4 w-4" />
+                                                </div>
+                                            ) : (
+                                                <div className="text-gray-300 group-hover:text-blue-500 transition-colors p-1.5 rounded-full inline-flex border border-transparent group-hover:border-blue-100">
+                                                    <Plus className="h-4 w-4" />
+                                                </div>
+                                            )}
+                                        </td>
+                                    </tr>
+                                );
+                            })}
                         </tbody>
                     </table>
                 </div>
@@ -274,7 +317,8 @@ export function ProductGrid({ products, isInternal, agencyInfo }: ProductGridPro
             </div>
 
             <SalesSimulator
-                product={selectedProduct}
+                selectedProducts={selectedProducts}
+                onRemoveProduct={handleRemoveProduct}
                 isOpen={isSimulatorOpen}
                 onClose={() => setIsSimulatorOpen(false)}
                 agencyInfo={agencyInfo}

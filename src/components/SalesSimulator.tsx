@@ -15,16 +15,17 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Calculator, MessageCircle, Calendar, User, CheckCircle2, Copy, Loader2, ArrowRight } from 'lucide-react';
+import { Calculator, MessageCircle, Calendar, User, CheckCircle2, Copy, Loader2, ArrowRight, Trash2, Plus, ShoppingCart } from 'lucide-react';
 
 interface SalesSimulatorProps {
-    product: AgencyProduct | null;
+    selectedProducts: AgencyProduct[];
+    onRemoveProduct: (productId: string) => void;
     isOpen: boolean;
     onClose: () => void;
     agencyInfo?: AgencyInfo;
 }
 
-export function SalesSimulator({ product, isOpen, onClose, agencyInfo }: SalesSimulatorProps) {
+export function SalesSimulator({ selectedProducts, onRemoveProduct, isOpen, onClose, agencyInfo }: SalesSimulatorProps) {
     const [step, setStep] = useState<'simulate' | 'reserve'>('simulate');
     const [adults, setAdults] = useState(1);
     const [children, setChildren] = useState(0);
@@ -39,29 +40,33 @@ export function SalesSimulator({ product, isOpen, onClose, agencyInfo }: SalesSi
     const commissionRate = agencyInfo?.commissionRate || 0;
 
     const totals = useMemo(() => {
-        if (!product) return { total: 0, commission: 0 };
+        if (selectedProducts.length === 0) return { total: 0, commission: 0 };
 
-        const total = (adults * product.salePriceAdulto) +
-            (children * product.salePriceMenor) +
-            (infants * product.salePriceBebe);
+        let total = 0;
+        selectedProducts.forEach(product => {
+            total += (adults * product.salePriceAdulto) +
+                (children * product.salePriceMenor) +
+                (infants * product.salePriceBebe);
+        });
 
         const commission = total * commissionRate;
 
         return { total, commission };
-    }, [product, adults, children, infants, commissionRate]);
+    }, [selectedProducts, adults, children, infants, commissionRate]);
 
     const formatPrice = (price: number) => {
         return price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
     };
 
     const handleCopySummary = () => {
-        if (!product) return;
+        if (selectedProducts.length === 0) return;
+
+        let productsList = selectedProducts.map((p, i) => `${i + 1}. ${p.tourName} (${p.destination})`).join('\n');
 
         const summary = `*Resumo da Experiência - Fidu Viagens*\n\n` +
-            `*Passeio:* ${product.tourName}\n` +
-            `*Destino:* ${product.destination}\n` +
+            `*Passeios Selecionados:*\n${productsList}\n\n` +
             `*Passageiros:* ${adults} Adulto(s)${children > 0 ? `, ${children} Criança(s)` : ''}${infants > 0 ? `, ${infants} Bebê(s)` : ''}\n\n` +
-            `*Valor Total:* ${formatPrice(totals.total)}\n\n` +
+            `*Valor Total Consolidado:* ${formatPrice(totals.total)}\n\n` +
             `_Reservas sujeitas a disponibilidade._`;
 
         navigator.clipboard.writeText(summary);
@@ -69,16 +74,20 @@ export function SalesSimulator({ product, isOpen, onClose, agencyInfo }: SalesSi
     };
 
     const handleCreateReservation = async () => {
-        if (!product || !clientName || !tourDate) {
-            alert('Preencha os campos obrigatórios (Nome e Data)');
+        if (selectedProducts.length === 0 || !clientName || !tourDate) {
+            alert('Preencha os campos obrigatórios (Produtos, Nome e Data)');
             return;
         }
 
         setIsSubmitting(true);
         try {
+            // Join all product names for the reservation record
+            const productNames = selectedProducts.map(p => p.tourName).join(', ');
+            const mainDestination = selectedProducts[0].destination;
+
             const result = await createReservationAction({
-                productName: product.tourName,
-                destination: product.destination,
+                productName: productNames,
+                destination: mainDestination,
                 date: tourDate,
                 adults,
                 children,
@@ -101,25 +110,56 @@ export function SalesSimulator({ product, isOpen, onClose, agencyInfo }: SalesSi
         }
     };
 
-    if (!product) return null;
+    if (!isOpen) return null;
 
     return (
         <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
             <SheetContent className="w-full sm:max-w-md overflow-y-auto">
                 <SheetHeader className="mb-6">
                     <SheetTitle className="text-[#3b5998] flex items-center gap-2">
-                        {step === 'simulate' ? <Calculator className="h-5 w-5" /> : <Calendar className="h-5 w-5" />}
-                        {step === 'simulate' ? 'Simulador de Venda' : 'Finalizar Pré-reserva'}
+                        {step === 'simulate' ? <ShoppingCart className="h-5 w-5" /> : <Calendar className="h-5 w-5" />}
+                        {step === 'simulate' ? 'Simulador Multi-Produtos' : 'Finalizar Pré-reserva'}
                     </SheetTitle>
                     <SheetDescription>
-                        {product.destination} - {product.tourName}
+                        {selectedProducts.length === 0
+                            ? 'Selecione passeios no tarifário para simular'
+                            : `${selectedProducts.length} passeio(s) selecionado(s)`}
                     </SheetDescription>
                 </SheetHeader>
 
                 {step === 'simulate' ? (
                     <div className="space-y-6">
+                        {/* Selected Products List */}
+                        <div className="space-y-2">
+                            <Label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Itens na Simulação</Label>
+                            {selectedProducts.length === 0 ? (
+                                <div className="p-8 text-center border-2 border-dashed border-gray-100 rounded-xl text-gray-400 text-sm">
+                                    Nenhum passeio adicionado.
+                                </div>
+                            ) : (
+                                <div className="space-y-2">
+                                    {selectedProducts.map((p) => (
+                                        <div key={p.id} className="flex items-center justify-between p-3 bg-white border border-gray-100 rounded-lg shadow-sm group">
+                                            <div className="flex flex-col">
+                                                <span className="text-sm font-bold text-gray-900 leading-tight">{p.tourName}</span>
+                                                <span className="text-[10px] text-gray-500 uppercase font-medium">{p.destination}</span>
+                                            </div>
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-8 w-8 text-gray-300 hover:text-red-500 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-all"
+                                                onClick={() => onRemoveProduct(p.id)}
+                                            >
+                                                <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+
                         {/* PAX Selectors */}
-                        <div className="grid grid-cols-3 gap-4">
+                        <div className="grid grid-cols-3 gap-4 pt-2">
                             <div className="space-y-2">
                                 <Label>Adultos</Label>
                                 <Input
@@ -155,47 +195,53 @@ export function SalesSimulator({ product, isOpen, onClose, agencyInfo }: SalesSi
                         {/* Calculation Summary */}
                         <div className="bg-gray-50 rounded-xl p-6 border border-gray-100 space-y-4">
                             <div className="flex justify-between items-center">
-                                <span className="text-gray-500 text-sm">Valor Total (Cliente)</span>
+                                <span className="text-gray-500 text-sm font-medium">Total do Grupo</span>
                                 <span className="text-xl font-bold text-gray-900">{formatPrice(totals.total)}</span>
                             </div>
 
                             {!agencyInfo?.isInternal && (
                                 <div className="flex justify-between items-center pt-4 border-t border-gray-200/50">
                                     <div className="flex flex-col">
-                                        <span className="text-gray-500 text-xs uppercase font-bold tracking-wider">Sua Comissão</span>
-                                        <span className="text-blue-600 text-[10px] font-medium">Base: {(commissionRate * 100).toFixed(0)}%</span>
+                                        <span className="text-gray-500 text-xs uppercase font-bold tracking-wider">Sua Comissão Total</span>
+                                        <span className="text-blue-600 text-[10px] font-medium">Base: {(commissionRate * 100).toFixed(0)}% sobre venda</span>
                                     </div>
-                                    <span className="text-lg font-bold text-blue-600">{formatPrice(totals.commission)}</span>
+                                    <span className="text-lg font-bold text-blue-600 font-mono">{formatPrice(totals.commission)}</span>
                                 </div>
                             )}
                         </div>
 
-                        <div className="space-y-3 pt-4">
+                        <div className="space-y-3 pt-2">
                             <Button
                                 variant="outline"
-                                className="w-full h-12 gap-2 border-[#25D366] text-[#25D366] hover:bg-[#25D366] hover:text-white transition-all"
+                                className="w-full h-12 gap-2 border-[#25D366] text-[#25D366] hover:bg-[#25D366] hover:text-white transition-all font-bold"
                                 onClick={handleCopySummary}
+                                disabled={selectedProducts.length === 0}
                             >
-                                <Copy className="h-4 w-4" />
-                                Copiar para WhatsApp
+                                <MessageCircle className="h-4 w-4" />
+                                Copiar Orçamento WhatsApp
                             </Button>
 
                             {agencyInfo?.canReserve && (
                                 <Button
-                                    className="w-full h-12 gap-2 bg-[#3b5998] hover:bg-[#2d4373]"
+                                    className="w-full h-12 gap-2 bg-[#3b5998] hover:bg-[#2d4373] text-white font-bold"
                                     onClick={() => setStep('reserve')}
+                                    disabled={selectedProducts.length === 0}
                                 >
                                     Prosseguir para Reserva
                                     <ArrowRight className="h-4 w-4" />
                                 </Button>
                             )}
+
+                            <p className="text-[10px] text-gray-400 text-center italic">
+                                Você pode adicionar mais itens clicando no tarifário com este painel aberto.
+                            </p>
                         </div>
                     </div>
                 ) : (
                     <div className="space-y-5">
                         <div className="bg-blue-50/50 p-4 rounded-lg border border-blue-100 mb-4">
                             <p className="text-xs text-blue-700 font-medium">
-                                Resumo: {adults} ADU, {children} CHD, {infants} INF | Total: {formatPrice(totals.total)}
+                                Consolidação: {selectedProducts.length} itens | {adults} ADU, {children} CHD, {infants} INF | Total: {formatPrice(totals.total)}
                             </p>
                         </div>
 
@@ -206,7 +252,7 @@ export function SalesSimulator({ product, isOpen, onClose, agencyInfo }: SalesSi
                                     <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                                     <Input
                                         placeholder="Ex: João da Silva"
-                                        className="pl-10 h-12"
+                                        className="pl-10 h-12 border-gray-200"
                                         value={clientName}
                                         onChange={(e) => setClientName(e.target.value)}
                                     />
@@ -219,7 +265,7 @@ export function SalesSimulator({ product, isOpen, onClose, agencyInfo }: SalesSi
                                     <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                                     <Input
                                         type="date"
-                                        className="pl-10 h-12"
+                                        className="pl-10 h-12 border-gray-200"
                                         value={tourDate}
                                         onChange={(e) => setTourDate(e.target.value)}
                                     />
@@ -229,8 +275,8 @@ export function SalesSimulator({ product, isOpen, onClose, agencyInfo }: SalesSi
                             <div className="space-y-2">
                                 <Label className="text-xs font-bold text-gray-500 uppercase">Outros Passageiros / Observações</Label>
                                 <Textarea
-                                    placeholder="Nomes dos demais passageiros ou detalhes específicos..."
-                                    className="min-h-[100px]"
+                                    placeholder="Nomes dos demais passageiros ou detalhes específicos de cada passeio..."
+                                    className="min-h-[100px] border-gray-200"
                                     value={paxNames}
                                     onChange={(e) => setPaxNames(e.target.value)}
                                 />
@@ -248,7 +294,7 @@ export function SalesSimulator({ product, isOpen, onClose, agencyInfo }: SalesSi
                                 ) : (
                                     <CheckCircle2 className="h-5 w-5 mr-2" />
                                 )}
-                                Confirmar Pré-reserva
+                                Confirmar Pré-reserva Consolidada
                             </Button>
                             <Button
                                 variant="ghost"
