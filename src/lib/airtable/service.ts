@@ -95,8 +95,14 @@ export const getAgencyByEmail = async (email: string): Promise<Agency | null> =>
     if (records.length === 0) return null;
 
     const record = records[0];
-    const agencyNameField = record.fields['Agency'];
-    const userNameField = record.fields['User']; // Key field for read log
+    const fields = record.fields;
+
+    // Robust field mapping: try Portuguese names first, then fall back to English names
+    const agencyNameField = fields['Agência'] || fields['Agency'];
+    const emailField = fields['Email'] || fields['mail'];
+    const commissionField = fields['Comissão Base'] || fields['Comision_base'];
+    const userNameField = fields['Usuário'] || fields['User'];
+    const skillsField = fields['Destinos'] || fields['Skill'];
 
     // Handle both string and lookup/array values
     const agencyName = (Array.isArray(agencyNameField) ? agencyNameField[0] : agencyNameField) as string;
@@ -106,12 +112,12 @@ export const getAgencyByEmail = async (email: string): Promise<Agency | null> =>
         id: record.id,
         name: agencyName || userName || 'Agente',
         agentName: userName, // This is the 'User' column value
-        email: record.fields['mail'] as string,
-        commissionRate: record.fields['Comision_base'] as number || 0,
-        skills: record.fields['Skill'] as string[] || [],
-        canReserve: record.fields['Reserva'] as boolean || false,
-        canAccessMural: record.fields['Mural'] as boolean || false,
-        isInternal: record.fields['Interno'] as boolean || false,
+        email: emailField as string,
+        commissionRate: commissionField as number || 0,
+        skills: skillsField as string[] || [],
+        canReserve: fields['Reserva'] as boolean || false,
+        canAccessMural: fields['Mural'] as boolean || false,
+        isInternal: fields['Interno'] as boolean || false,
     };
 };
 

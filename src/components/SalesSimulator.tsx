@@ -17,6 +17,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Calculator, MessageCircle, Calendar, User, CheckCircle2, Copy, Loader2, ArrowRight, Trash2, Plus, ShoppingCart, Users } from 'lucide-react';
 import { useCart } from './CartContext';
+import { calculateCartTotals, formatCurrency } from '@/lib/calculations';
 
 interface SalesSimulatorProps {
     isOpen: boolean;
@@ -30,36 +31,19 @@ export function SalesSimulator({ isOpen, onClose, agencyInfo }: SalesSimulatorPr
 
     const commissionRate = agencyInfo?.commissionRate || 0;
 
-    const totals = useMemo(() => {
-        if (selectedProducts.length === 0) return { total: 0, commission: 0 };
-
-        let total = 0;
-        selectedProducts.forEach(product => {
-            total += (product.adults * product.salePriceAdulto) +
-                (product.children * product.salePriceMenor) +
-                (product.infants * product.salePriceBebe);
-        });
-
-        const commission = total * commissionRate;
-
-        return { total, commission };
-    }, [selectedProducts, commissionRate]);
-
-    const formatPrice = (price: number) => {
-        return price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-    };
+    const totals = useMemo(() => calculateCartTotals(selectedProducts, commissionRate), [selectedProducts, commissionRate]);
 
     const handleCopySummary = () => {
         if (selectedProducts.length === 0) return;
 
         let productsList = selectedProducts.map((p, i) => {
-            const paxStr = `${p.adults} ADU${p.children > 0 ? `, ${p.children} CHD` : ''}${p.infants > 0 ? `, ${p.infants} INF` : ''}`;
+            const paxStr = `${p.adults} Adulto${p.children > 0 ? `, ${p.children} Menor` : ''}${p.infants > 0 ? `, ${p.infants} Bebê` : ''}`;
             return `${i + 1}. ${p.tourName} [${paxStr}]`;
         }).join('\n');
 
         const summary = `*Resumo da Experiência - Fidu Viagens*\n\n` +
             `*Passeios Selecionados:*\n${productsList}\n\n` +
-            `*Valor Total Consolidado:* ${formatPrice(totals.total)}\n\n` +
+            `*Valor Total Consolidado:* ${formatCurrency(totals.total)}\n\n` +
             `_Reservas sujeitas a disponibilidade._`;
 
         navigator.clipboard.writeText(summary);
@@ -118,7 +102,7 @@ export function SalesSimulator({ isOpen, onClose, agencyInfo }: SalesSimulatorPr
                                         {/* PAX Selectors for this specific product */}
                                         <div className="grid grid-cols-3 gap-3">
                                             <div className="space-y-1">
-                                                <Label className="text-[10px] text-gray-400 uppercase">Adu</Label>
+                                                <Label className="text-[10px] text-gray-400 uppercase">Adulto</Label>
                                                 <Input
                                                     type="number"
                                                     min={1}
@@ -128,7 +112,7 @@ export function SalesSimulator({ isOpen, onClose, agencyInfo }: SalesSimulatorPr
                                                 />
                                             </div>
                                             <div className="space-y-1">
-                                                <Label className="text-[10px] text-gray-400 uppercase">Chd</Label>
+                                                <Label className="text-[10px] text-gray-400 uppercase">Menor</Label>
                                                 <Input
                                                     type="number"
                                                     min={0}
@@ -138,7 +122,7 @@ export function SalesSimulator({ isOpen, onClose, agencyInfo }: SalesSimulatorPr
                                                 />
                                             </div>
                                             <div className="space-y-1">
-                                                <Label className="text-[10px] text-gray-400 uppercase">Inf</Label>
+                                                <Label className="text-[10px] text-gray-400 uppercase">Bebê</Label>
                                                 <Input
                                                     type="number"
                                                     min={0}
@@ -158,7 +142,7 @@ export function SalesSimulator({ isOpen, onClose, agencyInfo }: SalesSimulatorPr
                     <div className="bg-gray-50 rounded-2xl p-8 border border-gray-100 space-y-5">
                         <div className="flex justify-between items-center">
                             <span className="text-gray-500 text-sm font-medium">Total Consolidado</span>
-                            <span className="text-xl font-bold text-gray-900">{formatPrice(totals.total)}</span>
+                            <span className="text-xl font-bold text-gray-900">{formatCurrency(totals.total)}</span>
                         </div>
 
                         {!agencyInfo?.isInternal && (
@@ -167,7 +151,7 @@ export function SalesSimulator({ isOpen, onClose, agencyInfo }: SalesSimulatorPr
                                     <span className="text-gray-500 text-xs uppercase font-bold tracking-wider">Comissão Total</span>
                                     <span className="text-blue-600 text-[10px] font-medium">Base: {(commissionRate * 100).toFixed(0)}%</span>
                                 </div>
-                                <span className="text-lg font-bold text-blue-600 font-mono">{formatPrice(totals.commission)}</span>
+                                <span className="text-lg font-bold text-blue-600 font-mono">{formatCurrency(totals.commission)}</span>
                             </div>
                         )}
                     </div>

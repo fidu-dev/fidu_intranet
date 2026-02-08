@@ -15,6 +15,7 @@ import {
     ClipboardList,
     Trash2
 } from 'lucide-react';
+import { calculateCartTotals, formatCurrency } from '@/lib/calculations';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -49,24 +50,7 @@ export default function ReservasPage() {
 
     const commissionRate = agencyInfo?.commissionRate || 0;
 
-    const totals = useMemo(() => {
-        if (selectedProducts.length === 0) return { total: 0, commission: 0 };
-
-        let total = 0;
-        selectedProducts.forEach(product => {
-            total += (product.adults * product.salePriceAdulto) +
-                (product.children * product.salePriceMenor) +
-                (product.infants * product.salePriceBebe);
-        });
-
-        const commission = total * commissionRate;
-
-        return { total, commission };
-    }, [selectedProducts, commissionRate]);
-
-    const formatPrice = (price: number) => {
-        return price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-    };
+    const totals = useMemo(() => calculateCartTotals(selectedProducts, commissionRate), [selectedProducts, commissionRate]);
 
     const handleCreateReservation = async () => {
         if (selectedProducts.length === 0 || !clientName || !tourDate) {
@@ -77,7 +61,7 @@ export default function ReservasPage() {
         setIsSubmitting(true);
         try {
             const details = selectedProducts.map(p => {
-                const paxStr = `${p.adults} ADU${p.children > 0 ? `, ${p.children} CHD` : ''}${p.infants > 0 ? `, ${p.infants} INF` : ''}`;
+                const paxStr = `${p.adults} Adulto${p.children > 0 ? `, ${p.children} Menor` : ''}${p.infants > 0 ? `, ${p.infants} Bebê` : ''}`;
                 return `${p.tourName} (${paxStr})`;
             }).join(' | ');
 
@@ -248,7 +232,7 @@ export default function ReservasPage() {
 
                                         <div className="grid grid-cols-3 gap-3 border-t border-gray-50 pt-4">
                                             <div className="text-center">
-                                                <Label className="text-[9px] text-gray-400 uppercase mb-1 block">Adu</Label>
+                                                <Label className="text-[9px] text-gray-400 uppercase mb-1 block">Adulto</Label>
                                                 <Input
                                                     type="number"
                                                     value={p.adults}
@@ -257,7 +241,7 @@ export default function ReservasPage() {
                                                 />
                                             </div>
                                             <div className="text-center">
-                                                <Label className="text-[9px] text-gray-400 uppercase mb-1 block">Chd</Label>
+                                                <Label className="text-[9px] text-gray-400 uppercase mb-1 block">Menor</Label>
                                                 <Input
                                                     type="number"
                                                     value={p.children}
@@ -266,7 +250,7 @@ export default function ReservasPage() {
                                                 />
                                             </div>
                                             <div className="text-center">
-                                                <Label className="text-[9px] text-gray-400 uppercase mb-1 block">Inf</Label>
+                                                <Label className="text-[9px] text-gray-400 uppercase mb-1 block">Bebê</Label>
                                                 <Input
                                                     type="number"
                                                     value={p.infants}
