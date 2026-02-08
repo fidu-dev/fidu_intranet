@@ -148,7 +148,7 @@ export function ExchangeTicker({ canAccess }: ExchangeTickerProps) {
                                         {/* Observations */}
                                         {idx % processedRates.length === processedRates.length - 1 && processedRates[0]?.current.observations && (
                                             <span className="inline-flex items-center mx-6 text-[10px] font-medium text-gray-400">
-                                                <span className="font-bold mr-1 opacity-70">Obs:</span>
+
                                                 {processedRates[0].current.observations}
                                             </span>
                                         )}

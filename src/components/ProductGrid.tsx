@@ -357,9 +357,8 @@ export function ProductGrid({ products, isInternal, agencyInfo }: ProductGridPro
                             </SheetHeader>
 
                             <div className="flex-1 overflow-y-auto">
-                                <div className="grid grid-cols-1 lg:grid-cols-2 lg:divide-x divide-gray-100">
-                                    {/* Coluna Esquerda */}
-                                    <div className="p-4 space-y-6">
+                                <div className="p-6 space-y-8">
+                                    <div className="space-y-6">
                                         <div className="space-y-2">
                                             <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Disponibilidade (Temporada)</label>
                                             <div className="flex flex-wrap gap-1.5">
@@ -390,10 +389,7 @@ export function ProductGrid({ products, isInternal, agencyInfo }: ProductGridPro
                                                 <button onClick={() => setCategoryFilter('PVD')} className={`flex-1 px-2.5 py-1.5 rounded-lg text-[10px] font-bold border transition-all ${categoryFilter === 'PVD' ? 'bg-gray-700 text-white border-gray-700 shadow-sm' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'}`}>Privado</button>
                                             </div>
                                         </div>
-                                    </div>
 
-                                    {/* Coluna Direita */}
-                                    <div className="p-4 space-y-6">
                                         <div className="space-y-2">
                                             <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Operador</label>
                                             <Select value={providerFilter} onValueChange={setProviderFilter}>
