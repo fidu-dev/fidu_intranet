@@ -119,7 +119,13 @@ export function ProductGrid({ products, isInternal, agencyInfo }: ProductGridPro
 
     const getEffectiveStatus = (status?: any) => {
         if (!status) return 'Inativo';
+        if (status === true || status === 'true') return 'Ativo';
+        if (status === false || status === 'false') return 'Inativo';
+
         const s = String(Array.isArray(status) ? status[0] : status).trim();
+        if (s.toLowerCase() === 'true') return 'Ativo';
+        if (s.toLowerCase() === 'false') return 'Inativo';
+
         return s || 'Inativo';
     };
 
@@ -198,7 +204,7 @@ export function ProductGrid({ products, isInternal, agencyInfo }: ProductGridPro
     }, [products, searchTerm, categoryFilter, destinationFilter, statusFilter, subCategoryFilter, providerFilter, sortConfig]);
 
     const formatPrice = (price: number) => {
-        return price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 0 });
+        return Math.ceil(price).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 0 });
     };
 
     return (
@@ -271,17 +277,20 @@ export function ProductGrid({ products, isInternal, agencyInfo }: ProductGridPro
                 </div>
 
                 {/* 3. Price Mode (Compact) */}
-                <div className="flex bg-gray-100/80 rounded-lg p-0.5 shrink-0">
+                {/* 3. Price Mode (Enhanced) */}
+                <div className="flex bg-gray-100 p-1 rounded-xl shrink-0 h-9 items-center">
                     <button
                         onClick={() => setSeason('VER26')}
-                        className={`px-3 py-1.5 rounded-md text-[10px] font-bold transition-all duration-200 ${season === 'VER26' ? 'bg-white text-orange-600 shadow-sm ring-1 ring-black/5' : 'text-gray-400 hover:text-gray-600'}`}
+                        className={`px-4 h-full rounded-lg text-xs font-bold transition-all duration-200 flex items-center gap-2 ${season === 'VER26' ? 'bg-white text-orange-600 shadow-sm ring-1 ring-black/5 scale-[1.02]' : 'text-gray-400 hover:text-gray-600'}`}
                     >
+                        <span className={season === 'VER26' ? "w-2 h-2 rounded-full bg-orange-500" : "w-2 h-2 rounded-full bg-gray-300"} />
                         Verão
                     </button>
                     <button
                         onClick={() => setSeason('INV26')}
-                        className={`px-3 py-1.5 rounded-md text-[10px] font-bold transition-all duration-200 ${season === 'INV26' ? 'bg-white text-[#3b5998] shadow-sm ring-1 ring-black/5' : 'text-gray-400 hover:text-gray-600'}`}
+                        className={`px-4 h-full rounded-lg text-xs font-bold transition-all duration-200 flex items-center gap-2 ${season === 'INV26' ? 'bg-white text-[#3b5998] shadow-sm ring-1 ring-black/5 scale-[1.02]' : 'text-gray-400 hover:text-gray-600'}`}
                     >
+                        <span className={season === 'INV26' ? "w-2 h-2 rounded-full bg-[#3b5998]" : "w-2 h-2 rounded-full bg-gray-300"} />
                         Inverno
                     </button>
                 </div>
@@ -414,16 +423,34 @@ export function ProductGrid({ products, isInternal, agencyInfo }: ProductGridPro
                             </Button>
                         </PopoverTrigger>
                         <PopoverContent className="w-64 p-4" align="end">
-                            <div className="space-y-3">
-                                <h4 className="font-bold text-sm text-gray-900 mb-3">Legenda</h4>
-                                <div className="space-y-2.5">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-3 h-3 rounded-full bg-green-500 ring-4 ring-green-500/10 shadow-sm shrink-0" />
-                                        <span className="text-xs text-gray-700">Ativo / Regular</span>
+                            <div className="space-y-4">
+                                <h4 className="font-bold text-sm text-gray-900 border-b pb-2 mb-2">Legenda</h4>
+
+                                <div>
+                                    <h5 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Status Operacional</h5>
+                                    <div className="space-y-2">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-2.5 h-2.5 rounded-full bg-green-500 ring-4 ring-green-500/10 shadow-sm shrink-0" />
+                                            <span className="text-xs text-gray-700 font-medium">Ativo</span>
+                                        </div>
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-2.5 h-2.5 rounded-full bg-gray-300 ring-4 ring-gray-300/10 shadow-sm shrink-0" />
+                                            <span className="text-xs text-gray-500 font-medium">Inativo</span>
+                                        </div>
                                     </div>
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-3 h-3 rounded-full bg-gray-800 ring-4 ring-gray-800/10 shadow-sm shrink-0" />
-                                        <span className="text-xs text-gray-700">Privado</span>
+                                </div>
+
+                                <div>
+                                    <h5 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Tipo de Serviço</h5>
+                                    <div className="space-y-2">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-2.5 h-2.5 rounded-full bg-yellow-400 ring-4 ring-yellow-400/10 shadow-sm shrink-0" />
+                                            <span className="text-xs text-gray-700 font-medium">Regular</span>
+                                        </div>
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-2.5 h-2.5 rounded-full bg-gray-800 ring-4 ring-gray-800/10 shadow-sm shrink-0" />
+                                            <span className="text-xs text-gray-700 font-medium">Privado</span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -584,22 +611,21 @@ export function ProductGrid({ products, isInternal, agencyInfo }: ProductGridPro
                                                 const netoPrice = season === 'VER26' ? (product as any)[`netoPrice${colId.charAt(5).toUpperCase() + colId.slice(6)}Ver26`] : (product as any)[`netoPrice${colId.charAt(5).toUpperCase() + colId.slice(6)}Inv26`];
                                                 const actualPrice = isInternal ? price : netoPrice;
 
-                                                // Visual Hierarchy Logic
-                                                const isAdult = colId === 'priceAdulto';
-                                                const isChild = colId === 'priceMenor';
-                                                const isInfant = colId === 'priceBebe';
+                                                // Theme Colors & Hierarchy
+                                                const isWinter = season === 'INV26';
 
-                                                // Theme Colors
-                                                const themeColor = season === 'VER26' ? 'text-orange-600' : 'text-blue-600';
-
-                                                let styleClass = "";
-                                                if (isAdult) styleClass = `text-base font-black tracking-tight ${themeColor}`;
-                                                else if (isChild) styleClass = "text-xs font-bold text-gray-400";
-                                                else if (isInfant) styleClass = "text-[10px] font-medium text-gray-300";
+                                                let textColorClass = "";
+                                                if (colId === 'priceAdulto') {
+                                                    textColorClass = isWinter ? "text-[#3b5998]" : "text-orange-600";
+                                                } else if (colId === 'priceMenor') {
+                                                    textColorClass = isWinter ? "text-[#3b5998]/80" : "text-orange-600/80";
+                                                } else if (colId === 'priceBebe') {
+                                                    textColorClass = isWinter ? "text-[#3b5998]/60" : "text-orange-600/60";
+                                                }
 
                                                 return (
                                                     <td key={colId} className={`px-4 py-5 text-right w-24 ${isInternal ? '' : 'cursor-help'}`} title={isInternal ? undefined : `Sugestão de Venda: ${formatPrice(price || 0)}`}>
-                                                        <span className={styleClass}>
+                                                        <span className={`text-base font-bold tracking-tight ${textColorClass}`}>
                                                             {formatPrice(actualPrice || 0)}
                                                         </span>
                                                     </td>
