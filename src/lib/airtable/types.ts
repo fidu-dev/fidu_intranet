@@ -3,10 +3,22 @@ export interface Product {
     destination: string;
     tourName: string;
     category: string;
-    basePrice: number; // For calculations (using Adulto)
+    // Base prices (Legacy field, now used as default/fallback)
+    basePrice: number;
     priceAdulto: number;
     priceMenor: number;
     priceBebe: number;
+
+    // Seasonal Prices - Verão 2026
+    priceAdultoVer26: number;
+    priceMenorVer26: number;
+    priceBebeVer26: number;
+
+    // Seasonal Prices - Inverno 2026
+    priceAdultoInv26: number;
+    priceMenorInv26: number;
+    priceBebeInv26: number;
+
     pickup?: string;
     retorno?: string;
     temporada?: string;
@@ -21,12 +33,30 @@ export interface Product {
 }
 
 export interface AgencyProduct extends Product {
-    salePriceAdulto: number; // The retail price (Airtable value)
-    netoPriceAdulto: number; // What agency pays Fidu (Airtable - Commission)
+    // Calculated NET and SALE prices for current context (defaults/fallback)
+    salePriceAdulto: number;
+    netoPriceAdulto: number;
     salePriceMenor: number;
     netoPriceMenor: number;
     salePriceBebe: number;
     netoPriceBebe: number;
+
+    // Calculated Seasonal Prices
+    // Verão
+    salePriceAdultoVer26: number;
+    netoPriceAdultoVer26: number;
+    salePriceMenorVer26: number;
+    netoPriceMenorVer26: number;
+    salePriceBebeVer26: number;
+    netoPriceBebeVer26: number;
+
+    // Inverno
+    salePriceAdultoInv26: number;
+    netoPriceAdultoInv26: number;
+    salePriceMenorInv26: number;
+    netoPriceMenorInv26: number;
+    salePriceBebeInv26: number;
+    netoPriceBebeInv26: number;
 }
 
 export interface Agency {

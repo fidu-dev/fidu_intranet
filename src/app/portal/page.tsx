@@ -7,8 +7,7 @@ export default async function Portal() {
 
     return (
         <main className="container mx-auto px-6 py-10">
-            <div className="mb-10">
-                <h1 className="text-3xl font-bold mb-2" style={{ color: '#3b5998' }}>Tarifário de Experiências</h1>
+            <div className="mb-6">
                 <p className="text-gray-500">
                     Tarifas exclusivas para nossos parceiros verificados.
                 </p>

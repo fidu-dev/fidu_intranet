@@ -41,6 +41,7 @@ export function ProductGrid({ products, isInternal, agencyInfo }: ProductGridPro
     const [searchTerm, setSearchTerm] = useState('');
     const [categoryFilter, setCategoryFilter] = useState('REG');
     const [destinationFilter, setDestinationFilter] = useState('all');
+    const [season, setSeason] = useState<'VER26' | 'INV26'>('VER26'); // Default to Summer 2026
     const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'tourName', direction: 'asc' });
 
     // UI Local State
@@ -59,7 +60,24 @@ export function ProductGrid({ products, isInternal, agencyInfo }: ProductGridPro
     };
 
     const handleProductClick = (product: AgencyProduct) => {
-        addToCart(product);
+        // Create a copy of the product with the ACTIVE season prices mapped to the standard fields
+        // This ensures the Cart receives the correct price based on the current toggle
+        const seasonalProduct = {
+            ...product,
+            priceAdulto: season === 'VER26' ? product.priceAdultoVer26 : product.priceAdultoInv26,
+            priceMenor: season === 'VER26' ? product.priceMenorVer26 : product.priceMenorInv26,
+            priceBebe: season === 'VER26' ? product.priceBebeVer26 : product.priceBebeInv26,
+            // Also update net prices if used elsewhere
+            netoPriceAdulto: season === 'VER26' ? product.netoPriceAdultoVer26 : product.netoPriceAdultoInv26,
+            netoPriceMenor: season === 'VER26' ? product.netoPriceMenorVer26 : product.netoPriceMenorInv26,
+            netoPriceBebe: season === 'VER26' ? product.netoPriceBebeVer26 : product.netoPriceBebeInv26,
+            // And sale prices
+            salePriceAdulto: season === 'VER26' ? product.salePriceAdultoVer26 : product.salePriceAdultoInv26,
+            salePriceMenor: season === 'VER26' ? product.salePriceMenorVer26 : product.salePriceMenorInv26,
+            salePriceBebe: season === 'VER26' ? product.salePriceBebeVer26 : product.salePriceBebeInv26,
+        };
+
+        addToCart(seasonalProduct);
         setIsSimulatorOpen(true);
     };
 
@@ -143,43 +161,79 @@ export function ProductGrid({ products, isInternal, agencyInfo }: ProductGridPro
                 </div>
             )}
 
-            {/* Filters Bar */}
-            <div className="flex flex-col lg:flex-row gap-4 items-center bg-white p-4 rounded-xl shadow-sm border border-gray-100">
-                <div className="relative flex-1 w-full">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-4 w-4" />
-                    <Input
-                        placeholder="Pesquisar passeios ou destinos..."
-                        className="pl-10 border-gray-200 focus:ring-blue-500 rounded-lg"
-                        value={searchTerm}
-                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
-                    />
-                </div>
-                <div className="flex flex-wrap gap-2 w-full lg:w-auto">
-                    <Select value={destinationFilter} onValueChange={setDestinationFilter}>
-                        <SelectTrigger className="flex-1 lg:w-40 border-gray-200 rounded-lg">
-                            <SelectValue placeholder="Destino" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">Todos os Destinos</SelectItem>
-                            {destinations.map(dest => (
-                                <SelectItem key={dest} value={dest}>{dest}</SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
+            {/* Dynamic Title based on Season - MAIN H1 */}
+            <div>
+                <h1 className={`text-3xl font-bold transition-colors duration-300 ${season === 'VER26' ? 'text-orange-600' : 'text-blue-700'}`}>
+                    {season === 'VER26' ? '☀️ Tarifário de Verão 2026' : '❄️ Tarifário de Inverno 2026'}
+                </h1>
+            </div>
 
-                    <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                        <SelectTrigger className="flex-1 lg:w-40 border-gray-200 rounded-lg">
-                            <SelectValue placeholder="Serviço" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">Todos os Serviços</SelectItem>
-                            {categories.map(cat => (
-                                <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
+            {/* Filters Bar */}
+            <div className="flex flex-col gap-4 bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+                {/* Season Toggle - Prominent */}
+                <div className="flex justify-center pb-4 border-b border-gray-100">
+                    <div className="bg-gray-100 p-1 rounded-lg inline-flex">
+                        <button
+                            onClick={() => setSeason('VER26')}
+                            className={`px-6 py-2 rounded-md text-sm font-bold transition-all ${season === 'VER26'
+                                ? 'bg-orange-500 text-white shadow-sm'
+                                : 'text-gray-500 hover:text-gray-900'
+                                }`}
+                        >
+                            Verão 2026
+                        </button>
+                        <button
+                            onClick={() => setSeason('INV26')}
+                            className={`px-6 py-2 rounded-md text-sm font-bold transition-all ${season === 'INV26'
+                                ? 'bg-blue-600 text-white shadow-sm'
+                                : 'text-gray-500 hover:text-gray-900'
+                                }`}
+                        >
+                            Inverno 2026
+                        </button>
+                    </div>
+                </div>
+
+                <div className="flex flex-col lg:flex-row gap-4 items-center">
+                    <div className="relative flex-1 w-full">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-4 w-4" />
+                        <Input
+                            placeholder="Pesquisar passeios ou destinos..."
+                            className="pl-10 border-gray-200 focus:ring-blue-500 rounded-lg"
+                            value={searchTerm}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
+                        />
+                    </div>
+                    <div className="flex flex-wrap gap-2 w-full lg:w-auto">
+                        <Select value={destinationFilter} onValueChange={setDestinationFilter}>
+                            <SelectTrigger className="flex-1 lg:w-40 border-gray-200 rounded-lg">
+                                <SelectValue placeholder="Destino" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">Todos os Destinos</SelectItem>
+                                {destinations.map(dest => (
+                                    <SelectItem key={dest} value={dest}>{dest}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+
+                        <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                            <SelectTrigger className="flex-1 lg:w-40 border-gray-200 rounded-lg">
+                                <SelectValue placeholder="Serviço" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">Todos os Serviços</SelectItem>
+                                {categories.map(cat => (
+                                    <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
                 </div>
             </div>
+
+            {/* Dynamic Title based on Season - MAIN H1 */}
+
 
             {/* Table Container */}
             <div className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
@@ -209,19 +263,19 @@ export function ProductGrid({ products, isInternal, agencyInfo }: ProductGridPro
                                     className="px-4 py-3 text-[11px] font-bold text-gray-500 uppercase tracking-tight text-right cursor-pointer hover:bg-gray-100 transition-colors"
                                     onClick={() => requestSort('netoPriceAdulto')}
                                 >
-                                    <div className="flex items-center justify-end">{isInternal ? 'Venda' : 'Neto'} (ADU) <SortIcon columnKey="netoPriceAdulto" /></div>
+                                    <div className="flex items-center justify-end">{isInternal ? 'Venda' : 'Neto'} (ADU) - {season} <SortIcon columnKey={season === 'VER26' ? 'netoPriceAdultoVer26' : 'netoPriceAdultoInv26'} /></div>
                                 </th>
                                 <th
                                     className="px-4 py-3 text-[11px] font-bold text-gray-500 uppercase tracking-tight text-right cursor-pointer hover:bg-gray-100 transition-colors"
-                                    onClick={() => requestSort('netoPriceMenor')}
+                                    onClick={() => requestSort(season === 'VER26' ? 'netoPriceMenorVer26' : 'netoPriceMenorInv26')}
                                 >
-                                    <div className="flex items-center justify-end">{isInternal ? 'Venda' : 'Neto'} (CHD) <SortIcon columnKey="netoPriceMenor" /></div>
+                                    <div className="flex items-center justify-end">{isInternal ? 'Venda' : 'Neto'} (CHD) - {season} <SortIcon columnKey={season === 'VER26' ? 'netoPriceMenorVer26' : 'netoPriceMenorInv26'} /></div>
                                 </th>
                                 <th
                                     className="px-4 py-3 text-[11px] font-bold text-gray-500 uppercase tracking-tight text-right cursor-pointer hover:bg-gray-100 transition-colors"
-                                    onClick={() => requestSort('netoPriceBebe')}
+                                    onClick={() => requestSort(season === 'VER26' ? 'netoPriceBebeVer26' : 'netoPriceBebeInv26')}
                                 >
-                                    <div className="flex items-center justify-end">{isInternal ? 'Venda' : 'Neto'} (INF) <SortIcon columnKey="netoPriceBebe" /></div>
+                                    <div className="flex items-center justify-end">{isInternal ? 'Venda' : 'Neto'} (INF) - {season} <SortIcon columnKey={season === 'VER26' ? 'netoPriceBebeVer26' : 'netoPriceBebeInv26'} /></div>
                                 </th>
                                 <th className="px-4 py-3 text-[11px] font-bold text-gray-500 uppercase tracking-tight">Pickup</th>
                                 <th className="px-4 py-3 text-[11px] font-bold text-gray-500 uppercase tracking-tight">Retorno</th>
@@ -257,26 +311,35 @@ export function ProductGrid({ products, isInternal, agencyInfo }: ProductGridPro
                                         </td>
                                         <td
                                             className={`px-4 py-4 text-right ${isInternal ? '' : 'cursor-help'}`}
-                                            title={isInternal ? undefined : `Sugestão de Venda: ${formatPrice(product.salePriceAdulto)}`}
+                                            title={isInternal ? undefined : `Sugestão de Venda: ${formatPrice(season === 'VER26' ? product.salePriceAdultoVer26 : product.salePriceAdultoInv26)}`}
                                         >
-                                            <span className="text-sm font-bold text-gray-900">
-                                                {formatPrice(isInternal ? product.salePriceAdulto : product.netoPriceAdulto)}
+                                            <span className={`text-sm font-bold ${season === 'VER26' ? 'text-orange-700' : 'text-blue-700'}`}>
+                                                {formatPrice(isInternal
+                                                    ? (season === 'VER26' ? product.salePriceAdultoVer26 : product.salePriceAdultoInv26)
+                                                    : (season === 'VER26' ? product.netoPriceAdultoVer26 : product.netoPriceAdultoInv26)
+                                                )}
                                             </span>
                                         </td>
                                         <td
                                             className={`px-4 py-4 text-right ${isInternal ? '' : 'cursor-help'}`}
-                                            title={isInternal ? undefined : `Sugestão de Venda: ${formatPrice(product.salePriceMenor)}`}
+                                            title={isInternal ? undefined : `Sugestão de Venda: ${formatPrice(season === 'VER26' ? product.salePriceMenorVer26 : product.salePriceMenorInv26)}`}
                                         >
                                             <span className="text-sm font-bold text-gray-900">
-                                                {formatPrice(isInternal ? product.salePriceMenor : product.netoPriceMenor)}
+                                                {formatPrice(isInternal
+                                                    ? (season === 'VER26' ? product.salePriceMenorVer26 : product.salePriceMenorInv26)
+                                                    : (season === 'VER26' ? product.netoPriceMenorVer26 : product.netoPriceMenorInv26)
+                                                )}
                                             </span>
                                         </td>
                                         <td
                                             className={`px-4 py-4 text-right ${isInternal ? '' : 'cursor-help'}`}
-                                            title={isInternal ? undefined : `Sugestão de Venda: ${formatPrice(product.salePriceBebe)}`}
+                                            title={isInternal ? undefined : `Sugestão de Venda: ${formatPrice(season === 'VER26' ? product.salePriceBebeVer26 : product.salePriceBebeInv26)}`}
                                         >
                                             <span className="text-sm font-bold text-gray-900">
-                                                {formatPrice(isInternal ? product.salePriceBebe : product.netoPriceBebe)}
+                                                {formatPrice(isInternal
+                                                    ? (season === 'VER26' ? product.salePriceBebeVer26 : product.salePriceBebeInv26)
+                                                    : (season === 'VER26' ? product.netoPriceBebeVer26 : product.netoPriceBebeInv26)
+                                                )}
                                             </span>
                                         </td>
                                         <td className="px-4 py-4 text-sm text-gray-500 font-mono">

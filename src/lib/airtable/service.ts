@@ -21,10 +21,22 @@ const mapToProduct = (record: any): Product => {
         category: fields['Categoria do Serviço'] as string || 'Other',
         subCategory: Array.isArray(fields['Categoria']) ? fields['Categoria'].join(', ') : fields['Categoria'] as string,
         taxasExtras: fields['Taxas Extras?'] as string,
+        // Default/Fallback prices (using Inverno as base for now, or could change logic)
         basePrice: fields['INV26 ADU'] as number || 0,
         priceAdulto: fields['INV26 ADU'] as number || 0,
         priceMenor: fields['INV26 CHD'] as number || 0,
         priceBebe: fields['INV26 INF'] as number || 0,
+
+        // Verão 2026
+        priceAdultoVer26: fields['VER26 ADU'] as number || 0,
+        priceMenorVer26: fields['VER26 CHD'] as number || 0,
+        priceBebeVer26: fields['VER26 INF'] as number || 0,
+
+        // Inverno 2026
+        priceAdultoInv26: fields['INV26 ADU'] as number || 0,
+        priceMenorInv26: fields['INV26 CHD'] as number || 0,
+        priceBebeInv26: fields['INV26 INF'] as number || 0,
+
         pickup: formatDuration(fields['Pickup']),
         retorno: formatDuration(fields['Retorno']),
         temporada: Array.isArray(fields['Temporada']) ? fields['Temporada'].join(', ') : fields['Temporada'] as string,

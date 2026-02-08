@@ -107,6 +107,30 @@ export async function getAgencyProducts(): Promise<{ products: AgencyProduct[], 
                     salePriceBebe: product.priceBebe,
                     netoPriceBebe: calculateNeto(product.priceBebe),
 
+                    // Seasonal - Verão 2026
+                    priceAdultoVer26: product.priceAdultoVer26,
+                    priceMenorVer26: product.priceMenorVer26,
+                    priceBebeVer26: product.priceBebeVer26,
+
+                    salePriceAdultoVer26: product.priceAdultoVer26,
+                    netoPriceAdultoVer26: calculateNeto(product.priceAdultoVer26),
+                    salePriceMenorVer26: product.priceMenorVer26,
+                    netoPriceMenorVer26: calculateNeto(product.priceMenorVer26),
+                    salePriceBebeVer26: product.priceBebeVer26,
+                    netoPriceBebeVer26: calculateNeto(product.priceBebeVer26),
+
+                    // Seasonal - Inverno 2026
+                    priceAdultoInv26: product.priceAdultoInv26,
+                    priceMenorInv26: product.priceMenorInv26,
+                    priceBebeInv26: product.priceBebeInv26,
+
+                    salePriceAdultoInv26: product.priceAdultoInv26,
+                    netoPriceAdultoInv26: calculateNeto(product.priceAdultoInv26),
+                    salePriceMenorInv26: product.priceMenorInv26,
+                    netoPriceMenorInv26: calculateNeto(product.priceMenorInv26),
+                    salePriceBebeInv26: product.priceBebeInv26,
+                    netoPriceBebeInv26: calculateNeto(product.priceBebeInv26),
+
                     pickup: product.pickup,
                     retorno: product.retorno,
                     temporada: product.temporada,
