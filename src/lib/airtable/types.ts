@@ -36,6 +36,10 @@ export interface Product {
     whatToBring?: string; // Column 'O que levar'
     provider?: string; // Column 'Fornecedor' (restricted)
     duration?: string; // Column 'Duração'
+    valorExtra?: string; // Column 'Valor Extra'
+    optionals?: string; // Column 'Opcionais disponíveis'
+    restrictions?: string; // Column 'Restrições'
+    observations?: string; // Column 'Observações'
 }
 
 export interface AgencyProduct extends Product {

@@ -149,6 +149,10 @@ export async function getAgencyProducts(): Promise<{ products: AgencyProduct[], 
                     provider: product.provider,
                     duration: product.duration,
                     whatToBring: product.whatToBring,
+                    valorExtra: product.valorExtra,
+                    optionals: product.optionals,
+                    restrictions: product.restrictions,
+                    observations: product.observations,
                 };
             });
 

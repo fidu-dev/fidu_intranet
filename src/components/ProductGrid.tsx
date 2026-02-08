@@ -1,7 +1,7 @@
 'use client';
 
 import { AgencyProduct } from '@/lib/airtable/types';
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Search, ShoppingCart, ArrowUpDown, ChevronUp, ChevronDown, Plus, X, Settings, CheckCircle2, ArrowUp, ArrowDown, RefreshCw, SlidersHorizontal, Filter, Info, Eye } from 'lucide-react';
@@ -83,6 +83,46 @@ export function ProductGrid({ products, isInternal, agencyInfo }: ProductGridPro
     const storageKey = `fidu_columns_${user?.id || 'guest'}`;
 
     const [visibleColumns, setVisibleColumns] = useLocalStorage<string[]>(storageKey, DEFAULT_VISIBLE_COLUMNS);
+
+    // Width persistence
+    const widthStorageKey = `fidu_widths_${user?.id || 'guest'}`;
+    const [columnWidths, setColumnWidths] = useLocalStorage<Record<string, number>>(widthStorageKey, {});
+
+    // Resize handlers
+    const resizingColumn = useRef<{ id: string; startX: number; startWidth: number } | null>(null);
+
+    const onResizeStart = (e: React.MouseEvent, columnId: string) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        const header = (e.target as HTMLElement).closest('th');
+        if (!header) return;
+
+        resizingColumn.current = {
+            id: columnId,
+            startX: e.pageX,
+            startWidth: header.offsetWidth,
+        };
+
+        const onMouseMove = (moveEvent: MouseEvent) => {
+            if (!resizingColumn.current) return;
+            const diff = moveEvent.pageX - resizingColumn.current.startX;
+            const newWidth = Math.max(50, resizingColumn.current.startWidth + diff);
+            setColumnWidths(prev => ({
+                ...prev,
+                [resizingColumn.current!.id]: newWidth
+            }));
+        };
+
+        const onMouseUp = () => {
+            resizingColumn.current = null;
+            window.removeEventListener('mousemove', onMouseMove);
+            window.removeEventListener('mouseup', onMouseUp);
+        };
+
+        window.addEventListener('mousemove', onMouseMove);
+        window.addEventListener('mouseup', onMouseUp);
+    };
 
     // Filter out invalid columns (like 'status', 'category') that may have been saved before they were removed
     useEffect(() => {
@@ -560,7 +600,7 @@ export function ProductGrid({ products, isInternal, agencyInfo }: ProductGridPro
                                 ))}
                             </div>
                             <div className="p-3 bg-gray-50/50 border-t">
-                                <Button variant="ghost" size="sm" onClick={() => setVisibleColumns(DEFAULT_VISIBLE_COLUMNS)} className="w-full text-[10px] font-bold text-[#3b5998] hover:bg-[#3b5998]/10 uppercase gap-2">
+                                <Button variant="ghost" size="sm" onClick={() => { setVisibleColumns(DEFAULT_VISIBLE_COLUMNS); setColumnWidths({}); }} className="w-full text-[10px] font-bold text-[#3b5998] hover:bg-[#3b5998]/10 uppercase gap-2">
                                     <RefreshCw className="h-3 w-3" /> Restaurar Padrão
                                 </Button>
                             </div>
@@ -576,23 +616,47 @@ export function ProductGrid({ products, isInternal, agencyInfo }: ProductGridPro
                             <tr className="bg-gray-50/50 border-b border-gray-100">
                                 {visibleColumns.filter(c => c !== 'status' && c !== 'category').map(colId => {
                                     if (colId === 'destination') return (
-                                        <th key={colId} className="px-4 py-3 text-[11px] font-bold text-gray-500 uppercase tracking-tight cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => requestSort('destination')}>
+                                        <th
+                                            key={colId}
+                                            className="group relative px-4 py-3 text-[11px] font-bold text-gray-500 uppercase tracking-tight cursor-pointer hover:bg-gray-100 transition-colors"
+                                            style={{ width: columnWidths[colId] || 'auto', minWidth: columnWidths[colId] || 'auto' }}
+                                            onClick={() => requestSort('destination')}
+                                        >
                                             <div className="flex items-center">Destino <SortIcon columnKey="destination" sortConfig={sortConfig} /></div>
+                                            <div className="absolute right-0 top-0 h-full w-1 cursor-col-resize hover:bg-[#3b5998]/30 transition-colors z-10" onMouseDown={(e) => onResizeStart(e, colId)} />
                                         </th>
                                     );
                                     if (colId === 'tourName') return (
-                                        <th key={colId} className="px-4 py-3 text-[11px] font-bold text-gray-500 uppercase tracking-tight cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => requestSort('tourName')}>
+                                        <th
+                                            key={colId}
+                                            className="group relative px-4 py-3 text-[11px] font-bold text-gray-500 uppercase tracking-tight cursor-pointer hover:bg-gray-100 transition-colors"
+                                            style={{ width: columnWidths[colId] || 'auto', minWidth: columnWidths[colId] || 'auto' }}
+                                            onClick={() => requestSort('tourName')}
+                                        >
                                             <div className="flex items-center">Serviço <SortIcon columnKey="tourName" sortConfig={sortConfig} /></div>
+                                            <div className="absolute right-0 top-0 h-full w-1 cursor-col-resize hover:bg-[#3b5998]/30 transition-colors z-10" onMouseDown={(e) => onResizeStart(e, colId)} />
                                         </th>
                                     );
                                     if (['priceAdulto', 'priceMenor', 'priceBebe'].includes(colId)) return (
-                                        <th key={colId} className="px-4 py-3 text-[11px] font-bold text-gray-500 uppercase tracking-tight text-right cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => requestSort(season === 'VER26' ? `${colId}Ver26` : `${colId}Inv26` as any)}>
+                                        <th
+                                            key={colId}
+                                            className="group relative px-4 py-3 text-[11px] font-bold text-gray-500 uppercase tracking-tight text-right cursor-pointer hover:bg-gray-100 transition-colors"
+                                            style={{ width: columnWidths[colId] || 'auto', minWidth: columnWidths[colId] || 'auto' }}
+                                            onClick={() => requestSort(season === 'VER26' ? `${colId}Ver26` : `${colId}Inv26` as any)}
+                                        >
                                             <div className="flex items-center justify-end">{ALL_COLUMNS.find(c => c.id === colId)?.label} <SortIcon columnKey={season === 'VER26' ? `${colId}Ver26` : `${colId}Inv26`} sortConfig={sortConfig} /></div>
+                                            <div className="absolute right-0 top-0 h-full w-1 cursor-col-resize hover:bg-[#3b5998]/30 transition-colors z-10" onMouseDown={(e) => onResizeStart(e, colId)} />
                                         </th>
                                     );
                                     if (colId === 'provider') return (
-                                        <th key={colId} className="px-4 py-3 text-[11px] font-bold text-gray-500 uppercase tracking-tight cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => requestSort('provider')}>
+                                        <th
+                                            key={colId}
+                                            className="group relative px-4 py-3 text-[11px] font-bold text-gray-500 uppercase tracking-tight cursor-pointer hover:bg-gray-100 transition-colors"
+                                            style={{ width: columnWidths[colId] || 'auto', minWidth: columnWidths[colId] || 'auto' }}
+                                            onClick={() => requestSort('provider')}
+                                        >
                                             <div className="flex items-center">Operador <SortIcon columnKey="provider" sortConfig={sortConfig} /></div>
+                                            <div className="absolute right-0 top-0 h-full w-1 cursor-col-resize hover:bg-[#3b5998]/30 transition-colors z-10" onMouseDown={(e) => onResizeStart(e, colId)} />
                                         </th>
                                     );
 
@@ -600,8 +664,14 @@ export function ProductGrid({ products, isInternal, agencyInfo }: ProductGridPro
                                     let label = colDef?.label || colId;
 
                                     return (
-                                        <th key={colId} className="px-4 py-3 text-[11px] font-bold text-gray-500 uppercase tracking-tight cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => requestSort(colId as any)}>
+                                        <th
+                                            key={colId}
+                                            className="group relative px-4 py-3 text-[11px] font-bold text-gray-500 uppercase tracking-tight cursor-pointer hover:bg-gray-100 transition-colors"
+                                            style={{ width: columnWidths[colId] || 'auto', minWidth: columnWidths[colId] || 'auto' }}
+                                            onClick={() => requestSort(colId as any)}
+                                        >
                                             <div className="flex items-center">{label} <SortIcon columnKey={colId} sortConfig={sortConfig} /></div>
+                                            <div className="absolute right-0 top-0 h-full w-1 cursor-col-resize hover:bg-[#3b5998]/30 transition-colors z-10" onMouseDown={(e) => onResizeStart(e, colId)} />
                                         </th>
                                     );
                                 })}
@@ -616,7 +686,7 @@ export function ProductGrid({ products, isInternal, agencyInfo }: ProductGridPro
                                     <tr key={product.id} className={`hover:bg-[#3b5998]/5 transition-colors group cursor-pointer ${isSelected ? 'bg-[#3b5998]/5' : ''}`} onClick={() => handleProductClick(product)}>
                                         {visibleColumns.filter(c => c !== 'status' && c !== 'category').map(colId => {
                                             if (colId === 'destination') return (
-                                                <td key={colId} className="px-4 py-4 whitespace-nowrap">
+                                                <td key={colId} className="px-4 py-4 whitespace-nowrap overflow-hidden" style={{ width: columnWidths[colId] || 'auto', minWidth: columnWidths[colId] || 'auto' }}>
                                                     <button type="button" onClick={(e) => { e.stopPropagation(); setDestinationFilter(product.destination ?? ''); }} className="text-white text-[10px] font-black px-4 py-1.5 rounded-md shadow-sm transition-transform active:scale-95 hover:opacity-90 uppercase tracking-wider" style={{ backgroundColor: getDestinationColor(product.destination) }}>
                                                         {product.destination}
                                                     </button>
@@ -627,7 +697,7 @@ export function ProductGrid({ products, isInternal, agencyInfo }: ProductGridPro
                                                 const isActive = status.toLowerCase() === 'ativo';
                                                 const isRegular = product.category === 'REG';
                                                 return (
-                                                    <td key={colId} className="px-4 py-5 min-w-[250px]">
+                                                    <td key={colId} className="px-4 py-5 overflow-hidden" style={{ width: columnWidths[colId] || 'auto', minWidth: columnWidths[colId] || 'auto' }}>
                                                         <div className="flex items-start gap-3">
                                                             <div className="flex gap-1 mt-1 shrink-0">
                                                                 {/* Status Indicator */}
@@ -649,8 +719,8 @@ export function ProductGrid({ products, isInternal, agencyInfo }: ProductGridPro
                                                 );
                                             }
                                             if (colId === 'subCategory') return (
-                                                <td key={colId} className="px-4 py-5 text-xs">
-                                                    <div className="flex flex-wrap gap-1 max-w-[150px]">
+                                                <td key={colId} className="px-4 py-5 text-xs overflow-hidden" style={{ width: columnWidths[colId] || 'auto', minWidth: columnWidths[colId] || 'auto' }}>
+                                                    <div className="flex flex-wrap gap-1 max-w-full">
                                                         {product.subCategory ? product.subCategory.split(', ').map(tag => (
                                                             <button
                                                                 key={tag}
@@ -665,7 +735,7 @@ export function ProductGrid({ products, isInternal, agencyInfo }: ProductGridPro
                                                 </td>
                                             );
                                             if (colId === 'provider') return (
-                                                <td key={colId} className="px-4 py-5 text-xs">
+                                                <td key={colId} className="px-4 py-5 text-xs overflow-hidden" style={{ width: columnWidths[colId] || 'auto', minWidth: columnWidths[colId] || 'auto' }}>
                                                     {product.provider && product.provider !== '–' ? (
                                                         <button type="button" onClick={(e) => { e.stopPropagation(); setProviderFilter(product.provider ?? ''); }} className="text-gray-400 px-0 py-0 font-medium hover:text-[#3b5998] transition-all whitespace-nowrap text-[11px]">
                                                             {product.provider}
@@ -678,7 +748,6 @@ export function ProductGrid({ products, isInternal, agencyInfo }: ProductGridPro
                                                 const netoPrice = season === 'VER26' ? (product as any)[`netoPrice${colId.charAt(5).toUpperCase() + colId.slice(6)}Ver26`] : (product as any)[`netoPrice${colId.charAt(5).toUpperCase() + colId.slice(6)}Inv26`];
                                                 const actualPrice = isInternal ? price : netoPrice;
 
-                                                // Theme Colors & Hierarchy
                                                 const isWinter = season === 'INV26';
 
                                                 let textColorClass = "";
@@ -691,7 +760,7 @@ export function ProductGrid({ products, isInternal, agencyInfo }: ProductGridPro
                                                 }
 
                                                 return (
-                                                    <td key={colId} className={`px-4 py-5 text-right w-24 ${isInternal ? '' : 'cursor-help'}`} title={isInternal ? undefined : `Sugestão de Venda: ${formatPrice(price || 0)}`}>
+                                                    <td key={colId} className={`px-4 py-5 text-right overflow-hidden ${isInternal ? '' : 'cursor-help'}`} style={{ width: columnWidths[colId] || 'auto', minWidth: columnWidths[colId] || 'auto' }} title={isInternal ? undefined : `Sugestão de Venda: ${formatPrice(price || 0)}`}>
                                                         <span className={`text-base font-bold tracking-tight ${textColorClass}`}>
                                                             {formatPrice(actualPrice || 0)}
                                                         </span>
@@ -699,8 +768,8 @@ export function ProductGrid({ products, isInternal, agencyInfo }: ProductGridPro
                                                 );
                                             }
                                             if (colId === 'diasElegiveis') return (
-                                                <td key={colId} className="px-4 py-5 text-xs">
-                                                    <div className="flex flex-wrap gap-1 max-w-[150px]">
+                                                <td key={colId} className="px-4 py-5 text-xs overflow-hidden" style={{ width: columnWidths[colId] || 'auto', minWidth: columnWidths[colId] || 'auto' }}>
+                                                    <div className="flex flex-wrap gap-1 max-w-full">
                                                         {product.diasElegiveis?.map(day => (
                                                             <button
                                                                 key={day}
@@ -715,7 +784,7 @@ export function ProductGrid({ products, isInternal, agencyInfo }: ProductGridPro
                                                 </td>
                                             );
                                             if (colId === 'temporada') return (
-                                                <td key={colId} className="px-4 py-4 text-xs">
+                                                <td key={colId} className="px-4 py-4 text-xs overflow-hidden" style={{ width: columnWidths[colId] || 'auto', minWidth: columnWidths[colId] || 'auto' }}>
                                                     <div className="flex flex-col gap-1">
                                                         {(Array.isArray(product.temporada) ? product.temporada : (product.temporada?.split(', ') || [])).map(temp => {
                                                             const t = temp.toUpperCase();
@@ -746,7 +815,7 @@ export function ProductGrid({ products, isInternal, agencyInfo }: ProductGridPro
                                                 </td>
                                             );
                                             const val = (product as any)[colId];
-                                            return <td key={colId} className="px-4 py-4 text-xs text-gray-500 truncate max-w-[150px]" title={val}>{val || '-'}</td>;
+                                            return <td key={colId} className="px-4 py-4 text-xs text-gray-500 overflow-hidden" style={{ width: columnWidths[colId] || 'auto', minWidth: columnWidths[colId] || 'auto' }} title={val}>{val || '-'}</td>;
                                         })}
                                         <td className="px-4 py-4 text-center">
                                             <button
@@ -789,7 +858,11 @@ export function ProductGrid({ products, isInternal, agencyInfo }: ProductGridPro
                                 <SheetTitle className="text-2xl font-black text-gray-900 leading-tight uppercase tracking-tight text-left">
                                     {selectedDetailProduct.tourName}
                                 </SheetTitle>
-                                <p className="text-xs font-bold text-[#3b5998] mt-1">{selectedDetailProduct.provider}</p>
+                                {isInternal && selectedDetailProduct.provider && selectedDetailProduct.provider !== '–' && (
+                                    <p className="text-xs font-bold text-[#3b5998] mt-1 uppercase tracking-wider">
+                                        Operador: {selectedDetailProduct.provider}
+                                    </p>
+                                )}
                             </SheetHeader>
 
                             <div className="flex-1 overflow-y-auto p-6 space-y-8 pb-32">
@@ -814,17 +887,39 @@ export function ProductGrid({ products, isInternal, agencyInfo }: ProductGridPro
                                 </div>
 
                                 {/* Rich Text Sections */}
-                                {[
-                                    { label: 'O que levar', value: selectedDetailProduct.whatToBring },
-                                    { label: 'Descrição / Observações', value: selectedDetailProduct.description },
-                                    { label: 'Requisitos / Restrições', value: selectedDetailProduct.requirements },
-                                    { label: 'Taxas Extras', value: selectedDetailProduct.taxasExtras },
-                                ].map(section => section.value && (
-                                    <div key={section.label} className="space-y-2 bg-gray-50/50 p-4 rounded-xl border border-gray-100">
-                                        <label className="text-[10px] font-bold uppercase tracking-widest text-[#3b5998]">{section.label}</label>
-                                        <p className="text-sm text-gray-600 leading-relaxed font-medium">{section.value}</p>
-                                    </div>
-                                ))}
+                                {(() => {
+                                    const p = selectedDetailProduct as AgencyProduct;
+                                    const isValuable = (val: any) => {
+                                        if (!val) return false;
+                                        const v = String(val).trim();
+                                        return v !== '' && v !== '-' && v !== '–' && v !== 'N/A' && v !== 'Sem taxa' && v !== 'R$ 0';
+                                    };
+
+                                    const sections = [
+                                        { label: 'Restrições', value: p.restrictions || p.requirements },
+                                        { label: 'Opcionais disponíveis', value: p.optionals },
+                                        { label: 'Observações', value: p.observations || p.description },
+                                        { label: 'O que levar', value: p.whatToBring },
+                                    ].filter(s => isValuable(s.value));
+
+                                    // Special logic for Taxas Extras
+                                    const hasTax = p.taxasExtras === 'SIM' || p.taxasExtras === 'true';
+                                    if (hasTax && isValuable(p.valorExtra)) {
+                                        sections.push({ label: 'Taxas Adicionais', value: p.valorExtra || '' });
+                                    }
+
+                                    return sections.map(section => (
+                                        <div key={section.label} className="space-y-3 bg-gray-50/50 p-5 rounded-xl border border-gray-100/80">
+                                            <div className="flex items-center gap-2">
+                                                <div className="w-1.5 h-4 bg-[#3b5998] rounded-full" />
+                                                <label className="text-[10px] font-black uppercase tracking-widest text-[#3b5998]">{section.label}</label>
+                                            </div>
+                                            <div className="text-sm text-gray-600 leading-relaxed font-medium whitespace-pre-wrap">
+                                                {section.value}
+                                            </div>
+                                        </div>
+                                    ));
+                                })()}
 
                                 {/* Seasonal Pricing Table */}
                                 <div className="space-y-4">

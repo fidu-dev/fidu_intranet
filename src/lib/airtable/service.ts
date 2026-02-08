@@ -66,6 +66,10 @@ const mapToProduct = (record: any): Product => {
         duration: fields['Duração'] as string,   // New Duration field
         // Robust Taxas Extras check (with and without ?)
         taxasExtras: (fields['Taxas Extras?'] || fields['Taxas Extras']) as string,
+        valorExtra: fields['Valor Extra'] as string,
+        optionals: (fields['Opcionais disponíveis'] || fields['Opcionais']) as string,
+        restrictions: fields['Restrições'] as string,
+        observations: fields['Observações'] as string,
     };
 };
 
