@@ -102,6 +102,9 @@ export function ProductGrid({ products, isInternal, agencyInfo }: ProductGridPro
     const [searchTerm, setSearchTerm] = useState('');
     const [categoryFilter, setCategoryFilter] = useState('REG');
     const [destinationFilter, setDestinationFilter] = useState('all');
+    const [statusFilter, setStatusFilter] = useState('all');
+    const [subCategoryFilter, setSubCategoryFilter] = useState('all');
+    const [providerFilter, setProviderFilter] = useState('all');
     const [season, setSeason] = useState<'VER26' | 'INV26'>('VER26'); // Default to Summer 2026
     const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'tourName', direction: 'asc' });
 
@@ -109,8 +112,11 @@ export function ProductGrid({ products, isInternal, agencyInfo }: ProductGridPro
     const [isSimulatorOpen, setIsSimulatorOpen] = useState(false);
 
     // Extract unique filters
-    const categories = useMemo(() => Array.from(new Set(products.map(p => p.category))).sort(), [products]);
-    const destinations = useMemo(() => Array.from(new Set(products.map(p => p.destination))).sort(), [products]);
+    const categories = useMemo(() => Array.from(new Set(products.map(p => p.category))).filter(Boolean).sort(), [products]);
+    const destinations = useMemo(() => Array.from(new Set(products.map(p => p.destination))).filter(Boolean).sort(), [products]);
+    const statuses = useMemo(() => Array.from(new Set(products.map(p => p.status || 'Ativo'))).filter(Boolean).sort(), [products]);
+    const subCategories = useMemo(() => Array.from(new Set(products.map(p => p.subCategory))).filter(Boolean).sort(), [products]);
+    const providers = useMemo(() => Array.from(new Set(products.map(p => p.provider))).filter(p => p && p !== '–').sort(), [products]);
 
     const requestSort = (key: keyof AgencyProduct) => {
         let direction: 'asc' | 'desc' = 'asc';
@@ -150,8 +156,11 @@ export function ProductGrid({ products, isInternal, agencyInfo }: ProductGridPro
                 (product.destination?.toLowerCase() || '').includes(searchTerm.toLowerCase());
             const matchesCategory = categoryFilter === 'all' || product.category === categoryFilter;
             const matchesDestination = destinationFilter === 'all' || product.destination === destinationFilter;
+            const matchesStatus = statusFilter === 'all' || (product.status || 'Ativo') === statusFilter;
+            const matchesSubCategory = subCategoryFilter === 'all' || product.subCategory === subCategoryFilter;
+            const matchesProvider = providerFilter === 'all' || product.provider === providerFilter;
 
-            return matchesSearch && matchesCategory && matchesDestination;
+            return matchesSearch && matchesCategory && matchesDestination && matchesStatus && matchesSubCategory && matchesProvider;
         });
 
         if (sortConfig.key) {
@@ -369,6 +378,46 @@ export function ProductGrid({ products, isInternal, agencyInfo }: ProductGridPro
                                 ))}
                             </SelectContent>
                         </Select>
+
+                        <Select value={statusFilter} onValueChange={setStatusFilter}>
+                            <SelectTrigger className="flex-1 lg:w-32 border-gray-200 rounded-lg">
+                                <SelectValue placeholder="Status" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">Todos os Status</SelectItem>
+                                {statuses.map(stat => (
+                                    <SelectItem key={stat} value={stat}>{stat}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+
+                        {subCategories.length > 0 && (
+                            <Select value={subCategoryFilter} onValueChange={setSubCategoryFilter}>
+                                <SelectTrigger className="flex-1 lg:w-40 border-gray-200 rounded-lg">
+                                    <SelectValue placeholder="Categoria" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">Todas as Categorias</SelectItem>
+                                    {subCategories.map(sc => (
+                                        <SelectItem key={sc} value={sc}>{sc}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        )}
+
+                        {providers.length > 0 && (
+                            <Select value={providerFilter} onValueChange={setProviderFilter}>
+                                <SelectTrigger className="flex-1 lg:w-40 border-gray-200 rounded-lg">
+                                    <SelectValue placeholder="Operador" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">Todos os Operadores</SelectItem>
+                                    {providers.map(p => (
+                                        <SelectItem key={p} value={p}>{p}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        )}
                     </div>
                 </div>
             </div>

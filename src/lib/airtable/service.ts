@@ -50,7 +50,15 @@ const mapToProduct = (record: any): Product => {
         // New fields mapping
         status: fields['Status'] as string || 'Ativo',
         whatToBring: fields['O que levar'] as string,
-        provider: (fields['Operador'] as any)?.name || (Array.isArray(fields['Operador']) ? fields['Operador'][0] : fields['Operador']) as string || '–',
+        // Extremely robust mapping for Operador
+        provider: (
+            (fields['Operador'] as any)?.name ||
+            (Array.isArray(fields['Operador']) ? fields['Operador'][0] : fields['Operador']) ||
+            (fields['OPERADOR'] as any)?.name ||
+            (fields['Provedor'] as any)?.name ||
+            (fields['Provider'] as any)?.name ||
+            '–'
+        ) as string,
         duration: fields['Duração'] as string,   // New Duration field
         // Robust Taxas Extras check (with and without ?)
         taxasExtras: (fields['Taxas Extras?'] || fields['Taxas Extras']) as string,
