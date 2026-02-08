@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { getExchangeRatesAction } from '@/app/actions';
 import { ExchangeRate } from '@/lib/airtable/types';
 import { TrendingUp, TrendingDown, Minus, RefreshCw, History, X, Calendar } from 'lucide-react';
