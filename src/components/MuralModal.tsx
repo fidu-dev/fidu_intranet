@@ -2,7 +2,8 @@
 
 import { MuralItem } from '@/lib/airtable/types';
 import { useState, useEffect } from 'react';
-import { X, CheckCircle2, Megaphone, Clock, User, MessageCircle, Paperclip } from 'lucide-react';
+import { X, CheckCircle2, Megaphone, Clock, User, MessageCircle, Paperclip, AlertCircle, MapPin, Calendar, Users, AlertTriangle } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { confirmNoticeReadAction, fetchMuralReaders } from '@/app/actions';
 import { Button } from '@/components/ui/button';
 
@@ -14,6 +15,7 @@ interface MuralModalProps {
 }
 
 export function MuralModal({ item, initiallyRead, isAdmin, onClose }: MuralModalProps) {
+    const router = useRouter();
     const [isReadingConfirmed, setIsReadingConfirmed] = useState(initiallyRead);
     const [readers, setReaders] = useState<{ userName: string, timestamp: string, agencyName?: string }[]>([]);
     const [isLoadingReaders, setIsLoadingReaders] = useState(false);
@@ -42,6 +44,8 @@ export function MuralModal({ item, initiallyRead, isAdmin, onClose }: MuralModal
                 setIsReadingConfirmed(true);
                 // Refresh readers list
                 loadReaders();
+                // Refresh server side state for unread indicators
+                router.refresh();
             } else {
                 alert(result.error || 'Erro ao confirmar leitura.');
             }
@@ -95,7 +99,57 @@ export function MuralModal({ item, initiallyRead, isAdmin, onClose }: MuralModal
                 </div>
 
                 {/* Content */}
-                <div className="flex-1 overflow-y-auto p-6 space-y-8">
+                <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                    {/* 2) Bloco de Impacto (Novo Componente) */}
+                    <div className={`p-4 rounded-xl border ${item.priority === 'Crítica'
+                            ? 'bg-red-50 border-red-100'
+                            : 'bg-gray-50 border-gray-100'
+                        }`}>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div className="flex items-center gap-3">
+                                <AlertTriangle className={`h-4 w-4 ${item.priority === 'Crítica' ? 'text-red-500' : 'text-amber-500'}`} />
+                                <div className="flex flex-col">
+                                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Impacto</span>
+                                    <span className="text-[13px] font-bold text-gray-900">{item.impact || 'Informativo'}</span>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-3">
+                                <MapPin className="h-4 w-4 text-blue-500" />
+                                <div className="flex flex-col">
+                                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Destino</span>
+                                    <span className="text-[13px] font-bold text-gray-900">{item.destination || 'Geral'}</span>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-3">
+                                <Calendar className="h-4 w-4 text-green-500" />
+                                <div className="flex flex-col">
+                                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Validade</span>
+                                    <span className="text-[13px] font-bold text-gray-900">{item.startDate ? formatDate(item.startDate) : formatDate(item.publishedAt)}</span>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-3">
+                                <Users className="h-4 w-4 text-purple-500" />
+                                <div className="flex flex-col">
+                                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Afeta</span>
+                                    <span className="text-[13px] font-bold text-gray-900">{item.affectedScope || 'Todos os atendimentos'}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* 3) Dados objetivos (valores/horários/regras) */}
+                    {item.summary && (
+                        <div className="bg-blue-50/30 p-4 rounded-xl border border-blue-100/50">
+                            <h3 className="text-xs font-bold text-[#3b5998] uppercase tracking-wider mb-2 flex items-center gap-2">
+                                <AlertCircle className="h-3 w-3" /> Resumo Operacional
+                            </h3>
+                            <div className="text-gray-800 text-[14px] font-medium leading-relaxed">
+                                {item.summary}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* 4) Explicação detalhada (texto longo) */}
                     <div className="prose prose-blue max-w-none">
                         <div className="text-gray-700 text-[15px] leading-relaxed whitespace-pre-wrap">
                             {item.content}
@@ -104,7 +158,7 @@ export function MuralModal({ item, initiallyRead, isAdmin, onClose }: MuralModal
 
                     {/* Attachments */}
                     {item.attachments && item.attachments.length > 0 && (
-                        <div className="space-y-3">
+                        <div className="space-y-3 pt-2">
                             <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2 uppercase tracking-wider">
                                 <Paperclip className="h-4 w-4" /> Anexos:
                             </h3>
@@ -125,7 +179,7 @@ export function MuralModal({ item, initiallyRead, isAdmin, onClose }: MuralModal
                         </div>
                     )}
 
-                    {/* Status / Confirm Button */}
+                    {/* 5) Ação do usuário */}
                     {item.requiresConfirmation && (
                         <div className="bg-gray-50 rounded-xl p-6 flex flex-col sm:flex-row items-center justify-between gap-4 border border-gray-100">
                             <div className="flex items-center gap-3">
@@ -153,8 +207,8 @@ export function MuralModal({ item, initiallyRead, isAdmin, onClose }: MuralModal
                         </div>
                     )}
 
-                    {/* Readers Log */}
-                    <div className="space-y-4">
+                    {/* 6) Confirmações de leitura */}
+                    <div className="space-y-4 pt-4 border-t border-gray-100">
                         <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2 uppercase tracking-wider">
                             <User className="h-4 w-4" /> Lido por:
                         </h3>

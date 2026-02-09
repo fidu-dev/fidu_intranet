@@ -88,9 +88,12 @@ export function MuralGrid({ items, readLogs, isAdmin }: MuralGridProps) {
                                                     {!isRead && (
                                                         <div className="w-2 h-2 rounded-full bg-[#3b5998] animate-pulse" title="Não lido" />
                                                     )}
-                                                    {item.priority === 'Alta' && (
-                                                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-red-100 text-red-600 uppercase w-fit border border-red-200">
-                                                            Urgente
+                                                    {['Crítica', 'Alta'].includes(item.priority) && (
+                                                        <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold uppercase w-fit border ${item.priority === 'Crítica'
+                                                                ? 'bg-red-600 text-white border-red-700'
+                                                                : 'bg-red-100 text-red-600 border-red-200'
+                                                            }`}>
+                                                            {item.priority === 'Crítica' ? 'Crítica' : 'Urgente'}
                                                         </span>
                                                     )}
                                                 </div>
@@ -99,8 +102,8 @@ export function MuralGrid({ items, readLogs, isAdmin }: MuralGridProps) {
                                         </td>
                                         <td className="px-4 py-4 whitespace-nowrap">
                                             <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase ${['Atualização de Valores', 'Valores'].includes(item.category)
-                                                    ? 'bg-green-100 text-green-700'
-                                                    : 'bg-purple-100 text-purple-700'
+                                                ? 'bg-green-100 text-green-700'
+                                                : 'bg-purple-100 text-purple-700'
                                                 }`}>
                                                 {item.category}
                                             </span>

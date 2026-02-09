@@ -127,7 +127,8 @@ export const getAgencyByEmail = async (email: string): Promise<Agency | null> =>
 
     return {
         id: record.id,
-        name: agencyName || userName || 'Agente',
+        agencyId: (Array.isArray(agencyNameField) ? agencyNameField[0] : '') as string,
+        name: fields['Nome da Agência'] as string || agencyName || userName || 'Agente',
         agentName: userName, // This is the 'User' column value
         email: emailField as string,
         commissionRate: commissionField as number || 0,
@@ -174,8 +175,8 @@ export async function getMuralItems(): Promise<MuralItem[]> {
             ]
         }).all();
 
-        // Custom priority sorting since it's a select field (Alta > Média > Baixa)
-        const priorityScore: Record<string, number> = { 'Alta': 3, 'Média': 2, 'Baixa': 1 };
+        // Custom priority sorting since it's a select field (Crítica > Alta > Média > Baixa)
+        const priorityScore: Record<string, number> = { 'Crítica': 4, 'Alta': 3, 'Média': 2, 'Baixa': 1 };
 
         return records.map((record: any) => {
             const fields = record.fields;
@@ -186,6 +187,10 @@ export async function getMuralItems(): Promise<MuralItem[]> {
                 content: fields['Notes'] as string || '',
                 category: fields['Categoria'] as string || 'Geral',
                 priority: (fields['Prioridade'] || 'Média') as MuralItem['priority'],
+                impact: fields['Impacto'] as string || '',
+                destination: fields['Destino'] as string || '',
+                startDate: fields['Validade'] as string || fields['Início'] as string || '',
+                affectedScope: fields['Afeta'] as string || '',
                 publishedAt: fields['Publicado_em'] as string || new Date().toISOString(),
                 isPinned: !!fields['Fixado'],
                 requiresConfirmation: !!fields['Requer_Confirmacao'],
@@ -257,17 +262,14 @@ export async function confirmNoticeRead(userId: string, noticeId: string): Promi
     ]);
 }
 
-export async function getNoticeReaders(noticeId: string, agencyId?: string, isAdmin?: boolean): Promise<{ userName: string, timestamp: string, agencyName?: string }[]> {
+export async function getNoticeReaders(noticeId: string, agencyRecordId?: string, isAdmin?: boolean): Promise<{ userName: string, timestamp: string, agencyName?: string }[]> {
     const base = getProductBase();
     if (!base) return [];
 
     try {
         let filterFormula = `{Notice} = '${noticeId}'`;
-        if (!isAdmin && agencyId) {
-            filterFormula = `AND({Notice} = '${noticeId}', {Agency_ID} (from User) = '${agencyId}')`;
-            // Note: Agency_ID might be a direct lookup field in Notice_Read_Log
-            // Adjusting based on prompt field list: Agency_ID exists in Notice_Read_Log
-            filterFormula = `AND({Notice} = '${noticeId}', {Agency_ID} = '${agencyId}')`;
+        if (!isAdmin && agencyRecordId) {
+            filterFormula = `AND({Notice} = '${noticeId}', {Agency_ID} = '${agencyRecordId}')`;
         }
 
         const records = await base('Notice_Read_Log').select({

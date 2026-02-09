@@ -71,6 +71,7 @@ export interface AgencyProduct extends Product {
 
 export interface Agency {
     id: string;
+    agencyId: string;
     name: string; // Company/Agency name
     agentName?: string; // Individual agent name
     email: string; // Linked to Clerk User Email
@@ -98,7 +99,11 @@ export interface MuralItem {
     summary?: string; // Column 'Resumo'
     content: string; // Column 'Notes'
     category: string; // Column 'Categoria'
-    priority: 'Alta' | 'Média' | 'Baixa'; // Column 'Prioridade'
+    priority: 'Crítica' | 'Alta' | 'Média' | 'Baixa'; // Column 'Prioridade'
+    impact?: string; // Column 'Impacto'
+    destination?: string; // Column 'Destino'
+    startDate?: string; // Column 'Validade' or 'Início'
+    affectedScope?: string; // Column 'Afeta'
     publishedAt: string; // Column 'Publicado_em'
     isPinned: boolean; // Column 'Fixado'
     requiresConfirmation: boolean; // Column 'Requer_Confirmacao'
