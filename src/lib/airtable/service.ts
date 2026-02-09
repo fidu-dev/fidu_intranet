@@ -218,22 +218,32 @@ export async function getNoticeReadLogs(userId: string): Promise<NoticeReadLog[]
     const base = getProductBase();
     if (!base) return [];
 
-    try {
-        const records = await base('Notice_Read_Log').select({
-            filterByFormula: `SEARCH('${userId}', {User})`
-        }).all();
+    // Try both naming conventions
+    const tableNames = ['Notice_Read_Log', 'Notice_read_log'];
+    let records: any[] = [];
+    let usedTableName = '';
 
-        return records.map((record: any) => ({
-            id: record.id,
-            userId: (record.fields['User'] as string[])?.[0] || '',
-            noticeId: (record.fields['Notice'] as string[])?.[0] || '',
-            confirmedAt: record.fields['Confirmed_At'] as string,
-            agencyId: record.fields['Agency_ID'] as string
-        }));
-    } catch (err) {
-        console.error('Error fetching Notice_Read_Log:', err);
-        return [];
+    for (const tableName of tableNames) {
+        try {
+            records = await base(tableName).select({
+                filterByFormula: `{User} = '${userId}'`
+            }).all();
+            usedTableName = tableName;
+            break;
+        } catch (e) {
+            continue;
+        }
     }
+
+    if (!usedTableName) return [];
+
+    return records.map((record: any) => ({
+        id: record.id,
+        userId: (record.fields['User'] as string[])?.[0] || '',
+        noticeId: (record.fields['Notice'] as string[])?.[0] || '',
+        confirmedAt: record.fields['Confirmed_At'] as string || record.createdTime,
+        agencyId: record.fields['Agency_ID'] as string
+    }));
 }
 
 export async function confirmNoticeRead(userId: string, noticeId: string): Promise<void> {
@@ -241,115 +251,135 @@ export async function confirmNoticeRead(userId: string, noticeId: string): Promi
     if (!base) throw new Error('Product base not initialized');
 
     const baseId = getBaseId();
-    console.log(`[confirmNoticeRead] Using Base ID: ${baseId?.substring(0, 7)}...`);
-    console.log(`[confirmNoticeRead] Attempting confirmation for User: ${userId}, Notice: ${noticeId}`);
+    console.log(`[confirmNoticeRead] Base: ${baseId?.substring(0, 7)}... User: ${userId}, Notice: ${noticeId}`);
 
-    // 1. Uniqueness check using SEARCH for robust linked record matching
-    const existing = await base('Notice_Read_Log').select({
-        filterByFormula: `AND(SEARCH('${userId}', {User}), SEARCH('${noticeId}', {Notice}))`,
+    // Determine correct table name
+    const tableNames = ['Notice_Read_Log', 'Notice_read_log'];
+    let targetTable = '';
+    for (const name of tableNames) {
+        try {
+            await base(name).select({ maxRecords: 1 }).all();
+            targetTable = name;
+            break;
+        } catch (e) { continue; }
+    }
+
+    if (!targetTable) throw new Error('Could not find Notice_Read_Log table in Airtable');
+    console.log(`[confirmNoticeRead] Using table: ${targetTable}`);
+
+    // 1. Uniqueness check - Simple ID comparison
+    const existing = await base(targetTable).select({
+        filterByFormula: `AND({User} = '${userId}', {Notice} = '${noticeId}')`,
         maxRecords: 1
     }).all();
 
     if (existing.length > 0) {
-        console.log(`[confirmNoticeRead] Record already exists (ID: ${existing[0].id}). Updating timestamp.`);
-        await base('Notice_Read_Log').update([
+        console.log(`[confirmNoticeRead] Record exists (${existing[0].id}). Updating timestamp.`);
+        await base(targetTable).update([
             {
                 id: existing[0].id,
-                fields: {
-                    'Confirmed_At': new Date().toISOString()
-                }
+                fields: { 'Confirmed_At': new Date().toISOString() }
             }
         ]);
         return;
     }
 
     // 2. Create record
-    console.log(`[confirmNoticeRead] Creating new confirmation record.`);
-    await base('Notice_Read_Log').create([
-        {
-            fields: {
-                'User': [userId],
-                'Notice': [noticeId],
-                'Confirmed_At': new Date().toISOString()
+    console.log(`[confirmNoticeRead] Creating record in ${targetTable}`);
+    try {
+        const result = await base(targetTable).create([
+            {
+                fields: {
+                    'User': [userId],
+                    'Notice': [noticeId],
+                    'Confirmed_At': new Date().toISOString()
+                }
             }
+        ]);
+        console.log(`[confirmNoticeRead] Success! Created ID: ${result[0].id}`);
+    } catch (createErr: any) {
+        console.error('[confirmNoticeRead] Create failed:', createErr.message);
+        // Fallback for read-only fields
+        if (createErr.message?.includes('read-only') || createErr.message?.includes('formula')) {
+            console.log('[confirmNoticeRead] Retrying without Confirmed_At...');
+            await base(targetTable).create([
+                {
+                    fields: {
+                        'User': [userId],
+                        'Notice': [noticeId]
+                    }
+                }
+            ]);
+        } else {
+            throw new Error(`Erro ao gravar no Airtable: ${createErr.message}`);
         }
-    ]);
+    }
 }
 
 export async function getNoticeReaders(noticeId: string, agencyRecordId?: string, isAdmin?: boolean): Promise<{ userName: string, timestamp: string, agencyName?: string }[]> {
     const base = getProductBase();
     if (!base) return [];
 
-    try {
-        const baseId = getBaseId();
-        console.log(`[getNoticeReaders] Using Base ID: ${baseId?.substring(0, 7)}...`);
-        const filterByFormula = `SEARCH('${noticeId}', {Notice})`;
+    const tableNames = ['Notice_Read_Log', 'Notice_read_log'];
+    let records: any[] = [];
+    let usedTable = '';
 
-        const records = await base('Notice_Read_Log').select({
-            filterByFormula,
-            sort: [{ field: 'Confirmed_At', direction: 'desc' }]
-        }).all().catch(async () => {
-            // Fallback if Confirmed_At doesn't exist
-            return await base('Notice_Read_Log').select({ filterByFormula }).all();
-        });
+    const filterByFormula = `{Notice} = '${noticeId}'`;
 
-        console.log(`[getNoticeReaders] Found ${records.length} confirmations for notice ${noticeId}`);
-
-        const allReaders = records.map((record: any) => {
-            const fields = record.fields;
-
-            // 1. Extract Agency Identifier (ID or Name)
-            const recordAgencyId = (
-                fields['Agency_ID'] ||
-                fields['Agency_Name'] ||
-                fields['Agência'] ||
-                fields['Agency'] ||
-                ''
-            ) as string;
-
-            const finalRecordAgencyId = Array.isArray(recordAgencyId) ? recordAgencyId[0] : recordAgencyId;
-
-            // 2. Extract User Name
-            const userName = (
-                fields['User_Name'] ||
-                fields['User_mail'] ||
-                fields['User'] ||
-                fields['Agente'] ||
-                fields['Name'] ||
-                'Usuário'
-            ) as string;
-
-            const finalUserName = Array.isArray(userName) ? userName[0] : userName;
-
-            // 3. Extract Agency Name for Display
-            const agencyNameForDisplay = (fields['Agency_Name'] || fields['Agência'] || fields['Agency'] || '') as string;
-            const finalAgencyName = Array.isArray(agencyNameForDisplay) ? agencyNameForDisplay[0] : agencyNameForDisplay;
-
-            return {
-                userName: finalUserName || 'Usuário',
-                timestamp: (fields['Confirmed_At'] || record.createdTime) as string,
-                agencyName: finalAgencyName as string,
-                _agencyId: finalRecordAgencyId // Internal for filtering
-            };
-        });
-
-        if (isAdmin) {
-            return allReaders.map(({ _agencyId, ...rest }: any) => rest);
-        }
-
-        // Filter by agency for non-admins (Agent role)
-        return allReaders
-            .filter((reader: any) =>
-                // Match by Record ID (rec...) or by Name string
-                reader._agencyId === agencyRecordId ||
-                reader.agencyName === agencyRecordId ||
-                (reader._agencyId && agencyRecordId && reader._agencyId.toString().includes(agencyRecordId.toString()))
-            )
-            .map(({ _agencyId, ...rest }: any) => rest);
-    } catch (err) {
-        console.error('Error in getNoticeReaders:', err);
-        return [];
+    for (const name of tableNames) {
+        try {
+            records = await base(name).select({
+                filterByFormula,
+                sort: [{ field: 'Confirmed_At', direction: 'desc' }]
+            }).all().catch(async () => {
+                // Fallback if Confirmed_At doesn't exist
+                return await base(name).select({ filterByFormula }).all();
+            });
+            usedTable = name;
+            break;
+        } catch (e) { continue; }
     }
+
+    if (!usedTable) return [];
+
+    console.log(`[getNoticeReaders] Found ${records.length} confirmations for notice ${noticeId} in ${usedTable}`);
+
+    const allReaders = records.map((record: any) => {
+        const fields = record.fields;
+
+        // 1. Extract Agency Identifier (ID or Name)
+        const recordAgencyId = fields['Agency_ID'] || fields['Agency_Name'] || fields['Agência'] || fields['Agency'] || '';
+        const finalRecordAgencyId = Array.isArray(recordAgencyId) ? recordAgencyId[0] : recordAgencyId;
+
+        // 2. Extract User Name
+        const userNameRaw = fields['User_Name'] || fields['User_mail'] || fields['User'] || fields['Agente'] || fields['Name'];
+        const finalUserName = Array.isArray(userNameRaw) ? userNameRaw[0] : userNameRaw;
+
+        // 3. Extract Agency Name for Display
+        const agencyNameRaw = fields['Agency_Name'] || fields['Agência'] || fields['Agency'] || '';
+        const finalAgencyName = Array.isArray(agencyNameRaw) ? agencyNameRaw[0] : agencyNameRaw;
+
+        return {
+            userName: finalUserName || 'Usuário',
+            timestamp: (fields['Confirmed_At'] || record.createdTime) as string,
+            agencyName: (finalAgencyName || 'Agência') as string,
+            _agencyId: finalRecordAgencyId // Internal for filtering
+        };
+    });
+
+    if (isAdmin) {
+        return allReaders.map(({ _agencyId, ...rest }: any) => rest);
+    }
+
+    // Filter by agency for non-admins (Agent role)
+    return allReaders
+        .filter((reader: any) =>
+            // Match by Record ID (rec...) or by Name string
+            reader._agencyId === agencyRecordId ||
+            reader.agencyName === agencyRecordId ||
+            (reader._agencyId && agencyRecordId && reader._agencyId.toString().includes(agencyRecordId.toString()))
+        )
+        .map(({ _agencyId, ...rest }: any) => rest);
 }
 
 export async function createReservation(reservation: Reservation): Promise<string> {
