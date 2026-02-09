@@ -102,10 +102,7 @@ export const getAgencyByEmail = async (email: string): Promise<Agency | null> =>
     // Fetch from standardized Access table
     let allRecords: any[] = [];
     try {
-        // Use field ID for absolute reliability as requested by user
-        allRecords = await base(AIRTABLE_TABLES.ACCESS).select({
-            returnFieldsByFieldId: true
-        }).all();
+        allRecords = await base(AIRTABLE_TABLES.ACCESS).select().all();
     } catch (e: any) {
         console.error(`[AUTH] Failed to fetch from ${AIRTABLE_TABLES.ACCESS}: ${e.message}`);
         return null;
@@ -118,16 +115,9 @@ export const getAgencyByEmail = async (email: string): Promise<Agency | null> =>
     // Filter in-memory for absolute reliability
     const searchEmail = email.toLowerCase().trim();
     const record = allRecords.find((rec: any) => {
-        // Primary check using the field ID provided by the user
-        const targetMail = (rec.fields['fldBgdDGKUCOxulR4'] || '').toString().toLowerCase().trim();
-        if (targetMail === searchEmail) return true;
-
-        // Fallback checks using common field names (though returnFieldsByFieldId is on, 
-        // Airtable might still include names if not using IDs exclusively in fields object, 
-        // but normally it replaces them. Let's be safe and check all values too)
-        return Object.values(rec.fields).some(val =>
-            typeof val === 'string' && val.toLowerCase().trim() === searchEmail
-        );
+        const mail1 = (rec.fields['mail'] || '').toString().toLowerCase().trim();
+        const mail2 = (rec.fields['Email'] || '').toString().toLowerCase().trim();
+        return mail1 === searchEmail || mail2 === searchEmail;
     });
 
     if (!record) {
