@@ -48,7 +48,7 @@ const mapToProduct = (record: any): Product => {
         imageUrl: fields['Mídia do Passeio']?.[0]?.url,
 
         // New fields mapping
-        status: (Array.isArray(fields['Status']) ? fields['Status'][0] : (fields['Status'] || fields['STATUS'] || 'Ativo')) as string,
+        status: (Array.isArray(fields['Status']) ? fields['Status'][0] : (fields['Status'] || fields['STATUS'] || fields['Ativo'] || fields['Situação'] || 'Inativo')) as string,
         whatToBring: fields['O que levar'] as string,
         provider: (
             fields['Operador_Nome'] ||
