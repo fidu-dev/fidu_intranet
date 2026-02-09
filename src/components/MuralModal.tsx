@@ -43,7 +43,7 @@ export function MuralModal({ item, initiallyRead, isAdmin, userName, onClose }: 
         const optimisticReader = {
             userName: userName,
             timestamp: new Date().toISOString(),
-            agencyName: 'Minha Agência' // Placeholder for UI, will be refreshed later
+            agencyName: 'Sua Agência' // Placeholder for UI, will be refreshed later
         };
 
         setReaders(prev => [optimisticReader, ...prev]);
@@ -53,14 +53,19 @@ export function MuralModal({ item, initiallyRead, isAdmin, userName, onClose }: 
             const result = await confirmNoticeReadAction(item.id);
             if (result.success) {
                 // Refresh readers list to get accurate data from server
-                loadReaders();
+                try {
+                    const { readers: readersData } = await fetchMuralReaders(item.id);
+                    if (readersData) setReaders(readersData);
+                } catch (readErr) {
+                    console.error('[MuralModal] Error refreshing readers list:', readErr);
+                }
                 // Refresh server side state for unread indicators
                 router.refresh();
             } else {
                 // Rollback on error
                 setIsReadingConfirmed(false);
                 setReaders(prev => prev.filter(r => r !== optimisticReader));
-                alert(result.error || 'Erro ao confirmar leitura.');
+                console.warn(result.error || 'Erro ao confirmar leitura.');
             }
         } finally {
             setIsSubmitting(false);

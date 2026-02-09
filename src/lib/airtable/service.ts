@@ -1,4 +1,4 @@
-import { getProductBase, getAgencyBase } from './client';
+import { getProductBase, getAgencyBase, getBaseId } from './client';
 import { Product, Agency, MuralItem, NoticeReadLog, Reservation, ExchangeRate } from './types';
 import { FieldSet } from 'airtable';
 
@@ -240,8 +240,8 @@ export async function confirmNoticeRead(userId: string, noticeId: string): Promi
     const base = getProductBase();
     if (!base) throw new Error('Product base not initialized');
 
-    // @ts-ignore - access internal id for logging
-    console.log(`[confirmNoticeRead] Using Base ID: ${base._config.baseId}`);
+    const baseId = getBaseId();
+    console.log(`[confirmNoticeRead] Using Base ID: ${baseId?.substring(0, 7)}...`);
     console.log(`[confirmNoticeRead] Attempting confirmation for User: ${userId}, Notice: ${noticeId}`);
 
     // 1. Uniqueness check using SEARCH for robust linked record matching
@@ -281,8 +281,8 @@ export async function getNoticeReaders(noticeId: string, agencyRecordId?: string
     if (!base) return [];
 
     try {
-        // @ts-ignore - access internal id for logging
-        console.log(`[getNoticeReaders] Using Base ID: ${base._config.baseId}`);
+        const baseId = getBaseId();
+        console.log(`[getNoticeReaders] Using Base ID: ${baseId?.substring(0, 7)}...`);
         const filterByFormula = `SEARCH('${noticeId}', {Notice})`;
 
         const records = await base('Notice_Read_Log').select({
