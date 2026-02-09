@@ -267,28 +267,69 @@ export async function getNoticeReaders(noticeId: string, agencyRecordId?: string
     if (!base) return [];
 
     try {
-        let filterFormula = `{Notice} = '${noticeId}'`;
-        if (!isAdmin && agencyRecordId) {
-            filterFormula = `AND({Notice} = '${noticeId}', {Agency_ID} = '${agencyRecordId}')`;
-        }
+        const filterByFormula = `{Notice} = '${noticeId}'`;
 
         const records = await base('Notice_Read_Log').select({
-            filterByFormula: filterFormula,
+            filterByFormula,
             sort: [{ field: 'Confirmed_At', direction: 'desc' }]
-        }).all();
+        }).all().catch(async () => {
+            // Fallback if Confirmed_At doesn't exist
+            return await base('Notice_Read_Log').select({ filterByFormula }).all();
+        });
 
-        // We need to fetch User details to show Name and Agency (for Admin)
-        // Since confirmed reader names are usually in the User link name or lookup
-        return records.map((record: any) => {
+        const allReaders = records.map((record: any) => {
             const fields = record.fields;
+
+            // 1. Extract Agency Identifier (ID or Name)
+            const recordAgencyId = (
+                fields['Agency_ID'] ||
+                fields['Agency_Name'] ||
+                fields['Agência'] ||
+                fields['Agency'] ||
+                ''
+            ) as string;
+
+            const finalRecordAgencyId = Array.isArray(recordAgencyId) ? recordAgencyId[0] : recordAgencyId;
+
+            // 2. Extract User Name
+            const userName = (
+                fields['User_Name'] ||
+                fields['User_mail'] ||
+                fields['User'] ||
+                fields['Agente'] ||
+                fields['Name'] ||
+                'Usuário'
+            ) as string;
+
+            const finalUserName = Array.isArray(userName) ? userName[0] : userName;
+
+            // 3. Extract Agency Name for Display
+            const agencyNameForDisplay = (fields['Agency_Name'] || fields['Agência'] || fields['Agency'] || '') as string;
+            const finalAgencyName = Array.isArray(agencyNameForDisplay) ? agencyNameForDisplay[0] : agencyNameForDisplay;
+
             return {
-                userName: (fields['User_Name'] || fields['User_mail'] || 'Usuário') as string,
-                timestamp: fields['Confirmed_At'] as string,
-                agencyName: isAdmin ? fields['Agency_Name'] as string : undefined
+                userName: finalUserName || 'Usuário',
+                timestamp: (fields['Confirmed_At'] || record.createdTime) as string,
+                agencyName: finalAgencyName as string,
+                _agencyId: finalRecordAgencyId // Internal for filtering
             };
         });
+
+        if (isAdmin) {
+            return allReaders.map(({ _agencyId, ...rest }: any) => rest);
+        }
+
+        // Filter by agency for non-admins (Agent role)
+        return allReaders
+            .filter((reader: any) =>
+                // Match by Record ID (rec...) or by Name string
+                reader._agencyId === agencyRecordId ||
+                reader.agencyName === agencyRecordId ||
+                (reader._agencyId && agencyRecordId && reader._agencyId.toString().includes(agencyRecordId.toString()))
+            )
+            .map(({ _agencyId, ...rest }: any) => rest);
     } catch (err) {
-        console.error('Error fetching Notice readers:', err);
+        console.error('Error in getNoticeReaders:', err);
         return [];
     }
 }
