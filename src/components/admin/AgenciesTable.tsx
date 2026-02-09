@@ -80,7 +80,7 @@ export function AgenciesTable({ initialAgencies }: AgenciesTableProps) {
     return (
         <div className="space-y-4">
             <div className="flex justify-between items-center">
-                <h2 className="text-xl font-semibold text-gray-800">Partner Agencies</h2>
+                <h2 className="text-xl font-semibold text-gray-800">Agências Cadastradas</h2>
                 <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
                     <DialogTrigger asChild>
                         <Button className="bg-blue-600 hover:bg-blue-700 text-white gap-2">
@@ -91,7 +91,7 @@ export function AgenciesTable({ initialAgencies }: AgenciesTableProps) {
                         <DialogHeader>
                             <DialogTitle>Add New Agency</DialogTitle>
                             <DialogDescription>
-                                Create a profile for a new partner. The email must match their Clerk login email.
+                                Crie um perfil para um novo parceiro ou colaborador. O e-mail deve ser o mesmo do login.
                             </DialogDescription>
                         </DialogHeader>
                         <div className="grid gap-4 py-4">

@@ -26,7 +26,7 @@ export function PortalHeader({ agency, hasUnreadMural }: PortalHeaderProps) {
                 <div className="flex items-center gap-8">
                     <Link href="/portal" className="font-bold text-xl tracking-tight hover:opacity-80 transition-opacity flex items-baseline" style={{ color: '#3b5998' }}>
                         Fidu<span className="text-gray-900">Viagens</span>
-                        <span className="ml-2 text-[13px] font-medium text-gray-400 uppercase tracking-wider">Partner</span>
+                        <span className="ml-2 text-[13px] font-medium text-gray-400 uppercase tracking-wider">Intranet</span>
                     </Link>
 
                     <nav className="hidden md:flex items-center gap-1 border-l pl-6 ml-2">

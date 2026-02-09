@@ -3,7 +3,7 @@ import { MuralGrid } from '@/components/MuralGrid';
 import { Metadata } from 'next';
 
 export const metadata: Metadata = {
-    title: 'Mural | Fidu Viagens Partner',
+    title: 'Mural | Fidu Viagens Intranet',
     description: 'Atualizações e novidades da Fidu Viagens.',
 };
 

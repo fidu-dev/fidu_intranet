@@ -14,20 +14,20 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://parceiros.fiduviagens.com"),
-  title: "Fidu Viagens Partner: Operador Local",
-  description: "Portal exclusivo para parceiros e operadores locais da Fidu Viagens.",
+  metadataBase: new URL("https://intranet.fiduviagens.com.br"),
+  title: "Fidu Viagens Intranet",
+  description: "Portal exclusivo para parceiros e colaboradores da Fidu Viagens.",
   openGraph: {
-    title: "Fidu Viagens Partner: Operador Local",
-    description: "Acesse o portal exclusivo para parceiros.",
-    url: "https://parceiros.fiduviagens.com",
+    title: "Fidu Viagens Intranet",
+    description: "Acesse a intranet exclusiva para parceiros e colaboradores.",
+    url: "https://intranet.fiduviagens.com.br",
     siteName: "Fidu Viagens",
     images: [
       {
         url: "/opengraph-image.png",
         width: 1200,
         height: 630,
-        alt: "Fidu Viagens Partner Portal",
+        alt: "Fidu Viagens Intranet Portal",
       },
     ],
     locale: "pt_BR",
@@ -35,8 +35,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Fidu Viagens Partner: Operador Local",
-    description: "Portal exclusivo para parceiros e operadores locais.",
+    title: "Fidu Viagens Intranet",
+    description: "Portal exclusivo para parceiros e colaboradores.",
     images: ["/opengraph-image.png"],
   },
 };
