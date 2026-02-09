@@ -31,8 +31,8 @@ export default async function DebugPage() {
     // Test 2: Agencies (In Product Base)
     try {
         if (pBase) {
-            // Using ID to be robust
-            await pBase('tblkVI2PX3jPgYKXF').select({ maxRecords: 1 }).firstPage();
+            // Using User's new table ID for Acessos
+            await pBase('tbljUc8sptfa7QnAE').select({ maxRecords: 1 }).firstPage();
             agenciesTest = "✅ Sucesso (na Product Base)";
         } else {
             agenciesTest = "❌ Base nula";

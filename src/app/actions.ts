@@ -162,7 +162,11 @@ export async function getAgencyProducts(): Promise<{ products: AgencyProduct[], 
 
         return { products: agencyProducts, agency: agencyInfo, hasUnreadMural };
     } catch (err: any) {
-        console.error('Error in getAgencyProducts:', err);
+        console.error('Error in getAgencyProducts full details:', {
+            message: err.message,
+            stack: err.stack,
+            error: err
+        });
         return {
             products: [],
             error: `Failed to load products: ${err.message || 'Unknown error'}. Check your connection and credentials.`

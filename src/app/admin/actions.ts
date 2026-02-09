@@ -23,9 +23,9 @@ export async function getAgencies(): Promise<Agency[]> {
     const base = getProductBase();
     if (!base) return [];
 
-    const records = await base('tblkVI2PX3jPgYKXF').select({
-        view: 'viwmCj8ZefKY7lqP6' // Grid view ID from URL
-    }).all().catch(() => base('tblkVI2PX3jPgYKXF').select().all());
+    const records = await base('tbljUc8sptfa7QnAE').select({
+        view: 'viw2ucoLxsbjBXrJw' // Updated view ID from user
+    }).all().catch(() => base('tbljUc8sptfa7QnAE').select().all());
 
     return records.map((record: any) => ({
         id: record.id,
@@ -40,7 +40,7 @@ export async function updateAgencyCommission(agencyId: string, newRate: number) 
     const base = getProductBase();
     if (!base) throw new Error('Airtable Product base not initialized');
 
-    await base('tblkVI2PX3jPgYKXF').update([
+    await base('tbljUc8sptfa7QnAE').update([
         {
             id: agencyId,
             fields: {
@@ -57,7 +57,7 @@ export async function createNewAgency(name: string, email: string, commissionRat
     const base = getProductBase();
     if (!base) throw new Error('Airtable Product base not initialized');
 
-    await base('tblkVI2PX3jPgYKXF').create([
+    await base('tbljUc8sptfa7QnAE').create([
         {
             fields: {
                 'Agency': name,
@@ -87,7 +87,7 @@ export async function getSimulatorProducts(agencyId: string): Promise<SimulatedP
     if (!base) return [];
 
     // 1. Get Agency Commission
-    const agencyRecord = await base('tblkVI2PX3jPgYKXF').find(agencyId);
+    const agencyRecord = await base('tbljUc8sptfa7QnAE').find(agencyId);
     if (!agencyRecord) throw new Error('Agency not found');
 
     // Safety check: ensure rate is a number
