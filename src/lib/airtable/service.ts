@@ -105,12 +105,6 @@ export const getAgencyByEmail = async (email: string): Promise<Agency | null> =>
     }
 
     const baseId = getBaseId();
-    console.log(`[AUTH_TRACE] Email: "${email}" | BaseID: ${baseId}`);
-
-    if (!baseId) {
-        console.error('[AUTH_TRACE] Critical Error: AIRTABLE_PRODUCT_BASE_ID is missing!');
-        return null;
-    }
 
     // Try both naming conventions for the table
     const tableNames = ['Acessos', 'tbljUc8sptfa7QnAE'];
@@ -119,20 +113,17 @@ export const getAgencyByEmail = async (email: string): Promise<Agency | null> =>
 
     for (const tableName of tableNames) {
         try {
-            console.log(`[AUTH_TRACE] Fetching all from ${tableName}...`);
             allRecords = await base(tableName).select().all();
             if (allRecords.length > 0) {
                 usedTableName = tableName;
                 break;
             }
         } catch (e: any) {
-            console.warn(`[AUTH_TRACE] Failed to fetch from ${tableName}: ${e.message}`);
             continue;
         }
     }
 
     if (allRecords.length === 0) {
-        console.warn(`[AUTH_TRACE] No records found in any access table.`);
         return null;
     }
 
@@ -145,12 +136,8 @@ export const getAgencyByEmail = async (email: string): Promise<Agency | null> =>
     });
 
     if (!record) {
-        console.warn(`[AUTH_TRACE] No memory match for ${searchEmail}. Available emails:`,
-            allRecords.map(r => r.fields['mail'] || r.fields['Email']).filter(Boolean));
         return null;
     }
-
-    console.log(`[AUTH_TRACE] Found match for ${searchEmail} in table: ${usedTableName}`);
 
     const fields = record.fields;
 
