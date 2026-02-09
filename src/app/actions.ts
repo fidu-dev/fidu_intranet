@@ -237,7 +237,7 @@ export async function fetchMuralReaders(noticeId: string): Promise<{ readers: { 
         const agency = await getAgencyByEmail(email);
         if (!agency) throw new Error('Agency not found');
 
-        const readers = await getNoticeReaders(noticeId, agency.agencyId, !!agency.isAdmin);
+        const readers = await getNoticeReaders(noticeId, agency.id, !!agency.isAdmin);
         return { readers };
     } catch (e) {
         console.error('Error fetching mural readers:', e);

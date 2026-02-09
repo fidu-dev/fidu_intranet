@@ -353,6 +353,7 @@ export async function getNoticeReaders(noticeId: string, agencyRecordId?: string
 
     if (!usedTable) return [];
 
+    console.log(`[getNoticeReaders] noticeId: ${noticeId}, agencyRecordId: ${agencyRecordId}, isAdmin: ${isAdmin}`);
     console.log(`[getNoticeReaders] Found ${records.length} confirmations for notice ${noticeId} in ${usedTable}`);
 
     const allReaders = records.map((record: any) => {
@@ -384,12 +385,16 @@ export async function getNoticeReaders(noticeId: string, agencyRecordId?: string
 
     // Filter by agency for non-admins (Agent role)
     return allReaders
-        .filter((reader: any) =>
+        .filter((reader: any) => {
+            if (isAdmin) return true;
+            if (!agencyRecordId) return false;
+
             // Match by Record ID (rec...) or by Name string
-            reader._agencyId === agencyRecordId ||
-            reader.agencyName === agencyRecordId ||
-            (reader._agencyId && agencyRecordId && reader._agencyId.toString().includes(agencyRecordId.toString()))
-        )
+            const idMatch = reader._agencyId === agencyRecordId || (reader._agencyId && reader._agencyId.toString().includes(agencyRecordId));
+            const nameMatch = reader.agencyName === agencyRecordId;
+
+            return idMatch || nameMatch;
+        })
         .map(({ _agencyId, ...rest }: any) => rest);
 }
 

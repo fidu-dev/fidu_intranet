@@ -87,18 +87,19 @@ export function MuralModal({ item, initiallyRead, isAdmin, userName, onClose }: 
     const renderFormattedText = (text: string) => {
         if (!text) return null;
 
-        // Split text by markdown bold pattern **text** or escaped \*\*text\*\*
+        // Split text by markdown bold pattern **text** or escaped \*\*text\*\* or \\**text**
         // Airtable rich text fields often include backslashes for escaping
-        const parts = text.split(/(\\?\*\*.*?\\?\*\*)/g);
+        const parts = text.split(/(\\?\\\?\\\?\*\*.*?\\?\\\?\\\?\*\*)/g);
 
         return parts.map((part, i) => {
-            // Check for **text** or \*\*text\*\*
+            // Check for **text** or \*\*text\*\* or \\**text**
             const isBold = (part.startsWith('**') && part.endsWith('**')) ||
-                (part.startsWith('\\**') && part.endsWith('\\**'));
+                (part.startsWith('\\**') && part.endsWith('\\**')) ||
+                (part.startsWith('\\\\**') && part.endsWith('\\\\**'));
 
             if (isBold) {
                 // Remove the asterisks (and backslashes) and render as strong
-                const cleanText = part.replace(/^(\\?\*\*)|(\\?\*\*)$/g, '');
+                const cleanText = part.replace(/^(\\?\\\?\\\?\*\*)|(\\?\\\?\\\?\*\*)$/g, '');
                 return <strong key={i} className="font-black text-gray-900">{cleanText}</strong>;
             }
             return part;
