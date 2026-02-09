@@ -21,7 +21,7 @@ export default async function DebugPage() {
             await pBase('Products').select({ maxRecords: 1 }).firstPage();
             productsTest = "✅ Sucesso";
         } else {
-            productsTest = "❌ Base nula (AIRTABLE_PRODUCT_BASE_ID)";
+            productsTest = "❌ Base nula ou API Key faltando (Verarque AIRTABLE_API_KEY e AIRTABLE_PRODUCT_BASE_ID)";
         }
     } catch (e: any) {
         productsTest = `❌ Erro: ${e.message}`;
@@ -35,7 +35,7 @@ export default async function DebugPage() {
             await pBase('tbljUc8sptfa7QnAE').select({ maxRecords: 1 }).firstPage();
             agenciesTest = "✅ Sucesso (na Product Base)";
         } else {
-            agenciesTest = "❌ Base nula";
+            agenciesTest = "❌ Base nula: A conexão com o Airtable falhou.";
         }
     } catch (e: any) {
         agenciesTest = `❌ Erro: ${e.message}`;

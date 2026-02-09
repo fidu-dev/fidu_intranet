@@ -7,8 +7,7 @@ const cachedBases = new Map<string, any>();
 export const getBaseApiKey = () => {
     const key = process.env.AIRTABLE_API_KEY;
     if (!key) {
-        console.error('[AIRTABLE_CONFIG_ERROR] AIRTABLE_API_KEY is not defined in environment variables');
-        throw new Error('AIRTABLE_API_KEY is missing. Please check your environment configuration.');
+        console.warn('[AIRTABLE_CONFIG_WARNING] AIRTABLE_API_KEY is not defined in environment variables');
     }
     return key;
 };
@@ -16,8 +15,7 @@ export const getBaseApiKey = () => {
 export const getBaseId = () => {
     const id = process.env.AIRTABLE_PRODUCT_BASE_ID || process.env.AIRTABLE_BASE_ID;
     if (!id) {
-        console.error('[AIRTABLE_CONFIG_ERROR] AIRTABLE_BASE_ID/AIRTABLE_PRODUCT_BASE_ID is not defined');
-        throw new Error('AIRTABLE_BASE_ID is missing. The application requires an Airtable Base ID to function.');
+        console.warn('[AIRTABLE_CONFIG_WARNING] AIRTABLE_BASE_ID/AIRTABLE_PRODUCT_BASE_ID is not defined');
     }
     return id;
 };
@@ -32,6 +30,10 @@ export const getAirtableBase = (baseId?: string) => {
     const id = baseId || getBaseId();
     const apiKey = getBaseApiKey();
 
+    if (!id || !apiKey) {
+        return null;
+    }
+
     // Return cached base if available
     if (cachedBases.has(id)) {
         return cachedBases.get(id);
@@ -44,7 +46,7 @@ export const getAirtableBase = (baseId?: string) => {
         return base;
     } catch (err) {
         console.error(`Failed to initialize Airtable base ${id}:`, err);
-        throw new Error(`Failed to initialize Airtable base: ${err}`);
+        return null;
     }
 };
 

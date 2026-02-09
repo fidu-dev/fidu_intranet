@@ -34,11 +34,11 @@ export default async function Home() {
     // Default to portal for partner agencies and sales
     redirect('/portal');
   } catch (error: any) {
-    if (error.digest === 'DYNAMIC_SERVER_USAGE') {
+    if (error.digest === 'DYNAMIC_SERVER_USAGE' || error.message === 'NEXT_REDIRECT') {
       throw error;
     }
     console.error('[CRITICAL] Error in Home page:', error);
-    // Rethrow to hit error boundary or handle gracefully
-    throw error;
+    // Redirect to unauthorized instead of crashing
+    redirect(`/unauthorized?error=${encodeURIComponent(error.message || 'Erro interno na página inicial')}`);
   }
 }
