@@ -7,6 +7,8 @@ export const metadata: Metadata = {
     description: 'Atualizações e novidades da Fidu Viagens.',
 };
 
+export const dynamic = 'force-dynamic';
+
 export default async function MuralPage() {
     const { items, readLogs, isAdmin, userName, error } = await fetchMural();
 

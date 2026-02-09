@@ -162,6 +162,11 @@ export async function getAgencyProducts(): Promise<{ products: AgencyProduct[], 
 
         return { products: agencyProducts, agency: agencyInfo, hasUnreadMural };
     } catch (err: any) {
+        // Handle Next.js dynamic usage error gracefully during build
+        if (err.digest === 'DYNAMIC_SERVER_USAGE') {
+            throw err;
+        }
+
         console.error('[ACTIONS_ERROR] Error in getAgencyProducts full details:', {
             message: err.message,
             stack: err.stack,

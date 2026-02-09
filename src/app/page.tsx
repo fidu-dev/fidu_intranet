@@ -2,6 +2,8 @@ import { currentUser } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
 import { getAgencyByEmail } from '@/lib/airtable/service';
 
+export const dynamic = 'force-dynamic';
+
 export default async function Home() {
   try {
     const user = await currentUser();
@@ -32,6 +34,9 @@ export default async function Home() {
     // Default to portal for partner agencies and sales
     redirect('/portal');
   } catch (error: any) {
+    if (error.digest === 'DYNAMIC_SERVER_USAGE') {
+      throw error;
+    }
     console.error('[CRITICAL] Error in Home page:', error);
     // Rethrow to hit error boundary or handle gracefully
     throw error;
