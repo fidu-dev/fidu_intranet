@@ -105,53 +105,62 @@ export const getAgencyByEmail = async (email: string): Promise<Agency | null> =>
     }
 
     const baseId = getBaseId();
-    console.log(`[getAgencyByEmail] Checking access for ${email} in base ${baseId?.substring(0, 7)}...`);
+    console.log(`[AUTH_TRACE] Email: "${email}" | BaseID: ${baseId}`);
+
+    if (!baseId) {
+        console.error('[AUTH_TRACE] Critical Error: AIRTABLE_PRODUCT_BASE_ID is missing!');
+        return null;
+    }
 
     // Try both naming conventions for the table
     const tableNames = ['Acessos', 'tbljUc8sptfa7QnAE'];
-    let records: any[] = [];
+    let allRecords: any[] = [];
     let usedTableName = '';
 
     for (const tableName of tableNames) {
         try {
-            records = await base(tableName).select({
-                filterByFormula: `LOWER({mail}) = LOWER('${email}')`,
-                maxRecords: 1
-            }).all().catch(async () => {
-                // Try 'Email' if 'mail' fails
-                return await base(tableName).select({
-                    filterByFormula: `LOWER({Email}) = LOWER('${email}')`,
-                    maxRecords: 1
-                }).all();
-            });
-
-            if (records.length > 0) {
+            console.log(`[AUTH_TRACE] Fetching all from ${tableName}...`);
+            allRecords = await base(tableName).select().all();
+            if (allRecords.length > 0) {
                 usedTableName = tableName;
                 break;
             }
-        } catch (e) {
+        } catch (e: any) {
+            console.warn(`[AUTH_TRACE] Failed to fetch from ${tableName}: ${e.message}`);
             continue;
         }
     }
 
-    if (records.length === 0) {
-        console.warn(`[getAgencyByEmail] No access record found for email: ${email}`);
+    if (allRecords.length === 0) {
+        console.warn(`[AUTH_TRACE] No records found in any access table.`);
         return null;
     }
 
-    console.log(`[getAgencyByEmail] Found access for ${email} in table: ${usedTableName}`);
+    // Filter in-memory for absolute reliability
+    const searchEmail = email.toLowerCase().trim();
+    const record = allRecords.find((rec: any) => {
+        const mail1 = (rec.fields['mail'] || '').toString().toLowerCase().trim();
+        const mail2 = (rec.fields['Email'] || '').toString().toLowerCase().trim();
+        return mail1 === searchEmail || mail2 === searchEmail;
+    });
 
-    const record = records[0];
+    if (!record) {
+        console.warn(`[AUTH_TRACE] No memory match for ${searchEmail}. Available emails:`,
+            allRecords.map(r => r.fields['mail'] || r.fields['Email']).filter(Boolean));
+        return null;
+    }
+
+    console.log(`[AUTH_TRACE] Found match for ${searchEmail} in table: ${usedTableName}`);
+
     const fields = record.fields;
 
-    // Robust field mapping: try Portuguese names first, then fall back to English names
+    // Robust field mapping
     const agencyNameField = fields['Agência'] || fields['Agency'];
     const emailField = fields['Email'] || fields['mail'];
     const commissionField = fields['Comissão Base'] || fields['Comision_base'];
     const userNameField = fields['Usuário'] || fields['User'];
     const skillsField = fields['Destinos'] || fields['Skill'];
 
-    // Handle both string and lookup/array values
     const agencyName = (Array.isArray(agencyNameField) ? agencyNameField[0] : agencyNameField) as string;
     const userName = (Array.isArray(userNameField) ? userNameField[0] : userNameField) as string;
 
@@ -159,9 +168,11 @@ export const getAgencyByEmail = async (email: string): Promise<Agency | null> =>
         id: record.id,
         agencyId: (Array.isArray(agencyNameField) ? agencyNameField[0] : '') as string,
         name: fields['Nome da Agência'] as string || agencyName || userName || 'Agente',
-        agentName: userName, // This is the 'User' column value
+        agentName: userName,
         email: emailField as string,
-        commissionRate: commissionField as number || 0,
+        commissionRate: typeof commissionField === 'string' && commissionField.includes('%')
+            ? parseFloat(commissionField) / 100
+            : (commissionField as number || 0),
         skills: skillsField as string[] || [],
         canReserve: fields['Reserva'] as boolean || fields['Reservas'] as boolean || false,
         canAccessMural: fields['Mural'] as boolean || false,
