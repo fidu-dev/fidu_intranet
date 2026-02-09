@@ -162,14 +162,15 @@ export async function getAgencyProducts(): Promise<{ products: AgencyProduct[], 
 
         return { products: agencyProducts, agency: agencyInfo, hasUnreadMural };
     } catch (err: any) {
-        console.error('Error in getAgencyProducts full details:', {
+        console.error('[ACTIONS_ERROR] Error in getAgencyProducts full details:', {
             message: err.message,
             stack: err.stack,
-            error: err
+            error: err,
+            timestamp: new Date().toISOString()
         });
         return {
             products: [],
-            error: `Failed to load products: ${err.message || 'Unknown error'}. Check your connection and credentials.`
+            error: `Failed to load products: ${err.message || 'Unknown error'}. Please refresh or contact support if the problem persists.`
         };
     }
 }

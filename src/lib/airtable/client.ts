@@ -6,13 +6,19 @@ const cachedBases = new Map<string, any>();
 // Standardized configuration sources
 export const getBaseApiKey = () => {
     const key = process.env.AIRTABLE_API_KEY;
-    if (!key) throw new Error('AIRTABLE_API_KEY is not defined in environment variables');
+    if (!key) {
+        console.error('[AIRTABLE_CONFIG_ERROR] AIRTABLE_API_KEY is not defined in environment variables');
+        throw new Error('AIRTABLE_API_KEY is missing. Please check your environment configuration.');
+    }
     return key;
 };
 
 export const getBaseId = () => {
     const id = process.env.AIRTABLE_PRODUCT_BASE_ID || process.env.AIRTABLE_BASE_ID;
-    if (!id) throw new Error('AIRTABLE_BASE_ID is not defined in environment variables');
+    if (!id) {
+        console.error('[AIRTABLE_CONFIG_ERROR] AIRTABLE_BASE_ID/AIRTABLE_PRODUCT_BASE_ID is not defined');
+        throw new Error('AIRTABLE_BASE_ID is missing. The application requires an Airtable Base ID to function.');
+    }
     return id;
 };
 
@@ -44,4 +50,12 @@ export const getAirtableBase = (baseId?: string) => {
 
 // Convenience helpers
 export const getProductBase = () => getAirtableBase(getBaseId());
-export const getAgencyBase = () => getAirtableBase(process.env.AIRTABLE_AGENCY_BASE_ID);
+export const getAgencyBase = () => {
+    const agencyBaseId = process.env.AIRTABLE_AGENCY_BASE_ID;
+    if (!agencyBaseId) {
+        console.warn('[AIRTABLE_WARNING] AIRTABLE_AGENCY_BASE_ID not defined. Reservation features may be limited.');
+        // Return null instead of throwing to allow partial functionality
+        return null;
+    }
+    return getAirtableBase(agencyBaseId);
+};
