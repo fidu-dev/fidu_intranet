@@ -117,7 +117,9 @@ export const getAgencyByEmail = async (email: string): Promise<Agency | null> =>
     const record = allRecords.find((rec: any) => {
         const mail1 = (rec.fields['mail'] || '').toString().toLowerCase().trim();
         const mail2 = (rec.fields['Email'] || '').toString().toLowerCase().trim();
-        return mail1 === searchEmail || mail2 === searchEmail;
+        const mail3 = (rec.fields['User'] || '').toString().toLowerCase().trim();
+        const mail4 = (rec.fields['Agente'] || '').toString().toLowerCase().trim();
+        return mail1 === searchEmail || mail2 === searchEmail || mail3 === searchEmail || mail4 === searchEmail;
     });
 
     if (!record) {
