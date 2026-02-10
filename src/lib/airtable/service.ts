@@ -6,46 +6,48 @@ import { AIRTABLE_TABLES } from './config';
 const mapToProduct = (record: any): Product => {
     const fields = record.fields;
 
-    const formatDuration = (seconds?: number) => {
-        if (typeof seconds !== 'number') return undefined;
-        const h = Math.floor(seconds / 3600);
-        const m = Math.floor((seconds % 3600) / 60);
-        return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
-    };
-
     return {
         id: record.id,
         destination: fields['Destino'] as string || 'General',
         tourName: fields['Serviço'] as string || 'Unnamed Tour',
         category: fields['Categoria do Serviço'] as string || 'Other',
-        subCategory: (fields['Tags'] || fields['Categoria']) ? (Array.isArray(fields['Tags'] || fields['Categoria']) ? (fields['Tags'] || fields['Categoria']).join(', ') : (fields['Tags'] || fields['Categoria']) as string) : '',
         basePrice: fields['INV26 ADU'] as number || 0,
-        itinerary: fields['Itinerário'] as string,
-        includes: fields['O que inclui?'] as string,
-        duration: formatDuration(fields['Tempo total do serviço (Estimado)'] as number),
-        startTimes: fields['Horários de saída'] as string,
-        difficulty: fields['Grau dificuldade'] as string,
-        meetingPoint: fields['Ponto de encontro / Saídas'] as string,
-        capacity: fields['Pax Máximo p/ guia'] as number,
-        cancelationPolicy: fields['Política de cancelamento'] as string,
-        images: Array.isArray(fields['Fotos']) ? (fields['Fotos'] as any[]).map(f => f.url) : [],
-        fullDescription: fields['Descrição'] as string,
+
+        // Prices
+        priceAdulto: fields['INV26 ADU'] as number || 0,
+        priceMenor: fields['INV26 MEN'] as number || 0,
+        priceBebe: fields['INV26 BEBE'] as number || 0,
+
+        // Seasonal Prices - Verão 2026
+        priceAdultoVer26: fields['VER26 ADU'] as number || 0,
+        priceMenorVer26: fields['VER26 MEN'] as number || 0,
+        priceBebeVer26: fields['VER26 BEBE'] as number || 0,
+
+        // Seasonal Prices - Inverno 2026
+        priceAdultoInv26: fields['INV26 ADU'] as number || 0,
+        priceMenorInv26: fields['INV26 MEN'] as number || 0,
+        priceBebeInv26: fields['INV26 BEBE'] as number || 0,
+
+        pickup: fields['Pickup'] as string,
+        retorno: fields['Retorno'] as string,
+        temporada: fields['Temporada'] as string,
+        diasElegiveis: fields['Dias Elegíveis'] as string[],
+        subCategory: (fields['Tags'] || fields['Categoria']) ? (Array.isArray(fields['Tags'] || fields['Categoria']) ? (fields['Tags'] || fields['Categoria']).join(', ') : (fields['Tags'] || fields['Categoria']) as string) : '',
         taxasExtras: (fields['Taxas Extras?'] || fields['Taxas Extras']) as string,
+        description: fields['Descrição'] as string,
+        inclusions: fields['Incluso'] as string,
+        exclusions: fields['Não Incluso'] as string,
+        requirements: fields['Requisitos'] as string,
+        imageUrl: Array.isArray(fields['Fotos']) ? (fields['Fotos'] as any[])[0]?.url : undefined,
+
+        status: fields['Status'] as string,
+        whatToBring: fields['O que levar'] as string,
+        provider: fields['Fornecedor'] as string,
+        duration: fields['Duração'] as string,
         valorExtra: fields['Valor Extra'] as string,
         optionals: (fields['Opcionais disponíveis'] || fields['Opcionais']) as string,
         restrictions: fields['Restrições'] as string,
         observations: fields['Observações'] as string,
-
-        // Specific prices
-        priceAdulto: fields['INV26 ADU'] as number || 0,
-        priceMenor: fields['INV26 MEN'] as number || 0,
-        priceBebe: fields['INV26 BEBE'] as number || 0,
-        priceAdultoVer26: fields['VER26 ADU'] as number || 0,
-        priceMenorVer26: fields['VER26 MEN'] as number || 0,
-        priceBebeVer26: fields['VER26 BEBE'] as number || 0,
-        priceAdultoInv26: fields['INV26 ADU'] as number || 0,
-        priceMenorInv26: fields['INV26 MEN'] as number || 0,
-        priceBebeInv26: fields['INV26 BEBE'] as number || 0,
     };
 };
 
@@ -81,11 +83,15 @@ export const getAgencyByEmail = async (email: string): Promise<Agency | null> =>
     }
 
     if (records.length === 0) {
-        const fallbackRecords = await base(AIRTABLE_TABLES.ACCESS).select({ maxRecords: 200 }).all();
-        records = fallbackRecords.filter((record: any) => {
-            const candidates = [record.fields?.mail, record.fields?.Email, record.fields?.['E-mail']].flatMap(v => Array.isArray(v) ? v : [v]);
-            return candidates.some(c => typeof c === 'string' && c.trim().toLowerCase() === normalizedEmail);
-        }).slice(0, 1);
+        try {
+            const fallbackRecords = await base(AIRTABLE_TABLES.ACCESS).select({ maxRecords: 200 }).all();
+            records = fallbackRecords.filter((record: any) => {
+                const candidates = [record.fields?.mail, record.fields?.Email, record.fields?.['E-mail']].flatMap(v => Array.isArray(v) ? v : [v]);
+                return candidates.some(c => typeof c === 'string' && c.trim().toLowerCase() === normalizedEmail);
+            }).slice(0, 1);
+        } catch (e) {
+            console.error('Fallback scan failed:', e);
+        }
     }
 
     if (records.length === 0) return null;
@@ -147,12 +153,17 @@ export async function getMuralItems(): Promise<MuralItem[]> {
         return records.map((record: any) => ({
             id: record.id,
             title: record.fields['Título'] as string,
-            content: record.fields['Conteúdo'] as string,
-            date: record.fields['Publicado_em'] as string,
-            priority: record.fields['Prioridade'] as MuralItem['priority'],
+            summary: record.fields['Resumo'] as string,
+            content: record.fields['Notes'] as string || record.fields['Conteúdo'] as string,
             category: record.fields['Categoria'] as string,
-            isPinned: record.fields['Fixado'] as boolean,
-            attachments: Array.isArray(record.fields['Anexos']) ? (record.fields['Anexos'] as any[]).map(a => ({ name: a.filename, url: a.url, type: a.type })) : []
+            priority: record.fields['Prioridade'] as MuralItem['priority'],
+            publishedAt: record.fields['Publicado_em'] as string,
+            isPinned: !!record.fields['Fixado'],
+            requiresConfirmation: !!record.fields['Requer_Confirmacao'],
+            isActive: !!record.fields['Ativo'],
+            attachments: Array.isArray(record.fields['Attachments'])
+                ? (record.fields['Attachments'] as any[]).map((a: any) => ({ filename: a.filename, url: a.url }))
+                : []
         }));
     } catch (err) {
         console.error('Error fetching Mural:', err);
@@ -165,7 +176,7 @@ export async function confirmNoticeRead(agencyRecordId: string, muralId: string)
     if (!base) throw new Error('Airtable base not initialized');
 
     try {
-        await base(AIRTABLE_TABLES.SCIENCE).create([{
+        await base(AIRTABLE_TABLES.NOTICE_READ_LOG).create([{
             fields: {
                 'Agencia': [agencyRecordId],
                 'Comunicado': [muralId],
@@ -183,15 +194,16 @@ export async function getNoticeReadLogs(agencyRecordId: string): Promise<NoticeR
     if (!base) return [];
 
     try {
-        const records = await base(AIRTABLE_TABLES.SCIENCE).select({
+        const records = await base(AIRTABLE_TABLES.NOTICE_READ_LOG).select({
             filterByFormula: `SEARCH('${agencyRecordId}', ARRAYJOIN({Agencia}))`
         }).all();
 
         return records.map((record: any) => ({
             id: record.id,
+            userId: (record.fields['Agencia'] as string[])?.[0] || '',
             agencyId: (record.fields['Agencia'] as string[])?.[0] || '',
             noticeId: (record.fields['Comunicado'] as string[])?.[0] || '',
-            readAt: record.fields['Data_leitura'] as string
+            confirmedAt: record.fields['Data_leitura'] as string
         }));
     } catch (err) {
         console.error('Error fetching read logs:', err);
@@ -204,7 +216,7 @@ export async function getNoticeReaders(noticeId: string, agencyRecordId?: string
     if (!base) return [];
 
     try {
-        const records = await base(AIRTABLE_TABLES.SCIENCE).select({
+        const records = await base(AIRTABLE_TABLES.NOTICE_READ_LOG).select({
             filterByFormula: `SEARCH('${noticeId}', ARRAYJOIN({Comunicado}))`
         }).all();
 
@@ -212,23 +224,23 @@ export async function getNoticeReaders(noticeId: string, agencyRecordId?: string
             const fields = record.fields;
             const userNameRaw = fields['Usuário (from Agencia)'] || fields['Agent Name (from Agencia)'] || fields['User (from Agencia)'];
             const agencyNameRaw = fields['Nome da Agência (from Agencia)'] || fields['Agency Name (from Agencia)'];
-            const recordAgencyId = (fields['Agencia'] as string[])?.[0];
+            const recAgencyId = (fields['Agencia'] as string[])?.[0];
 
             return {
                 userName: (Array.isArray(userNameRaw) ? userNameRaw[0] : userNameRaw) as string || 'Usuário',
                 timestamp: (fields['Data_leitura'] || record.createdTime) as string,
                 agencyName: (Array.isArray(agencyNameRaw) ? agencyNameRaw[0] : agencyNameRaw) as string || 'Agência',
-                _agencyId: recordAgencyId
+                _agencyId: recAgencyId
             };
         });
 
         if (isAdmin) {
-            return allReaders.map(({ _agencyId, ...rest }) => rest);
+            return allReaders.map(({ _agencyId, ...rest }: any) => rest);
         }
 
         return allReaders
-            .filter(reader => reader._agencyId === agencyRecordId)
-            .map(({ _agencyId, ...rest }) => rest);
+            .filter((reader: any) => reader._agencyId === agencyRecordId)
+            .map(({ _agencyId, ...rest }: any) => rest);
     } catch (err) {
         console.error('Error fetching notice readers:', err);
         return [];
@@ -274,7 +286,7 @@ export async function getExchangeRates(): Promise<ExchangeRate[]> {
         }).all();
 
         const rates: ExchangeRate[] = [];
-        records.forEach(record => {
+        records.forEach((record: any) => {
             const f = record.fields;
             const ts = f['Data do registro'] as string;
             const obs = f['Observações'] as string;
