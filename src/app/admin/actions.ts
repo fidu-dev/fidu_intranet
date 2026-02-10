@@ -1,25 +1,15 @@
 'use server'
 
-import { auth, currentUser } from '@clerk/nextjs/server';
 import { getProductBase, getAgencyBase } from '@/lib/airtable/client';
 import { getProducts } from '@/lib/airtable/service';
 import { Agency } from '@/lib/airtable/types';
 
-// Middleware should handle role checks, but we add a safety check here
-async function isAdmin() {
-    const user = await currentUser();
-    const metadata = user?.publicMetadata;
-    // Check for admin role in metadata OR specific admin email for bootstrap
-    return metadata?.role === 'admin' || user?.emailAddresses[0]?.emailAddress === 'admin@fidu.com';
-}
-
+// Admin routes are now publicly accessible - consider adding IP whitelist or password protection
 export async function getAdminProducts() {
-    if (!(await isAdmin())) throw new Error('Unauthorized');
     return getProducts(); // Returns raw products with basePrice
 }
 
 export async function getAgencies(): Promise<Agency[]> {
-    if (!(await isAdmin())) throw new Error('Unauthorized');
     const base = getAgencyBase();
     if (!base) return [];
 
@@ -36,7 +26,6 @@ export async function getAgencies(): Promise<Agency[]> {
 }
 
 export async function updateAgencyCommission(agencyId: string, newRate: number) {
-    if (!(await isAdmin())) throw new Error('Unauthorized');
     const base = getAgencyBase();
     if (!base) throw new Error('Airtable Agency base not initialized');
 
@@ -53,7 +42,6 @@ export async function updateAgencyCommission(agencyId: string, newRate: number) 
 }
 
 export async function createNewAgency(name: string, email: string, commissionRate: number) {
-    if (!(await isAdmin())) throw new Error('Unauthorized');
     const base = getAgencyBase();
     if (!base) throw new Error('Airtable Agency base not initialized');
 
@@ -81,8 +69,6 @@ export interface SimulatedProduct {
 }
 
 export async function getSimulatorProducts(agencyId: string): Promise<SimulatedProduct[]> {
-    // Basic Admin Check (can be refined for "Sales" role later)
-    if (!(await isAdmin())) throw new Error('Unauthorized');
     const base = getAgencyBase();
     if (!base) return [];
 

@@ -1,6 +1,5 @@
 'use client';
 
-import { UserButton } from '@clerk/nextjs';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { AgencyInfo } from '@/app/actions';
@@ -77,8 +76,6 @@ export function PortalHeader({ agency, hasUnreadMural }: PortalHeaderProps) {
                             )}
                         </div>
                     )}
-                    <div className="h-8 w-[1px] bg-gray-100 hidden lg:block mx-2"></div>
-                    <UserButton afterSignOutUrl="/sign-in" />
                 </div>
             </div>
         </header>

@@ -1,7 +1,6 @@
 import { getAgencyProducts } from '@/app/actions';
 import { ProductGrid } from '@/components/ProductGrid';
 import { ExchangeTicker } from '@/components/ExchangeTicker';
-import { UserButton } from '@clerk/nextjs';
 
 export const dynamic = 'force-dynamic';
 

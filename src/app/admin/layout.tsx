@@ -1,6 +1,5 @@
 'use client';
 
-import { UserButton } from "@clerk/nextjs";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LayoutDashboard, Users, Package, Settings } from "lucide-react";
@@ -45,12 +44,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                         );
                     })}
                 </nav>
-                <div className="p-4 border-t">
-                    <div className="flex items-center gap-3 px-4 py-2">
-                        <UserButton />
-                        <span className="text-sm font-medium text-gray-700">Admin User</span>
-                    </div>
-                </div>
             </aside>
 
             {/* Main Content */}

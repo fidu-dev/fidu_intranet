@@ -5,7 +5,6 @@ import { useState, useMemo, useEffect, useRef } from 'react';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Search, ShoppingCart, ArrowUpDown, ChevronUp, ChevronDown, Plus, X, Settings, CheckCircle2, ArrowUp, ArrowDown, RefreshCw, SlidersHorizontal, Filter, Info, Eye } from 'lucide-react';
-import { useUser } from '@clerk/nextjs';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetClose } from '@/components/ui/sheet';
 import { SalesSimulator } from './SalesSimulator';
@@ -76,16 +75,15 @@ const SortIcon = ({ columnKey, sortConfig }: { columnKey: keyof AgencyProduct | 
 
 
 export function ProductGrid({ products, isInternal, agencyInfo }: ProductGridProps) {
-    const { user } = useUser();
     const { selectedProducts, addToCart, clearCart } = useCart();
 
-    // Create a user-specific storage key or use 'guest' if not logged in
-    const storageKey = `fidu_columns_${user?.id || 'guest'}`;
+    // Use 'guest' for all users since there's no authentication
+    const storageKey = 'fidu_columns_guest';
 
     const [visibleColumns, setVisibleColumns] = useLocalStorage<string[]>(storageKey, DEFAULT_VISIBLE_COLUMNS);
 
     // Width persistence
-    const widthStorageKey = `fidu_widths_${user?.id || 'guest'}`;
+    const widthStorageKey = 'fidu_widths_guest';
     const [columnWidths, setColumnWidths] = useLocalStorage<Record<string, number>>(widthStorageKey, {});
 
     // Resize handlers

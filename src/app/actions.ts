@@ -1,6 +1,5 @@
 'use server'
 
-import { currentUser } from '@clerk/nextjs/server';
 import { getProducts, getAgencyByEmail, getMuralItems, getNoticeReadLogs, confirmNoticeRead, getNoticeReaders, createReservation, getExchangeRates } from '@/lib/airtable/service';
 import { revalidatePath } from 'next/cache';
 
@@ -16,57 +15,44 @@ export interface AgencyInfo {
 
 import { AgencyProduct, MuralItem, Reservation, ExchangeRate } from '@/lib/airtable/types';
 
+// Default email for public access - you can change this or make it configurable
+const DEFAULT_EMAIL = 'public@fiduviagens.com';
+
 export async function getAgencyProducts(): Promise<{ products: AgencyProduct[], agency?: AgencyInfo, hasUnreadMural?: boolean, error?: string }> {
     try {
-        const user = await currentUser();
-
-        if (!user) {
-            return { products: [], error: 'Unauthorized' };
-        }
-
-        // Get Primary Email
-        const email = user.emailAddresses[0]?.emailAddress;
-        if (!email) {
-            return { products: [], error: 'No email found for this user.' };
-        }
+        // Use default email for public access
+        const email = DEFAULT_EMAIL;
 
         // Fetch Agency Details
         const agency = await getAgencyByEmail(email);
 
-        // STRICT ACCESS CONTROL: Only allow agencies in the list
-        if (!agency) {
-            return {
-                products: [],
-                error: 'ACESSO NEGADO: Seu e-mail não está na lista de agentes autorizados. Por favor, entre em contato com a Fidu para habilitar seu acesso.'
-            };
-        }
-
-        const commissionRate = agency.commissionRate;
-
-        const role = user.publicMetadata?.role;
-        const isAdmin = role === 'admin' || email === 'rafael@fidu.com' || email === 'admin@fidu.com';
+        // If no agency found for default email, show all products with default commission
+        const commissionRate = agency?.commissionRate || 0.15; // Default 15% commission
+        const isAdmin = false; // No admin access in public mode
 
         const agencyInfo: AgencyInfo = {
-            agentName: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username || 'Agente',
-            agencyName: agency.name,
+            agentName: agency?.agentName || 'Agente',
+            agencyName: agency?.name || 'Fidu Viagens',
             commissionRate: commissionRate,
-            canReserve: isAdmin || !!agency.canReserve,
-            canAccessMural: isAdmin || !!agency.canAccessMural,
-            isInternal: !!agency.isInternal,
-            canAccessExchange: isAdmin || !!agency.canAccessExchange
+            canReserve: agency?.canReserve || true,
+            canAccessMural: agency?.canAccessMural || true,
+            isInternal: agency?.isInternal || false,
+            canAccessExchange: agency?.canAccessExchange || true
         };
 
         // Fetch Mural items to check for unread
         let hasUnreadMural = false;
-        try {
-            const [muralItems, readLogs] = await Promise.all([
-                getMuralItems(),
-                getNoticeReadLogs(agency.id)
-            ]);
-            const readNoticeIds = new Set(readLogs.map(log => log.noticeId));
-            hasUnreadMural = muralItems.some(item => !readNoticeIds.has(item.id));
-        } catch (e) {
-            console.error('Error checking unread mural in Layout:', e);
+        if (agency) {
+            try {
+                const [muralItems, readLogs] = await Promise.all([
+                    getMuralItems(),
+                    getNoticeReadLogs(agency.id)
+                ]);
+                const readNoticeIds = new Set(readLogs.map(log => log.noticeId));
+                hasUnreadMural = muralItems.some(item => !readNoticeIds.has(item.id));
+            } catch (e) {
+                console.error('Error checking unread mural:', e);
+            }
         }
 
         // Fetch Base Products
@@ -77,16 +63,12 @@ export async function getAgencyProducts(): Promise<{ products: AgencyProduct[], 
         }
 
         // Calculate Prices and Filter by Skill (Destination)
-        const authorizedSkills = (agency.skills || []).map(s => s.toLowerCase().trim());
+        const authorizedSkills = agency?.skills ? agency.skills.map(s => s.toLowerCase().trim()) : [];
 
         const agencyProducts = products
             .filter(product => {
-                // Admins see everything
-                if (isAdmin) return true;
-
-                // If there are skills defined, the user must have the skill for that destination
-                // If no skills are defined, we return NO products (strict whitelist)
-                if (authorizedSkills.length === 0) return false;
+                // If no agency or no skills, show all products
+                if (!agency || authorizedSkills.length === 0) return true;
 
                 return authorizedSkills.some(skill =>
                     skill === product.destination.toLowerCase().trim()
@@ -172,26 +154,18 @@ export async function getAgencyProducts(): Promise<{ products: AgencyProduct[], 
 
 export async function fetchMural(): Promise<{ items: MuralItem[], readLogs: string[], isAdmin: boolean, error?: string }> {
     try {
-        const user = await currentUser();
-        const email = user?.emailAddresses[0]?.emailAddress;
-        if (!email) throw new Error('No email found');
-
+        const email = DEFAULT_EMAIL;
         const agency = await getAgencyByEmail(email);
-        if (!agency) throw new Error('Agency not found');
-
-        if (!agency.canAccessMural) {
-            throw new Error('ACESSO NEGADO: Você não tem permissão para acessar o Mural.');
-        }
 
         const [items, logs] = await Promise.all([
             getMuralItems(),
-            getNoticeReadLogs(agency.id)
+            agency ? getNoticeReadLogs(agency.id) : Promise.resolve([])
         ]);
 
         return {
             items,
             readLogs: logs.map(l => l.noticeId),
-            isAdmin: !!agency.isAdmin
+            isAdmin: false
         };
     } catch (e: any) {
         console.error('Error fetching mural:', e);
@@ -201,14 +175,12 @@ export async function fetchMural(): Promise<{ items: MuralItem[], readLogs: stri
 
 export async function confirmNoticeReadAction(noticeId: string): Promise<{ success: boolean, error?: string }> {
     try {
-        const user = await currentUser();
-        if (!user) throw new Error('Not authenticated');
-
-        const email = user.emailAddresses[0]?.emailAddress;
-        if (!email) throw new Error('No email found');
-
+        const email = DEFAULT_EMAIL;
         const agency = await getAgencyByEmail(email);
-        if (!agency) throw new Error('Agency not found');
+
+        if (!agency) {
+            return { success: false, error: 'Agency not found' };
+        }
 
         await confirmNoticeRead(agency.id, noticeId);
 
@@ -221,16 +193,14 @@ export async function confirmNoticeReadAction(noticeId: string): Promise<{ succe
 
 export async function fetchMuralReaders(noticeId: string): Promise<{ readers: { userName: string, timestamp: string, agencyName?: string }[], error?: string }> {
     try {
-        const user = await currentUser();
-        if (!user) throw new Error('Not authenticated');
-
-        const email = user.emailAddresses[0]?.emailAddress;
-        if (!email) throw new Error('No email found');
-
+        const email = DEFAULT_EMAIL;
         const agency = await getAgencyByEmail(email);
-        if (!agency) throw new Error('Agency not found');
 
-        const readers = await getNoticeReaders(noticeId, agency.agencyId, !!agency.isAdmin);
+        if (!agency) {
+            return { readers: [], error: 'Agency not found' };
+        }
+
+        const readers = await getNoticeReaders(noticeId, agency.agencyId, false);
         return { readers };
     } catch (e) {
         console.error('Error fetching mural readers:', e);
@@ -240,16 +210,10 @@ export async function fetchMuralReaders(noticeId: string): Promise<{ readers: { 
 
 export async function createReservationAction(data: Omit<Reservation, 'agentName' | 'agentEmail' | 'status'>): Promise<{ success: boolean, id?: string, error?: string }> {
     try {
-        const user = await currentUser();
-        if (!user) throw new Error('Not authenticated');
-
-        const email = user.emailAddresses[0]?.emailAddress;
-        if (!email) throw new Error('No email found');
-
+        const email = DEFAULT_EMAIL;
         const agency = await getAgencyByEmail(email);
-        if (!agency) throw new Error('Agency not found');
 
-        const agentName = agency.agentName || `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username || 'Agente';
+        const agentName = agency?.agentName || 'Agente';
 
         const reservationId = await createReservation({
             ...data,
@@ -267,19 +231,6 @@ export async function createReservationAction(data: Omit<Reservation, 'agentName
 
 export async function getExchangeRatesAction(): Promise<{ rates: ExchangeRate[], error?: string }> {
     try {
-        const user = await currentUser();
-        if (!user) throw new Error('Not authenticated');
-
-        const email = user.emailAddresses[0]?.emailAddress;
-        if (!email) throw new Error('No email found');
-
-        const agency = await getAgencyByEmail(email);
-        if (!agency) throw new Error('Agency not found');
-
-        if (!agency.canAccessExchange) {
-            return { rates: [] };
-        }
-
         const rates = await getExchangeRates();
         return { rates };
     } catch (e: any) {
