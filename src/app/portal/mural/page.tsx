@@ -3,19 +3,17 @@ import { MuralGrid } from '@/components/MuralGrid';
 import { Metadata } from 'next';
 
 export const metadata: Metadata = {
-    title: 'Mural | Fidu Viagens Intranet',
+    title: 'Mural | Fidu Viagens Partner',
     description: 'Atualizações e novidades da Fidu Viagens.',
 };
 
-export const dynamic = 'force-dynamic';
-
 export default async function MuralPage() {
-    const { items, readLogs, isAdmin, userName, error } = await fetchMural();
+    const { items, readLogs, isAdmin, error } = await fetchMural();
 
     if (error && error.includes('ACESSO NEGADO')) {
         return (
             <div className="max-w-[1200px] mx-auto px-4 py-16 text-center">
-                <div className="bg-amber-50 border border-amber-100 p-8 rounded-2xl inline-block max-lg">
+                <div className="bg-amber-50 border border-amber-100 p-8 rounded-2xl inline-block max-w-lg">
                     <h2 className="text-xl font-bold text-amber-900 mb-2">Acesso Restrito</h2>
                     <p className="text-amber-700">{error}</p>
                 </div>
@@ -40,7 +38,7 @@ export default async function MuralPage() {
                     {error}
                 </div>
             ) : (
-                <MuralGrid items={items} readLogs={readLogs} isAdmin={isAdmin} userName={userName} />
+                <MuralGrid items={items} readLogs={readLogs} isAdmin={isAdmin} />
             )}
         </div>
     );

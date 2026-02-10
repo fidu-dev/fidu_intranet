@@ -11,18 +11,15 @@ interface MuralModalProps {
     item: MuralItem;
     initiallyRead: boolean;
     isAdmin: boolean;
-    userName: string;
     onClose: () => void;
 }
 
-export function MuralModal({ item, initiallyRead, isAdmin, userName, onClose }: MuralModalProps) {
+export function MuralModal({ item, initiallyRead, isAdmin, onClose }: MuralModalProps) {
     const router = useRouter();
     const [isReadingConfirmed, setIsReadingConfirmed] = useState(initiallyRead);
     const [readers, setReaders] = useState<{ userName: string, timestamp: string, agencyName?: string }[]>([]);
     const [isLoadingReaders, setIsLoadingReaders] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
-
-
 
     useEffect(() => {
         setIsReadingConfirmed(initiallyRead);
@@ -32,58 +29,26 @@ export function MuralModal({ item, initiallyRead, isAdmin, userName, onClose }: 
     const loadReaders = async () => {
         setIsLoadingReaders(true);
         try {
-            const response = await fetch(`/api/read-log?noticeId=${item.id}`);
-            const data = await response.json();
-            if (data.success) {
-                setReaders(data.readers || []);
-            }
-        } catch (error) {
-            console.error('Error loading readers:', error);
+            const { readers: readersData } = await fetchMuralReaders(item.id);
+            setReaders(readersData || []);
         } finally {
             setIsLoadingReaders(false);
         }
     };
 
     const handleConfirmRead = async () => {
-        // Optimistic UI update
-        setIsReadingConfirmed(true);
-        const optimisticReader = {
-            userName: userName,
-            timestamp: new Date().toISOString(),
-            agencyName: 'Sua Agência (Você)'
-        };
-
-        setReaders(prev => [optimisticReader, ...prev]);
-
         setIsSubmitting(true);
         try {
             const result = await confirmNoticeReadAction(item.id);
             if (result.success) {
-                // Refresh readers list from API
-                try {
-                    const response = await fetch(`/api/read-log?noticeId=${item.id}`);
-                    const data = await response.json();
-
-                    if (data.readers) {
-                        // Merge or replace? Replace is cleaner if the API returns everything.
-                        setReaders(data.readers);
-                    }
-                } catch (readErr) {
-                    console.error('[MuralModal] Error refreshing readers list:', readErr);
-                    alert("Não foi possível atualizar a lista de leitores agora, mas sua confirmação foi registrada.");
-                }
-
-                // Refresh server side state (router) so the notification badge updates
+                setIsReadingConfirmed(true);
+                // Refresh readers list
+                loadReaders();
+                // Refresh server side state for unread indicators
                 router.refresh();
             } else {
-                throw new Error(result.error);
+                alert(result.error || 'Erro ao confirmar leitura.');
             }
-        } catch (err: any) {
-            // Rollback on CONFIRMATION error (write failed)
-            setIsReadingConfirmed(false);
-            setReaders(prev => prev.filter(r => r !== optimisticReader));
-            console.warn(err.message || 'Erro ao confirmar leitura.');
-            alert("Não foi possível confirmar sua leitura. Tente novamente.");
         } finally {
             setIsSubmitting(false);
         }
@@ -99,28 +64,6 @@ export function MuralModal({ item, initiallyRead, isAdmin, userName, onClose }: 
         if (!dateStr) return '';
         const date = new Date(dateStr);
         return date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-    };
-
-    const renderFormattedText = (text: string) => {
-        if (!text) return null;
-
-        // Split text by markdown bold pattern **text** or escaped \*\*text\*\* or \\**text**
-        // Airtable rich text fields often include backslashes for escaping
-        const parts = text.split(/(\\?\\\?\\\?\*\*.*?\\?\\\?\\\?\*\*)/g);
-
-        return parts.map((part, i) => {
-            // Check for **text** or \*\*text\*\* or \\**text**
-            const isBold = (part.startsWith('**') && part.endsWith('**')) ||
-                (part.startsWith('\\**') && part.endsWith('\\**')) ||
-                (part.startsWith('\\\\**') && part.endsWith('\\\\**'));
-
-            if (isBold) {
-                // Remove the asterisks (and backslashes) and render as strong
-                const cleanText = part.replace(/^(\\?\\\?\\\?\*\*)|(\\?\\\?\\\?\*\*)$/g, '');
-                return <strong key={i} className="font-black text-gray-900">{cleanText}</strong>;
-            }
-            return part;
-        });
     };
 
     return (
@@ -159,8 +102,8 @@ export function MuralModal({ item, initiallyRead, isAdmin, userName, onClose }: 
                 <div className="flex-1 overflow-y-auto p-6 space-y-6">
                     {/* 2) Bloco de Impacto (Novo Componente) */}
                     <div className={`p-4 rounded-xl border ${item.priority === 'Crítica'
-                        ? 'bg-red-50 border-red-100'
-                        : 'bg-gray-50 border-gray-100'
+                            ? 'bg-red-50 border-red-100'
+                            : 'bg-gray-50 border-gray-100'
                         }`}>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div className="flex items-center gap-3">
@@ -200,8 +143,8 @@ export function MuralModal({ item, initiallyRead, isAdmin, userName, onClose }: 
                             <h3 className="text-xs font-bold text-[#3b5998] uppercase tracking-wider mb-2 flex items-center gap-2">
                                 <AlertCircle className="h-3 w-3" /> Resumo Operacional
                             </h3>
-                            <div className="text-gray-800 text-[14px] font-medium leading-relaxed whitespace-pre-wrap">
-                                {renderFormattedText(item.summary)}
+                            <div className="text-gray-800 text-[14px] font-medium leading-relaxed">
+                                {item.summary}
                             </div>
                         </div>
                     )}
@@ -209,7 +152,7 @@ export function MuralModal({ item, initiallyRead, isAdmin, userName, onClose }: 
                     {/* 4) Explicação detalhada (texto longo) */}
                     <div className="prose prose-blue max-w-none">
                         <div className="text-gray-700 text-[15px] leading-relaxed whitespace-pre-wrap">
-                            {renderFormattedText(item.content)}
+                            {item.content}
                         </div>
                     </div>
 

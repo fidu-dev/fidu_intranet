@@ -162,25 +162,15 @@ export async function getAgencyProducts(): Promise<{ products: AgencyProduct[], 
 
         return { products: agencyProducts, agency: agencyInfo, hasUnreadMural };
     } catch (err: any) {
-        // Handle Next.js dynamic usage error gracefully during build
-        if (err.digest === 'DYNAMIC_SERVER_USAGE') {
-            throw err;
-        }
-
-        console.error('[ACTIONS_ERROR] Error in getAgencyProducts full details:', {
-            message: err.message,
-            stack: err.stack,
-            error: err,
-            timestamp: new Date().toISOString()
-        });
+        console.error('Error in getAgencyProducts:', err);
         return {
             products: [],
-            error: `Failed to load products: ${err.message || 'Unknown error'}. Please refresh or contact support if the problem persists.`
+            error: `Failed to load products: ${err.message || 'Unknown error'}. Check your connection and credentials.`
         };
     }
 }
 
-export async function fetchMural(): Promise<{ items: MuralItem[], readLogs: string[], isAdmin: boolean, userName: string, error?: string }> {
+export async function fetchMural(): Promise<{ items: MuralItem[], readLogs: string[], isAdmin: boolean, error?: string }> {
     try {
         const user = await currentUser();
         const email = user?.emailAddresses[0]?.emailAddress;
@@ -198,17 +188,14 @@ export async function fetchMural(): Promise<{ items: MuralItem[], readLogs: stri
             getNoticeReadLogs(agency.id)
         ]);
 
-        const userName = agency.agentName || `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username || 'Agente';
-
         return {
             items,
             readLogs: logs.map(l => l.noticeId),
-            isAdmin: !!agency.isAdmin,
-            userName
+            isAdmin: !!agency.isAdmin
         };
     } catch (e: any) {
         console.error('Error fetching mural:', e);
-        return { items: [], readLogs: [], isAdmin: false, userName: 'Agente', error: `Erro ao carregar o mural: ${e.message || 'Unknown error'}` };
+        return { items: [], readLogs: [], isAdmin: false, error: `Erro ao carregar o mural: ${e.message || 'Unknown error'}` };
     }
 }
 
@@ -243,7 +230,7 @@ export async function fetchMuralReaders(noticeId: string): Promise<{ readers: { 
         const agency = await getAgencyByEmail(email);
         if (!agency) throw new Error('Agency not found');
 
-        const readers = await getNoticeReaders(noticeId, agency.id, !!agency.isAdmin);
+        const readers = await getNoticeReaders(noticeId, agency.agencyId, !!agency.isAdmin);
         return { readers };
     } catch (e) {
         console.error('Error fetching mural readers:', e);

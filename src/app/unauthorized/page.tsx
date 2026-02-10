@@ -1,11 +1,10 @@
 'use client';
 
-import { SignOutButton, useUser } from '@clerk/nextjs';
+import { SignOutButton } from '@clerk/nextjs';
 import { ShieldAlert, LogOut, Mail } from 'lucide-react';
 import Link from 'next/link';
 
 export default function UnauthorizedPage() {
-    const { user } = useUser();
     return (
         <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
             <div className="max-w-md w-full bg-white rounded-2xl shadow-xl border border-gray-100 p-8 text-center">
@@ -14,11 +13,8 @@ export default function UnauthorizedPage() {
                 </div>
 
                 <h1 className="text-2xl font-bold text-gray-900 mb-2">Acesso Restrito</h1>
-                <div className="mb-4 text-sm font-medium text-gray-500">
-                    Logado como: <span className="text-gray-900 font-bold underline">{user?.emailAddresses[0]?.emailAddress || 'Desconhecido'}</span>
-                </div>
                 <p className="text-gray-500 mb-8">
-                    Seu e-mail não foi encontrado na nossa lista de agentes autorizados. Este portal é exclusivo para parceiros da <strong>Fidu Viagens Intranet</strong>.
+                    Seu e-mail não foi encontrado na nossa lista de agentes autorizados. Este portal é exclusivo para parceiros da <strong>Fidu Viagens</strong>.
                 </p>
 
                 <div className="bg-blue-50 rounded-xl p-4 mb-8 text-left flex items-start gap-3">

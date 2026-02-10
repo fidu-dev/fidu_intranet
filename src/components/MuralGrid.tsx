@@ -10,10 +10,9 @@ interface MuralGridProps {
     items: MuralItem[];
     readLogs: string[];
     isAdmin: boolean;
-    userName: string;
 }
 
-export function MuralGrid({ items, readLogs, isAdmin, userName }: MuralGridProps) {
+export function MuralGrid({ items, readLogs, isAdmin }: MuralGridProps) {
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedItem, setSelectedItem] = useState<MuralItem | null>(null);
 
@@ -91,8 +90,8 @@ export function MuralGrid({ items, readLogs, isAdmin, userName }: MuralGridProps
                                                     )}
                                                     {['Crítica', 'Alta'].includes(item.priority) && (
                                                         <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold uppercase w-fit border ${item.priority === 'Crítica'
-                                                            ? 'bg-red-600 text-white border-red-700'
-                                                            : 'bg-red-100 text-red-600 border-red-200'
+                                                                ? 'bg-red-600 text-white border-red-700'
+                                                                : 'bg-red-100 text-red-600 border-red-200'
                                                             }`}>
                                                             {item.priority === 'Crítica' ? 'Crítica' : 'Urgente'}
                                                         </span>
@@ -139,7 +138,6 @@ export function MuralGrid({ items, readLogs, isAdmin, userName }: MuralGridProps
                     item={selectedItem}
                     initiallyRead={readLogs.includes(selectedItem.id)}
                     isAdmin={isAdmin}
-                    userName={userName}
                     onClose={() => setSelectedItem(null)}
                 />
             )}

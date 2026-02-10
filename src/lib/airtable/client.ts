@@ -1,21 +1,17 @@
 import Airtable from 'airtable';
 
-// Cache bases to avoid re-initializing on every call (efficiency in Serverless)
 const cachedBases = new Map<string, any>();
-
-export const getBaseId = () => {
-    return process.env.AIRTABLE_PRODUCT_BASE_ID || process.env.AIRTABLE_BASE_ID;
-};
 
 export const getAirtableBase = (baseId?: string) => {
     const apiKey = process.env.AIRTABLE_API_KEY;
-    const id = baseId || getBaseId();
+    // Fallback to AIRTABLE_PRODUCT_BASE_ID for products if no specific ID is provided
+    const id = baseId || process.env.AIRTABLE_PRODUCT_BASE_ID || process.env.AIRTABLE_BASE_ID;
 
     if (!apiKey || !id) {
-        console.error('[AIRTABLE_ERROR] Missing AIRTABLE_API_KEY or BASE_ID');
         return null;
     }
 
+    // Return cached base if available
     if (cachedBases.has(id)) {
         return cachedBases.get(id);
     }
@@ -32,26 +28,5 @@ export const getAirtableBase = (baseId?: string) => {
 };
 
 // Convenience helpers
-export const getProductBase = () => getAirtableBase(getBaseId());
-
-export const getAgencyBase = () => {
-    const agencyBaseId = process.env.AIRTABLE_AGENCY_BASE_ID;
-    if (!agencyBaseId) {
-        console.warn('[AIRTABLE_WARNING] AIRTABLE_AGENCY_BASE_ID not defined. Reservation features may be limited.');
-        return null;
-    }
-    return getAirtableBase(agencyBaseId);
-};
-
-export const getAccessBaseId = () => {
-    return process.env.AIRTABLE_ACCESS_BASE_ID || process.env.AIRTABLE_AGENCY_BASE_ID || getBaseId();
-};
-
-export const getAccessBase = () => {
-    const accessBaseId = getAccessBaseId();
-    if (!accessBaseId) {
-        console.warn('[AIRTABLE_WARNING] AIRTABLE_ACCESS_BASE_ID/AIRTABLE_AGENCY_BASE_ID not defined. Access lookup may fail.');
-        return null;
-    }
-    return getAirtableBase(accessBaseId);
-};
+export const getProductBase = () => getAirtableBase(process.env.AIRTABLE_PRODUCT_BASE_ID || process.env.AIRTABLE_BASE_ID);
+export const getAgencyBase = () => getAirtableBase(process.env.AIRTABLE_AGENCY_BASE_ID);

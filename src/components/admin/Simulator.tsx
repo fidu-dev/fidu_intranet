@@ -64,7 +64,7 @@ export function Simulator({ agencies }: SimulatorProps) {
     return (
         <div className="space-y-6">
             <div className="flex flex-col gap-2">
-                <label className="text-sm font-medium text-gray-700">Select Agency to Simulate</label>
+                <label className="text-sm font-medium text-gray-700">Select Partner Agency to Simulate</label>
                 <Popover open={open} onOpenChange={setOpen}>
                     <PopoverTrigger asChild>
                         <Button
