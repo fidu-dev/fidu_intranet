@@ -97,42 +97,24 @@ export const getAgencyByEmail = async (email: string): Promise<Agency | null> =>
         return null;
     }
 
-    const baseId = getBaseId();
+    const records = await base('tbljUc8sptfa7QnAE').select({
+        filterByFormula: `{mail} = '${email}'`,
+        maxRecords: 1
+    }).all();
 
-    // Fetch from standardized Access table
-    let allRecords: any[] = [];
-    try {
-        allRecords = await base(AIRTABLE_TABLES.ACCESS).select().all();
-    } catch (e: any) {
-        console.error(`[AUTH] Failed to fetch from ${AIRTABLE_TABLES.ACCESS}: ${e.message}`);
-        return null;
-    }
+    if (records.length === 0) return null;
 
-    if (allRecords.length === 0) {
-        return null;
-    }
-
-    // Filter in-memory for absolute reliability
-    const searchEmail = email.toLowerCase().trim();
-    const record = allRecords.find((rec: any) => {
-        const mail1 = (rec.fields['mail'] || '').toString().toLowerCase().trim();
-        const mail2 = (rec.fields['Email'] || '').toString().toLowerCase().trim();
-        return mail1 === searchEmail || mail2 === searchEmail;
-    });
-
-    if (!record) {
-        return null;
-    }
-
+    const record = records[0];
     const fields = record.fields;
 
-    // Robust field mapping
+    // Robust field mapping: try Portuguese names first, then fall back to English names
     const agencyNameField = fields['Agência'] || fields['Agency'];
     const emailField = fields['Email'] || fields['mail'];
     const commissionField = fields['Comissão Base'] || fields['Comision_base'];
     const userNameField = fields['Usuário'] || fields['User'];
     const skillsField = fields['Destinos'] || fields['Skill'];
 
+    // Handle both string and lookup/array values
     const agencyName = (Array.isArray(agencyNameField) ? agencyNameField[0] : agencyNameField) as string;
     const userName = (Array.isArray(userNameField) ? userNameField[0] : userNameField) as string;
 
@@ -140,13 +122,11 @@ export const getAgencyByEmail = async (email: string): Promise<Agency | null> =>
         id: record.id,
         agencyId: (Array.isArray(agencyNameField) ? agencyNameField[0] : '') as string,
         name: fields['Nome da Agência'] as string || agencyName || userName || 'Agente',
-        agentName: userName,
+        agentName: userName, // This is the 'User' column value
         email: emailField as string,
-        commissionRate: typeof commissionField === 'string' && commissionField.includes('%')
-            ? parseFloat(commissionField) / 100
-            : (commissionField as number || 0),
+        commissionRate: commissionField as number || 0,
         skills: skillsField as string[] || [],
-        canReserve: fields['Reserva'] as boolean || fields['Reservas'] as boolean || false,
+        canReserve: fields['Reserva'] as boolean || false,
         canAccessMural: fields['Mural'] as boolean || false,
         isInternal: fields['Interno'] as boolean || false,
         canAccessExchange: fields['Exchange'] as boolean || false,
@@ -154,15 +134,13 @@ export const getAgencyByEmail = async (email: string): Promise<Agency | null> =>
     };
 };
 
-
-
 export const createAgency = async (agency: Omit<Agency, 'id'>) => {
     const base = getProductBase();
     if (!base) {
         throw new Error('Airtable Product base not initialized');
     }
 
-    await base(AIRTABLE_TABLES.ACCESS).create([
+    await base('tbljUc8sptfa7QnAE').create([
         {
             fields: {
                 'Agency': agency.name,
