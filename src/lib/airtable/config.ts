@@ -4,5 +4,5 @@ export const AIRTABLE_TABLES = {
     MURAL: 'Mural',                // Canal de comunicações
     NOTICE_READ_LOG: 'Notice_read_log', // Log de leitura de avisos
     RESERVATIONS: 'Reservas',           // Tabela de pré-reservas
-    EXCHANGE: 'tblg4MuvzHVul1KNy'      // Cambio / Taxas de câmbio
+    EXCHANGE: 'tbljUc8sptfa7QnAE'      // Cambio / Taxas de câmbio
 };
