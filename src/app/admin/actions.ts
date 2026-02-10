@@ -1,11 +1,10 @@
 'use server'
 
 import { auth, currentUser } from '@clerk/nextjs/server';
--import { getProductBase } from '@/lib/airtable/client';
-+import { getProductBase, getAccessBase } from '@/lib/airtable/client';
+import { getProductBase, getAccessBase } from '@/lib/airtable/client';
 import { getProducts } from '@/lib/airtable/service';
 import { Agency } from '@/lib/airtable/types';
-+import { AIRTABLE_TABLES } from '@/lib/airtable/config';
+import { AIRTABLE_TABLES } from '@/lib/airtable/config';
 
 // Middleware should handle role checks, but we add a safety check here
 async function isAdmin() {
@@ -22,66 +21,67 @@ export async function getAdminProducts() {
 
 export async function getAgencies(): Promise<Agency[]> {
     if (!(await isAdmin())) throw new Error('Unauthorized');
-    -    const base = getProductBase();
-    +    const base = getAccessBase() || getProductBase();
+    const base = getAccessBase() || getProductBase();
     if (!base) return [];
 
-    -    const records = await base('tbljUc8sptfa7QnAE').select({
-+    const records = await base(AIRTABLE_TABLES.ACCESS).select({
-        view: 'viw2ucoLxsbjBXrJw' // Updated view ID from user
-            -    }).all().catch(() => base('tbljUc8sptfa7QnAE').select().all());
-    +    }).all().catch(() => base(AIRTABLE_TABLES.ACCESS).select().all());
+    try {
+        const records = await base(AIRTABLE_TABLES.ACCESS).select({
+            view: 'viw2ucoLxsbjBXrJw' // Updated view ID from user
+        }).all();
 
-return records.map((record: any) => ({
-    id: record.id,
-    name: record.fields['Agency'] as string || record.fields['Name'] as string,
-- email: record.fields['mail'] as string,
-    +        email: record.fields['mail'] as string || record.fields['Email'] as string || record.fields['E-mail'] as string,
-    commissionRate: record.fields['Comision_base'] as number || 0,
-     }));
- }
+        return records.map((record: any) => ({
+            id: record.id,
+            name: record.fields['Agency'] as string || record.fields['Name'] as string,
+            email: record.fields['mail'] as string || record.fields['Email'] as string || record.fields['E-mail'] as string,
+            commissionRate: record.fields['Comision_base'] as number || 0,
+        }));
+    } catch (e) {
+        // Fallback to simple select if view fails
+        const records = await base(AIRTABLE_TABLES.ACCESS).select().all();
+        return records.map((record: any) => ({
+            id: record.id,
+            name: record.fields['Agency'] as string || record.fields['Name'] as string,
+            email: record.fields['mail'] as string || record.fields['Email'] as string || record.fields['E-mail'] as string,
+            commissionRate: record.fields['Comision_base'] as number || 0,
+        }));
+    }
+}
 
 export async function updateAgencyCommission(agencyId: string, newRate: number) {
     if (!(await isAdmin())) throw new Error('Unauthorized');
-    -    const base = getProductBase();
-    -    if (!base) throw new Error('Airtable Product base not initialized');
-    +    const base = getAccessBase() || getProductBase();
-    +    if (!base) throw new Error('Airtable base not initialized');
+    const base = getAccessBase() || getProductBase();
+    if (!base) throw new Error('Airtable base not initialized');
 
-    -    await base('tbljUc8sptfa7QnAE').update([
-        +    await base(AIRTABLE_TABLES.ACCESS).update([
-            {
-                id: agencyId,
-                fields: {
-                    'Comision_base': newRate
-                }
+    await base(AIRTABLE_TABLES.ACCESS).update([
+        {
+            id: agencyId,
+            fields: {
+                'Comision_base': newRate
             }
-        ]);
+        }
+    ]);
 
     return { success: true };
 }
 
 export async function createNewAgency(name: string, email: string, commissionRate: number) {
     if (!(await isAdmin())) throw new Error('Unauthorized');
-    -    const base = getProductBase();
-    -    if (!base) throw new Error('Airtable Product base not initialized');
-    +    const base = getAccessBase() || getProductBase();
-    +    if (!base) throw new Error('Airtable base not initialized');
+    const base = getAccessBase() || getProductBase();
+    if (!base) throw new Error('Airtable base not initialized');
 
-    -    await base('tbljUc8sptfa7QnAE').create([
-        +    await base(AIRTABLE_TABLES.ACCESS).create([
-            {
-                fields: {
-                    'Agency': name,
-                    'mail': email,
-+ 'Email': email,
+    await base(AIRTABLE_TABLES.ACCESS).create([
+        {
+            fields: {
+                'Agency': name,
+                'mail': email,
+                'Email': email,
                 'Comision_base': commissionRate
             }
-         }
-     ]);
+        }
+    ]);
 
-return { success: true };
- }
+    return { success: true };
+}
 
 // SIMULATOR ACTION
 export interface SimulatedProduct {
@@ -96,13 +96,11 @@ export interface SimulatedProduct {
 export async function getSimulatorProducts(agencyId: string): Promise<SimulatedProduct[]> {
     // Basic Admin Check (can be refined for "Sales" role later)
     if (!(await isAdmin())) throw new Error('Unauthorized');
-    -    const base = getProductBase();
-    +    const base = getAccessBase() || getProductBase();
+    const base = getAccessBase() || getProductBase();
     if (!base) return [];
 
     // 1. Get Agency Commission
-    -    const agencyRecord = await base('tbljUc8sptfa7QnAE').find(agencyId);
-    +    const agencyRecord = await base(AIRTABLE_TABLES.ACCESS).find(agencyId);
+    const agencyRecord = await base(AIRTABLE_TABLES.ACCESS).find(agencyId);
     if (!agencyRecord) throw new Error('Agency not found');
 
     // Safety check: ensure rate is a number
