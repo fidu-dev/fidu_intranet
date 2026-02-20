@@ -1,6 +1,7 @@
 import { getProductBase, getAgencyBase } from './client';
 import { Product, Agency, MuralItem, NoticeReadLog, Reservation, ExchangeRate } from './types';
 import { FieldSet } from 'airtable';
+import { AIRTABLE_TABLES } from './config';
 
 // Helper to map record to Product
 const mapToProduct = (record: any): Product => {
@@ -48,7 +49,8 @@ const mapToProduct = (record: any): Product => {
         imageUrl: fields['Mídia do Passeio']?.[0]?.url,
 
         // New fields mapping
-        status: (Array.isArray(fields['Status']) ? fields['Status'][0] : (fields['Status'] || fields['STATUS'] || 'Ativo')) as string,
+        // Status is a boolean checkbox in Airtable: true = active, undefined/false = inactive
+        status: (fields['Status'] === true ? true : false) as any,
         whatToBring: fields['O que levar'] as string,
         provider: (
             fields['Operador_Nome'] ||
@@ -104,8 +106,8 @@ export const getAgencyByEmail = async (email: string): Promise<Agency | null> =>
         return null;
     }
 
-    const records = await base('tblkVI2PX3jPgYKXF').select({
-        filterByFormula: `{mail} = '${email}'`,
+    const records = await base(AIRTABLE_TABLES.ACCESS).select({
+        filterByFormula: `{e-mail} = '${email}'`,
         maxRecords: 1
     }).all();
 
@@ -114,24 +116,29 @@ export const getAgencyByEmail = async (email: string): Promise<Agency | null> =>
     const record = records[0];
     const fields = record.fields;
 
-    // Robust field mapping: try Portuguese names first, then fall back to English names
-    const agencyNameField = fields['Agência'] || fields['Agency'];
-    const emailField = fields['Email'] || fields['mail'];
-    const commissionField = fields['Comissão Base'] || fields['Comision_base'];
-    const userNameField = fields['Usuário'] || fields['User'];
-    const skillsField = fields['Destinos'] || fields['Skill'];
+    // Field mapping matching actual Airtable column names
+    const agencyNameField = fields['Agency'] || fields['Agência'];
+    const emailField = fields['e-mail'] || fields['Email'];
+    // Comision_base is stored as a string like "15%", parse it
+    const commissionRaw = fields['Comision_base'] as string || '';
+    const commissionRate = commissionRaw
+        ? parseFloat(commissionRaw.replace('%', '')) / 100
+        : 0.15;
+    const userNameField = fields['User'] || fields['Usuário'];
+    const skillsField = fields['Skill'] || fields['Destinos'];
 
     // Handle both string and lookup/array values
     const agencyName = (Array.isArray(agencyNameField) ? agencyNameField[0] : agencyNameField) as string;
     const userName = (Array.isArray(userNameField) ? userNameField[0] : userNameField) as string;
+    const agencyId = (fields['Agency_ID (from Agency)'] as string[])?.[0] || '';
 
     return {
         id: record.id,
-        agencyId: (Array.isArray(agencyNameField) ? agencyNameField[0] : '') as string,
+        agencyId,
         name: fields['Nome da Agência'] as string || agencyName || userName || 'Agente',
-        agentName: userName, // This is the 'User' column value
+        agentName: fields['Name'] as string || userName,
         email: emailField as string,
-        commissionRate: commissionField as number || 0,
+        commissionRate,
         skills: skillsField as string[] || [],
         canReserve: fields['Reserva'] as boolean || false,
         canAccessMural: fields['Mural'] as boolean || false,
@@ -149,7 +156,7 @@ export const createAgency = async (agency: Omit<Agency, 'id'>) => {
         throw new Error('Airtable Agency base not initialized');
     }
 
-    await base('tblkVI2PX3jPgYKXF').create([
+    await base(AIRTABLE_TABLES.ACCESS).create([
         {
             fields: {
                 'Agency': agency.name,
@@ -219,16 +226,17 @@ export async function getNoticeReadLogs(userId: string): Promise<NoticeReadLog[]
     if (!base) return [];
 
     try {
+        // User is a linked record field — use FIND() to filter by record ID
         const records = await base('Notice_Read_Log').select({
-            filterByFormula: `{User} = '${userId}'`
+            filterByFormula: `FIND('${userId}', ARRAYJOIN({User}, ',')) > 0`
         }).all();
 
         return records.map((record: any) => ({
             id: record.id,
             userId: (record.fields['User'] as string[])?.[0] || '',
             noticeId: (record.fields['Notice'] as string[])?.[0] || '',
-            confirmedAt: record.fields['Confirmed_At'] as string,
-            agencyId: record.fields['Agency_ID'] as string
+            confirmedAt: record.fields['Confirmated_at'] as string,
+            agencyId: (record.fields['Agency_ID'] as string[])?.[0] || ''
         }));
     } catch (err) {
         console.error('Error fetching Notice_Read_Log:', err);
@@ -240,9 +248,9 @@ export async function confirmNoticeRead(userId: string, noticeId: string): Promi
     const base = getProductBase();
     if (!base) throw new Error('Product base not initialized');
 
-    // 1. Uniqueness check
+    // 1. Uniqueness check — User and Notice are linked record fields, use FIND()
     const existing = await base('Notice_Read_Log').select({
-        filterByFormula: `AND({User} = '${userId}', {Notice} = '${noticeId}')`,
+        filterByFormula: `AND(FIND('${userId}', ARRAYJOIN({User}, ',')) > 0, FIND('${noticeId}', ARRAYJOIN({Notice}, ',')) > 0)`,
         maxRecords: 1
     }).all();
 
@@ -251,7 +259,7 @@ export async function confirmNoticeRead(userId: string, noticeId: string): Promi
         return;
     }
 
-    // 2. Create record
+    // 2. Create record with linked record IDs
     await base('Notice_Read_Log').create([
         {
             fields: {
@@ -267,26 +275,42 @@ export async function getNoticeReaders(noticeId: string, agencyRecordId?: string
     if (!base) return [];
 
     try {
-        let filterFormula = `{Notice} = '${noticeId}'`;
-        if (!isAdmin && agencyRecordId) {
-            filterFormula = `AND({Notice} = '${noticeId}', {Agency_ID} = '${agencyRecordId}')`;
-        }
+        // Notice is a linked record field — use FIND()
+        const filterFormula = `FIND('${noticeId}', ARRAYJOIN({Notice}, ',')) > 0`;
 
         const records = await base('Notice_Read_Log').select({
             filterByFormula: filterFormula,
-            sort: [{ field: 'Confirmed_At', direction: 'desc' }]
+            sort: [{ field: 'Confirmated_at', direction: 'desc' }]
         }).all();
 
-        // We need to fetch User details to show Name and Agency (for Admin)
-        // Since confirmed reader names are usually in the User link name or lookup
-        return records.map((record: any) => {
+        // User is a linked record (record ID). Fetch name from ACCESS table for each.
+        const agencyBase = getAgencyBase();
+        const results: { userName: string, timestamp: string, agencyName?: string }[] = [];
+
+        for (const record of records) {
             const fields = record.fields;
-            return {
-                userName: (fields['User_Name'] || fields['User_mail'] || 'Usuário') as string,
-                timestamp: fields['Confirmed_At'] as string,
-                agencyName: isAdmin ? fields['Agency_Name'] as string : undefined
-            };
-        });
+            const userRecordId = (fields['User'] as string[])?.[0];
+            let userName = 'Usuário';
+            let agencyName: string | undefined;
+
+            if (userRecordId && agencyBase) {
+                try {
+                    const userRecord = await agencyBase(AIRTABLE_TABLES.ACCESS).find(userRecordId);
+                    userName = (userRecord.fields['Name'] as string) || (userRecord.fields['User'] as string) || 'Usuário';
+                    agencyName = isAdmin ? (userRecord.fields['Agency'] as string) : undefined;
+                } catch (e) {
+                    console.error('Error fetching user record:', e);
+                }
+            }
+
+            results.push({
+                userName,
+                timestamp: fields['Confirmated_at'] as string,
+                agencyName
+            });
+        }
+
+        return results;
     } catch (err) {
         console.error('Error fetching Notice readers:', err);
         return [];

@@ -15,8 +15,8 @@ export interface AgencyInfo {
 
 import { AgencyProduct, MuralItem, Reservation, ExchangeRate } from '@/lib/airtable/types';
 
-// Default email for public access - you can change this or make it configurable
-const DEFAULT_EMAIL = 'public@fiduviagens.com';
+// Email used for public access - must match a record in the Airtable ACCESS table ({e-mail} field)
+const DEFAULT_EMAIL = process.env.PORTAL_DEFAULT_EMAIL || 'rafaelhobrum@gmail.com';
 
 export async function getAgencyProducts(): Promise<{ products: AgencyProduct[], agency?: AgencyInfo, hasUnreadMural?: boolean, error?: string }> {
     try {

@@ -179,7 +179,25 @@ export function ProductGrid({ products, isInternal, agencyInfo }: ProductGridPro
     const statuses = useMemo(() => Array.from(new Set(products.map(p => getEffectiveStatus(p.status)))).sort(), [products]);
     const subCategories = useMemo(() => Array.from(new Set(products.flatMap(p => p.subCategory?.split(', ') || []))).filter((sc): sc is string => Boolean(sc)).sort(), [products]);
     const providers = useMemo(() => Array.from(new Set(products.map(p => p.provider))).filter((p): p is string => Boolean(p && p !== '–')).sort(), [products]);
-    const eligibleDays = useMemo(() => Array.from(new Set(products.flatMap(p => p.diasElegiveis || []))).filter((d): d is string => Boolean(d)).sort(), [products]);
+    const eligibleDays = useMemo(() => {
+        const WEEKDAY_ORDER: Record<string, number> = {
+            'DOMINGO': 0, 'SEGUNDA': 1, 'SEGUNDA-FEIRA': 1,
+            'TERÇA': 2, 'TERÇA-FEIRA': 2, 'TERCA': 2,
+            'QUARTA': 3, 'QUARTA-FEIRA': 3,
+            'QUINTA': 4, 'QUINTA-FEIRA': 4,
+            'SEXTA': 5, 'SEXTA-FEIRA': 5,
+            'SÁBADO': 6, 'SABADO': 6,
+        };
+        const days = Array.from(new Set(products.flatMap(p => p.diasElegiveis || []))).filter((d): d is string => Boolean(d));
+        return days.sort((a, b) => {
+            const aKey = a.toUpperCase().trim();
+            const bKey = b.toUpperCase().trim();
+            const aOrder = WEEKDAY_ORDER[aKey] ?? 99;
+            const bOrder = WEEKDAY_ORDER[bKey] ?? 99;
+            if (aOrder !== bOrder) return aOrder - bOrder;
+            return a.localeCompare(b, 'pt-BR');
+        });
+    }, [products]);
 
     const clearFilters = () => {
         setSearchTerm('');
