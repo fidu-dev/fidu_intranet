@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
 
 export default async function Home() {
-  // Redirect directly to portal - no authentication required
+  // Clerk middleware protects /portal - redirect here as a convenience fallback
   redirect('/portal');
 }

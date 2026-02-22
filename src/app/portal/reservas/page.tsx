@@ -35,7 +35,17 @@ export default function ReservasPage() {
 
     useEffect(() => {
         async function loadAgency() {
-            const { agency } = await getAgencyProducts();
+            const { agency, error } = await getAgencyProducts();
+
+            if (error === 'UNAUTHENTICATED') {
+                router.push('/sign-in');
+                return;
+            }
+            if (error === 'UNAUTHORIZED') {
+                router.push('/unauthorized');
+                return;
+            }
+
             if (agency) {
                 if (!agency.canReserve) {
                     router.push('/portal');

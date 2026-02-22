@@ -2,6 +2,7 @@
 
 import { getProducts, getAgencyByEmail, getMuralItems, getNoticeReadLogs, confirmNoticeRead, getNoticeReaders, createReservation, getExchangeRates } from '@/lib/airtable/service';
 import { revalidatePath } from 'next/cache';
+import { redirect } from 'next/navigation';
 
 export interface AgencyInfo {
     agentName: string;
@@ -15,16 +16,33 @@ export interface AgencyInfo {
 
 import { AgencyProduct, MuralItem, Reservation, ExchangeRate } from '@/lib/airtable/types';
 
-// Email used for public access - must match a record in the Airtable ACCESS table ({e-mail} field)
-const DEFAULT_EMAIL = process.env.PORTAL_DEFAULT_EMAIL || 'rafaelhobrum@gmail.com';
+import { auth, currentUser } from '@clerk/nextjs/server';
 
-export async function getAgencyProducts(): Promise<{ products: AgencyProduct[], agency?: AgencyInfo, hasUnreadMural?: boolean, error?: string }> {
+// Get the currently authenticated Clerk user's primary email
+async function getAuthEmail(): Promise<{ email?: string, error?: 'UNAUTHENTICATED' | 'CLERK_ERROR' }> {
     try {
-        // Use default email for public access
-        const email = DEFAULT_EMAIL;
+        const user = await currentUser();
+        if (!user) return { error: 'UNAUTHENTICATED' };
 
-        // Fetch Agency Details
+        const email = user.emailAddresses[0]?.emailAddress;
+        if (!email) return { error: 'UNAUTHENTICATED' };
+
+        return { email };
+    } catch (error) {
+        console.error('Clerk Authentication Error:', error);
+        return { error: 'CLERK_ERROR' };
+    }
+}
+
+export async function getAgencyProducts(): Promise<{ products: AgencyProduct[], agency?: AgencyInfo, hasUnreadMural?: boolean, error?: string | 'UNAUTHENTICATED' | 'UNAUTHORIZED' }> {
+    const authResult = await getAuthEmail();
+    if (authResult.error) return { products: [], error: authResult.error };
+
+    const email = authResult.email!;
+
+    try {
         const agency = await getAgencyByEmail(email);
+        if (!agency) return { products: [], error: 'UNAUTHORIZED' };
 
         // If no agency found for default email, show all products with default commission
         const commissionRate = agency?.commissionRate || 0.15; // Default 15% commission
@@ -145,17 +163,24 @@ export async function getAgencyProducts(): Promise<{ products: AgencyProduct[], 
         return { products: agencyProducts, agency: agencyInfo, hasUnreadMural };
     } catch (err: any) {
         console.error('Error in getAgencyProducts:', err);
+        // Safely extract the error message to avoid returning an object to the React server component
+        const errorMessage = typeof err === 'string' ? err : (err?.message || 'Unknown error');
         return {
             products: [],
-            error: `Failed to load products: ${err.message || 'Unknown error'}. Check your connection and credentials.`
+            error: `Falha ao carregar produtos: ${errorMessage}. Verifique suas credenciais do Airtable.`
         };
     }
 }
 
-export async function fetchMural(): Promise<{ items: MuralItem[], readLogs: string[], isAdmin: boolean, error?: string }> {
+export async function fetchMural(): Promise<{ items: MuralItem[], readLogs: string[], isAdmin: boolean, error?: string | 'UNAUTHENTICATED' | 'UNAUTHORIZED' }> {
+    const authResult = await getAuthEmail();
+    if (authResult.error) return { items: [], readLogs: [], isAdmin: false, error: authResult.error };
+
+    const email = authResult.email!;
+
     try {
-        const email = DEFAULT_EMAIL;
         const agency = await getAgencyByEmail(email);
+        if (!agency) return { items: [], readLogs: [], isAdmin: false, error: 'UNAUTHORIZED' };
 
         const [items, logs] = await Promise.all([
             getMuralItems(),
@@ -174,12 +199,16 @@ export async function fetchMural(): Promise<{ items: MuralItem[], readLogs: stri
 }
 
 export async function confirmNoticeReadAction(noticeId: string): Promise<{ success: boolean, error?: string }> {
+    const authResult = await getAuthEmail();
+    if (authResult.error) return { success: false, error: authResult.error };
+
+    const email = authResult.email!;
+
     try {
-        const email = DEFAULT_EMAIL;
         const agency = await getAgencyByEmail(email);
 
         if (!agency) {
-            return { success: false, error: 'Agency not found' };
+            return { success: false, error: 'UNAUTHORIZED' };
         }
 
         await confirmNoticeRead(agency.id, noticeId);
@@ -192,12 +221,16 @@ export async function confirmNoticeReadAction(noticeId: string): Promise<{ succe
 }
 
 export async function fetchMuralReaders(noticeId: string): Promise<{ readers: { userName: string, timestamp: string, agencyName?: string }[], error?: string }> {
+    const authResult = await getAuthEmail();
+    if (authResult.error) return { readers: [], error: authResult.error };
+
+    const email = authResult.email!;
+
     try {
-        const email = DEFAULT_EMAIL;
         const agency = await getAgencyByEmail(email);
 
         if (!agency) {
-            return { readers: [], error: 'Agency not found' };
+            return { readers: [], error: 'UNAUTHORIZED' };
         }
 
         const readers = await getNoticeReaders(noticeId, agency.agencyId, false);
@@ -209,9 +242,15 @@ export async function fetchMuralReaders(noticeId: string): Promise<{ readers: { 
 }
 
 export async function createReservationAction(data: Omit<Reservation, 'agentName' | 'agentEmail' | 'status'>): Promise<{ success: boolean, id?: string, error?: string }> {
+    const authResult = await getAuthEmail();
+    if (authResult.error) return { success: false, error: authResult.error };
+
+    const email = authResult.email!;
+
     try {
-        const email = DEFAULT_EMAIL;
         const agency = await getAgencyByEmail(email);
+
+        if (!agency) return { success: false, error: 'UNAUTHORIZED' };
 
         const agentName = agency?.agentName || 'Agente';
 

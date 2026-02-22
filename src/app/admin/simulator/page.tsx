@@ -1,6 +1,8 @@
 import { getAgencies } from '@/app/admin/actions';
 import { Simulator } from '@/components/admin/Simulator';
 
+export const dynamic = 'force-dynamic';
+
 export default async function SimulatorPage() {
     const agencies = await getAgencies();
 

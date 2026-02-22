@@ -1,11 +1,19 @@
 import { getAgencyProducts } from '@/app/actions';
 import { ProductGrid } from '@/components/ProductGrid';
 import { ExchangeTicker } from '@/components/ExchangeTicker';
+import { redirect } from 'next/navigation';
 
 export const dynamic = 'force-dynamic';
 
 export default async function Portal() {
     const { products, agency, error } = await getAgencyProducts();
+
+    if (error === 'UNAUTHENTICATED') {
+        redirect('/sign-in');
+    }
+    if (error === 'UNAUTHORIZED') {
+        redirect('/unauthorized');
+    }
 
     return (
         <main className="min-h-screen bg-gray-50">

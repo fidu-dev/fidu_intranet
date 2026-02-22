@@ -1,6 +1,8 @@
 import { getAgencies } from '@/app/admin/actions';
 import { AgenciesTable } from '@/components/admin/AgenciesTable';
 
+export const dynamic = 'force-dynamic';
+
 export default async function AgenciesPage() {
     const agencies = await getAgencies();
 

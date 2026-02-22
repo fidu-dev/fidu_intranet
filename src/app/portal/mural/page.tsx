@@ -1,6 +1,9 @@
 import { fetchMural } from '@/app/actions';
 import { MuralGrid } from '@/components/MuralGrid';
+import { redirect } from 'next/navigation';
 import { Metadata } from 'next';
+
+export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
     title: 'Mural | Fidu Viagens Partner',
@@ -9,6 +12,9 @@ export const metadata: Metadata = {
 
 export default async function MuralPage() {
     const { items, readLogs, isAdmin, error } = await fetchMural();
+
+    if (error === 'UNAUTHENTICATED') redirect('/sign-in');
+    if (error === 'UNAUTHORIZED') redirect('/unauthorized');
 
     if (error && error.includes('ACESSO NEGADO')) {
         return (
