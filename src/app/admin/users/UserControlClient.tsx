@@ -1,26 +1,55 @@
 'use client';
 
 import { useState } from 'react';
-import { updateUserAccess } from '@/app/admin/actions';
+import { updateUserAccess, createNewUser } from '@/app/admin/actions';
 
 export function UserControlClient({ initialUsers, agencies }: { initialUsers: any[], agencies: any[] }) {
     const [users, setUsers] = useState(initialUsers);
     const [saving, setSaving] = useState<string | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
+    const [isAddingUser, setIsAddingUser] = useState(false);
+    const [newUser, setNewUser] = useState({
+        id: 'new',
+        email: '',
+        name: '',
+        agencyId: '',
+        role: 'AGENCIA_PARCEIRA',
+        flagMural: false,
+        flagExchange: false,
+        flagReserva: false
+    });
 
     const handleSave = async (user: any) => {
         setSaving(user.id);
         try {
-            await updateUserAccess(user.id, {
-                name: user.name,
-                email: user.email,
-                agencyId: user.agencyId,
-                role: user.role,
-                flagMural: user.flagMural,
-                flagExchange: user.flagExchange,
-                flagReserva: user.flagReserva,
-            });
-            alert('Salvo com sucesso!');
+            if (user.id === 'new') {
+                const result = await createNewUser({
+                    email: user.email,
+                    name: user.name,
+                    agencyId: user.agencyId,
+                    role: user.role,
+                    flagMural: user.flagMural,
+                    flagExchange: user.flagExchange,
+                    flagReserva: user.flagReserva,
+                });
+                if (result.success && result.user) {
+                    setUsers([result.user, ...users]);
+                    setIsAddingUser(false);
+                    setNewUser({ ...newUser, email: '', name: '', agencyId: '' });
+                    alert('Usuário cadastrado com sucesso!');
+                }
+            } else {
+                await updateUserAccess(user.id, {
+                    name: user.name,
+                    email: user.email,
+                    agencyId: user.agencyId,
+                    role: user.role,
+                    flagMural: user.flagMural,
+                    flagExchange: user.flagExchange,
+                    flagReserva: user.flagReserva,
+                });
+                alert('Salvo com sucesso!');
+            }
         } catch (err) {
             console.error(err);
             alert('Erro ao salvar usuário!');
@@ -41,7 +70,7 @@ export function UserControlClient({ initialUsers, agencies }: { initialUsers: an
 
     return (
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-            <div className="p-4 border-b">
+            <div className="p-4 border-b flex items-center justify-between">
                 <input
                     type="text"
                     placeholder="Buscar usuários por e-mail, nome ou agência..."
@@ -49,6 +78,12 @@ export function UserControlClient({ initialUsers, agencies }: { initialUsers: an
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                 />
+                <button
+                    onClick={() => setIsAddingUser(true)}
+                    className="px-4 py-2 bg-[#3b5998] text-white font-semibold rounded-lg text-sm"
+                >
+                    + Novo Usuário
+                </button>
             </div>
             <div className="overflow-x-auto">
                 <table className="w-full text-sm text-left">
@@ -62,6 +97,79 @@ export function UserControlClient({ initialUsers, agencies }: { initialUsers: an
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
+                        {isAddingUser && (
+                            <tr className="bg-blue-50/50">
+                                <td className="px-6 py-4">
+                                    <input
+                                        type="email"
+                                        className="w-full px-2 py-1 text-xs border rounded bg-white font-medium mb-1 border-blue-300"
+                                        placeholder="Email (novo)"
+                                        value={newUser.email}
+                                        onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
+                                        autoFocus
+                                    />
+                                    <input
+                                        type="text"
+                                        className="w-full px-2 py-1 text-xs border rounded bg-white border-blue-300"
+                                        placeholder="Nome do Agente"
+                                        value={newUser.name}
+                                        onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
+                                    />
+                                </td>
+                                <td className="px-6 py-4">
+                                    <select
+                                        className="w-full px-2 py-1 text-xs border rounded bg-white text-gray-700 font-medium border-blue-300"
+                                        value={newUser.agencyId}
+                                        onChange={(e) => setNewUser({ ...newUser, agencyId: e.target.value })}
+                                    >
+                                        <option value="">-- Sem Agência --</option>
+                                        {agencies.map(a => (
+                                            <option key={a.id} value={a.id}>{a.name}</option>
+                                        ))}
+                                    </select>
+                                </td>
+                                <td className="px-6 py-4">
+                                    <select
+                                        className="w-full px-2 py-1 text-xs border rounded bg-white border-blue-300"
+                                        value={newUser.role}
+                                        onChange={(e) => setNewUser({ ...newUser, role: e.target.value })}
+                                    >
+                                        <option value="AGENCIA_PARCEIRA">Agência Parceira</option>
+                                        <option value="VENDEDOR_INTERNO">Vendedor Interno</option>
+                                        <option value="ADMIN">Admin</option>
+                                    </select>
+                                </td>
+                                <td className="px-6 py-4">
+                                    <div className="flex gap-4">
+                                        <label className="flex items-center gap-2 text-xs cursor-pointer">
+                                            <input type="checkbox" checked={newUser.flagMural} onChange={(e) => setNewUser({ ...newUser, flagMural: e.target.checked })} className="rounded text-[#3b5998]" />
+                                            Mural
+                                        </label>
+                                        <label className="flex items-center gap-2 text-xs cursor-pointer">
+                                            <input type="checkbox" checked={newUser.flagExchange} onChange={(e) => setNewUser({ ...newUser, flagExchange: e.target.checked })} className="rounded text-[#3b5998]" />
+                                            Câmbio
+                                        </label>
+                                    </div>
+                                </td>
+                                <td className="px-6 py-4 text-right">
+                                    <div className="flex justify-end gap-2">
+                                        <button
+                                            onClick={() => setIsAddingUser(false)}
+                                            className="px-3 py-1 bg-gray-200 text-gray-700 rounded text-xs font-semibold"
+                                        >
+                                            Cancelar
+                                        </button>
+                                        <button
+                                            onClick={() => handleSave(newUser)}
+                                            disabled={saving === 'new' || !newUser.email}
+                                            className="px-3 py-1 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white rounded text-xs font-semibold transition-colors"
+                                        >
+                                            {saving === 'new' ? 'Salvando...' : 'Criar'}
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        )}
                         {filteredUsers.map((user) => (
                             <tr key={user.id} className="hover:bg-gray-50/50">
                                 <td className="px-6 py-4">

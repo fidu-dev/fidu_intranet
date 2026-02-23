@@ -139,3 +139,18 @@ export async function updateUserAccess(userId: string, data: { email?: string, n
     });
     return { success: true };
 }
+
+export async function createNewUser(data: { email: string, name: string, agencyId?: string, role: string, flagMural: boolean, flagExchange: boolean, flagReserva: boolean }) {
+    const user = await prisma.user.create({
+        data: {
+            email: data.email,
+            name: data.name,
+            agencyId: data.agencyId || null,
+            role: data.role as any,
+            flagMural: data.flagMural,
+            flagExchange: data.flagExchange,
+            flagReserva: data.flagReserva,
+        }
+    });
+    return { success: true, user };
+}
