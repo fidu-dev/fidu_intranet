@@ -19,16 +19,32 @@ enum UserStatus {
   PENDING
 }
 
+model Agency {
+  id              String   @id @default(uuid())
+  name            String
+  legalName       String?
+  cnpj            String?
+  cadastur        String?
+  address         String?
+  responsibleName String?
+  commissionRate  Float    @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  users           User[]
+}
+
 model User {
   id              String     @id @default(uuid())
   email           String     @unique
   name            String?
+  agencyId        String?
+  agency          Agency?    @relation(fields: [agencyId], references: [id])
   role            Role       @default(AGENCIA_PARCEIRA)
   status          UserStatus @default(ACTIVE)
   flagMural       Boolean    @default(false)
   flagReserva     Boolean    @default(false)
   flagExchange    Boolean    @default(false)
-  commissionRate  Float      @default(0)
+  preferences     Json?
   createdAt       DateTime   @default(now())
   updatedAt       DateTime   @updatedAt
 }

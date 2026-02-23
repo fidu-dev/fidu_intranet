@@ -1,12 +1,15 @@
 export type UserCapabilities = {
     id: string
     email: string
+    name?: string
     commissionRate: number
     canReserve: boolean
     canAccessMural: boolean
     canAccessExchange: boolean
     isInternal: boolean
     isAdmin: boolean
+    agencyName?: string
+    preferences?: any
 }
 
 export type Product = {

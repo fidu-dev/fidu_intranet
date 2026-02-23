@@ -1,59 +1,72 @@
 'use server'
 
-import { getProductBase, getAgencyBase } from '@/lib/airtable/client';
-import { getProducts } from '@/lib/airtable/service';
-import { Agency } from '@/lib/airtable/types';
+import { getProducts } from '@/lib/services/productService';
+import { prisma } from '@/lib/db/prisma';
 
 // Admin routes are now publicly accessible - consider adding IP whitelist or password protection
 export async function getAdminProducts() {
-    return getProducts(); // Returns raw products with basePrice
+    const products = await getProducts();
+    return products.map(p => {
+        const parsePrice = (priceStr: string) => {
+            const cleaned = priceStr.replace(/[^0-9,.]/g, '').replace(',', '.');
+            return parseFloat(cleaned) || 0;
+        };
+        return {
+            id: p.id,
+            tourName: p.servico || '',
+            destination: p.destino || '',
+            category: p.categoria || '',
+            basePrice: parsePrice(p.inv26Adu)
+        };
+    });
 }
 
-export async function getAgencies(): Promise<Agency[]> {
-    const base = getAgencyBase();
-    if (!base) return [];
+export async function getAgencies(): Promise<any[]> {
+    const agencies = await prisma.agency.findMany({
+        orderBy: { name: 'asc' }
+    });
 
-    const records = await base('tblkVI2PX3jPgYKXF').select({
-        view: 'viwmCj8ZefKY7lqP6' // Grid view ID from URL
-    }).all().catch(() => base('tblkVI2PX3jPgYKXF').select().all());
-
-    return records.map((record: any) => ({
+    return agencies.map((record) => ({
         id: record.id,
-        name: record.fields['Agency'] as string || record.fields['Name'] as string,
-        email: record.fields['mail'] as string,
-        commissionRate: record.fields['Comision_base'] as number || 0,
+        name: record.name,
+        legalName: record.legalName,
+        cnpj: record.cnpj,
+        cadastur: record.cadastur,
+        address: record.address,
+        responsibleName: record.responsibleName,
+        commissionRate: record.commissionRate,
     }));
 }
 
-export async function updateAgencyCommission(agencyId: string, newRate: number) {
-    const base = getAgencyBase();
-    if (!base) throw new Error('Airtable Agency base not initialized');
-
-    await base('tblkVI2PX3jPgYKXF').update([
-        {
-            id: agencyId,
-            fields: {
-                'Comision_base': newRate
-            }
+export async function updateAgency(agencyId: string, data: any) {
+    await prisma.agency.update({
+        where: { id: agencyId },
+        data: {
+            name: data.name,
+            legalName: data.legalName,
+            cnpj: data.cnpj,
+            cadastur: data.cadastur,
+            address: data.address,
+            responsibleName: data.responsibleName,
+            commissionRate: data.commissionRate !== undefined ? Number(data.commissionRate) : undefined
         }
-    ]);
+    });
 
     return { success: true };
 }
 
-export async function createNewAgency(name: string, email: string, commissionRate: number) {
-    const base = getAgencyBase();
-    if (!base) throw new Error('Airtable Agency base not initialized');
-
-    await base('tblkVI2PX3jPgYKXF').create([
-        {
-            fields: {
-                'Agency': name,
-                'mail': email,
-                'Comision_base': commissionRate
-            }
+export async function createNewAgency(data: any) {
+    await prisma.agency.create({
+        data: {
+            name: data.name,
+            legalName: data.legalName,
+            cnpj: data.cnpj,
+            cadastur: data.cadastur,
+            address: data.address,
+            responsibleName: data.responsibleName,
+            commissionRate: data.commissionRate !== undefined ? Number(data.commissionRate) : 0
         }
-    ]);
+    });
 
     return { success: true };
 }
@@ -69,29 +82,60 @@ export interface SimulatedProduct {
 }
 
 export async function getSimulatorProducts(agencyId: string): Promise<SimulatedProduct[]> {
-    const base = getAgencyBase();
-    if (!base) return [];
-
     // 1. Get Agency Commission
-    const agencyRecord = await base('tblkVI2PX3jPgYKXF').find(agencyId);
+    const agencyRecord = await prisma.agency.findUnique({
+        where: { id: agencyId }
+    });
+
     if (!agencyRecord) throw new Error('Agency not found');
 
-    // Safety check: ensure rate is a number
-    const rate = (agencyRecord.fields['Comision_base'] as number) || 0;
+    const rate = agencyRecord.commissionRate || 0;
 
     // 2. Get All Products
-    const products = await getProducts(); // This returns base prices
+    const products = await getProducts();
 
     // 3. Compute
     return products.map(p => {
-        const final = p.basePrice + (p.basePrice * rate);
+        const parsePrice = (priceStr: string) => {
+            const cleaned = priceStr.replace(/[^0-9,.]/g, '').replace(',', '.');
+            return parseFloat(cleaned) || 0;
+        };
+
+        const basePrice = parsePrice(p.inv26Adu);
+        const final = basePrice + (basePrice * rate);
+
         return {
             id: p.id,
-            tourName: p.tourName,
-            category: p.category,
-            basePrice: p.basePrice,
+            tourName: p.servico || '',
+            category: p.categoria || '',
+            basePrice: basePrice,
             commissionPercent: rate * 100,
             finalPrice: Math.round(final * 100) / 100
         };
     });
+}
+
+// Access Control Actions
+export async function getUsers() {
+    const users = await prisma.user.findMany({
+        orderBy: { createdAt: 'desc' },
+        select: { id: true, email: true, name: true, agencyId: true, role: true, flagMural: true, flagExchange: true, flagReserva: true }
+    });
+    return users;
+}
+
+export async function updateUserAccess(userId: string, data: { email?: string, name?: string, agencyId?: string, role?: string, flagMural?: boolean, flagExchange?: boolean, flagReserva?: boolean }) {
+    await prisma.user.update({
+        where: { id: userId },
+        data: {
+            email: data.email,
+            name: data.name,
+            agencyId: data.agencyId || null,
+            role: data.role as any,
+            flagMural: data.flagMural,
+            flagExchange: data.flagExchange,
+            flagReserva: data.flagReserva,
+        }
+    });
+    return { success: true };
 }

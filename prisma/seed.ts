@@ -13,7 +13,6 @@ async function main() {
             flagMural: true,
             flagReserva: true,
             flagExchange: true,
-            commissionRate: 0.15,
             name: 'Rafa',
         },
         create: {
@@ -24,7 +23,6 @@ async function main() {
             flagMural: true,
             flagReserva: true,
             flagExchange: true,
-            commissionRate: 0.15,
         },
     })
 

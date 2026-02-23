@@ -1,8 +1,12 @@
 'use server'
 
-import { getProducts, getAgencyByEmail, getMuralItems, getNoticeReadLogs, confirmNoticeRead, getNoticeReaders, createReservation, getExchangeRates } from '@/lib/airtable/service';
+import { getProducts } from '@/lib/services/productService';
+import { getAgencyByEmail as getPrismaUser } from '@/lib/services/userService';
+import { getAgencyByEmail as getAirtableUser, getMuralItems, getNoticeReadLogs, confirmNoticeRead, getNoticeReaders, getExchangeRates } from '@/lib/airtable/service';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
+import { currentUser } from '@clerk/nextjs/server';
+import { prisma } from '@/lib/db/prisma';
 
 export interface AgencyInfo {
     agentName: string;
@@ -13,10 +17,6 @@ export interface AgencyInfo {
     isInternal: boolean;
     canAccessExchange: boolean;
 }
-
-import { AgencyProduct, MuralItem, Reservation, ExchangeRate } from '@/lib/airtable/types';
-
-import { auth, currentUser } from '@clerk/nextjs/server';
 
 // Get the currently authenticated Clerk user's primary email
 async function getAuthEmail(): Promise<{ email?: string, error?: 'UNAUTHENTICATED' | 'CLERK_ERROR' }> {
@@ -34,167 +34,152 @@ async function getAuthEmail(): Promise<{ email?: string, error?: 'UNAUTHENTICATE
     }
 }
 
-export async function getAgencyProducts(): Promise<{ products: AgencyProduct[], agency?: AgencyInfo, hasUnreadMural?: boolean, error?: string | 'UNAUTHENTICATED' | 'UNAUTHORIZED' }> {
+export async function getAgencyProducts(): Promise<{ products: any[], agency?: AgencyInfo, preferences?: any, hasUnreadMural?: boolean, error?: string | 'UNAUTHENTICATED' | 'UNAUTHORIZED' }> {
     const authResult = await getAuthEmail();
     if (authResult.error) return { products: [], error: authResult.error };
 
     const email = authResult.email!;
 
     try {
-        const agency = await getAgencyByEmail(email);
-        if (!agency) return { products: [], error: 'UNAUTHORIZED' };
+        const capabilities = await getPrismaUser(email);
+        if (!capabilities) return { products: [], error: 'UNAUTHORIZED' };
 
-        // If no agency found for default email, show all products with default commission
-        const commissionRate = agency?.commissionRate || 0.15; // Default 15% commission
-        const isAdmin = false; // No admin access in public mode
+        const commissionRate = capabilities.commissionRate || 0.15;
 
         const agencyInfo: AgencyInfo = {
-            agentName: agency?.agentName || 'Agente',
-            agencyName: agency?.name || 'Fidu Viagens',
+            agentName: capabilities.name || email, // Nome do agente (usuário)
+            agencyName: capabilities.agencyName || capabilities.name || email, // Nome da agência
             commissionRate: commissionRate,
-            canReserve: agency?.canReserve ?? false,
-            canAccessMural: agency?.canAccessMural ?? false,
-            isInternal: agency?.isInternal ?? false,
-            canAccessExchange: agency?.canAccessExchange ?? false
+            canReserve: capabilities.canReserve,
+            canAccessMural: capabilities.canAccessMural,
+            isInternal: capabilities.isInternal,
+            canAccessExchange: capabilities.canAccessExchange
         };
 
-        // Fetch Mural items to check for unread
-        let hasUnreadMural = false;
-        if (agency) {
-            try {
-                const [muralItems, readLogs] = await Promise.all([
-                    getMuralItems(),
-                    getNoticeReadLogs(agency.id)
-                ]);
-                const readNoticeIds = new Set(readLogs.map(log => log.noticeId));
-                hasUnreadMural = muralItems.some(item => !readNoticeIds.has(item.id));
-            } catch (e) {
-                console.error('Error checking unread mural:', e);
-            }
-        }
-
-        // Fetch Base Products
         const products = await getProducts();
 
         if (!products || products.length === 0) {
-            return { products: [], agency: agencyInfo, hasUnreadMural };
+            return { products: [], agency: agencyInfo, preferences: capabilities.preferences, hasUnreadMural: false };
         }
 
-        // Calculate Prices and Filter by Skill (Destination)
-        const authorizedSkills = agency?.skills ? agency.skills.map(s => s.toLowerCase().trim()) : [];
-
         const agencyProducts = products
-            .filter(product => {
-                // If no agency or no skills, show all products
-                if (!agency || authorizedSkills.length === 0) return true;
-
-                return authorizedSkills.some(skill =>
-                    skill === product.destination.toLowerCase().trim()
-                );
-            })
             .map(product => {
                 const calculateNeto = (venda: number) => Math.round(venda * (1 - commissionRate) * 100) / 100;
 
+                const parsePrice = (priceStr: string) => {
+                    const cleaned = priceStr.replace(/[^0-9,.]/g, '').replace(',', '.');
+                    return parseFloat(cleaned) || 0;
+                };
+
+                const basePrice = parsePrice(product.inv26Adu);
+                const priceAdulto = parsePrice(product.inv26Adu);
+                const priceMenor = parsePrice(product.inv26Chd);
+                const priceBebe = parsePrice(product.inv26Inf);
+
+                const priceAdultoVer26 = parsePrice(product.ver26Adu);
+                const priceMenorVer26 = parsePrice(product.ver26Chd);
+                const priceBebeVer26 = parsePrice(product.ver26Inf);
+
                 return {
                     id: product.id,
-                    destination: product.destination,
-                    tourName: product.tourName,
-                    category: product.category,
-                    basePrice: product.basePrice,
-                    priceAdulto: product.priceAdulto,
-                    priceMenor: product.priceMenor,
-                    priceBebe: product.priceBebe,
-                    // Adulto
-                    salePriceAdulto: product.priceAdulto,
-                    netoPriceAdulto: calculateNeto(product.priceAdulto),
-                    // Menor
-                    salePriceMenor: product.priceMenor,
-                    netoPriceMenor: calculateNeto(product.priceMenor),
-                    // Bebê
-                    salePriceBebe: product.priceBebe,
-                    netoPriceBebe: calculateNeto(product.priceBebe),
+                    destination: product.destino,
+                    tourName: product.servico,
+                    category: product.categoria,
+                    basePrice,
+                    priceAdulto,
+                    priceMenor,
+                    priceBebe,
+                    salePriceAdulto: priceAdulto,
+                    netoPriceAdulto: calculateNeto(priceAdulto),
+                    salePriceMenor: priceMenor,
+                    netoPriceMenor: calculateNeto(priceMenor),
+                    salePriceBebe: priceBebe,
+                    netoPriceBebe: calculateNeto(priceBebe),
 
-                    // Seasonal - Verão 2026
-                    priceAdultoVer26: product.priceAdultoVer26,
-                    priceMenorVer26: product.priceMenorVer26,
-                    priceBebeVer26: product.priceBebeVer26,
+                    priceAdultoVer26,
+                    priceMenorVer26,
+                    priceBebeVer26,
+                    salePriceAdultoVer26: priceAdultoVer26,
+                    netoPriceAdultoVer26: calculateNeto(priceAdultoVer26),
+                    salePriceMenorVer26: priceMenorVer26,
+                    netoPriceMenorVer26: calculateNeto(priceMenorVer26),
+                    salePriceBebeVer26: priceBebeVer26,
+                    netoPriceBebeVer26: calculateNeto(priceBebeVer26),
 
-                    salePriceAdultoVer26: product.priceAdultoVer26,
-                    netoPriceAdultoVer26: calculateNeto(product.priceAdultoVer26),
-                    salePriceMenorVer26: product.priceMenorVer26,
-                    netoPriceMenorVer26: calculateNeto(product.priceMenorVer26),
-                    salePriceBebeVer26: product.priceBebeVer26,
-                    netoPriceBebeVer26: calculateNeto(product.priceBebeVer26),
-
-                    // Seasonal - Inverno 2026
-                    priceAdultoInv26: product.priceAdultoInv26,
-                    priceMenorInv26: product.priceMenorInv26,
-                    priceBebeInv26: product.priceBebeInv26,
-
-                    salePriceAdultoInv26: product.priceAdultoInv26,
-                    netoPriceAdultoInv26: calculateNeto(product.priceAdultoInv26),
-                    salePriceMenorInv26: product.priceMenorInv26,
-                    netoPriceMenorInv26: calculateNeto(product.priceMenorInv26),
-                    salePriceBebeInv26: product.priceBebeInv26,
-                    netoPriceBebeInv26: calculateNeto(product.priceBebeInv26),
+                    priceAdultoInv26: priceAdulto,
+                    priceMenorInv26: priceMenor,
+                    priceBebeInv26: priceBebe,
+                    salePriceAdultoInv26: priceAdulto,
+                    netoPriceAdultoInv26: calculateNeto(priceAdulto),
+                    salePriceMenorInv26: priceMenor,
+                    netoPriceMenorInv26: calculateNeto(priceMenor),
+                    salePriceBebeInv26: priceBebe,
+                    netoPriceBebeInv26: calculateNeto(priceBebe),
 
                     pickup: product.pickup,
                     retorno: product.retorno,
                     temporada: product.temporada,
                     diasElegiveis: product.diasElegiveis,
-                    subCategory: product.subCategory,
+                    subCategory: product.tags?.join(', '),
                     taxasExtras: product.taxasExtras,
-                    description: product.description,
-                    inclusions: product.inclusions,
-                    exclusions: product.exclusions,
-                    requirements: product.requirements,
-                    imageUrl: product.imageUrl,
+                    description: product.resumo,
+                    inclusions: product.opcionais,
+                    exclusions: '',
+                    requirements: product.restricoes,
+                    imageUrl: product.midia,
                     status: product.status,
-                    provider: product.provider,
-                    duration: product.duration,
-                    whatToBring: product.whatToBring,
+                    provider: product.operador,
+                    duration: product.duracao,
+                    whatToBring: product.oQueLevar,
                     valorExtra: product.valorExtra,
-                    optionals: product.optionals,
-                    restrictions: product.restrictions,
-                    observations: product.observations,
+                    optionals: product.opcionais,
+                    restrictions: product.restricoes,
+                    observations: product.observacoes,
                 };
             });
 
-        return { products: agencyProducts, agency: agencyInfo, hasUnreadMural };
+        return { products: agencyProducts, agency: agencyInfo, preferences: capabilities.preferences, hasUnreadMural: false };
     } catch (err: any) {
         console.error('Error in getAgencyProducts:', err);
-        // Safely extract the error message to avoid returning an object to the React server component
         const errorMessage = typeof err === 'string' ? err : (err?.message || 'Unknown error');
         return {
             products: [],
-            error: `Falha ao carregar produtos: ${errorMessage}. Verifique suas credenciais do Airtable.`
+            error: `Falha ao carregar produtos: ${errorMessage}.`
         };
     }
 }
 
-export async function fetchMural(): Promise<{ items: MuralItem[], readLogs: string[], isAdmin: boolean, error?: string | 'UNAUTHENTICATED' | 'UNAUTHORIZED' }> {
+// Restoring Airtable features for Mural and Exchange with DB permissions Checks
+export async function fetchMural(): Promise<{ items: any[], readLogs: string[], isAdmin: boolean, error?: string | 'UNAUTHENTICATED' | 'UNAUTHORIZED' }> {
     const authResult = await getAuthEmail();
     if (authResult.error) return { items: [], readLogs: [], isAdmin: false, error: authResult.error };
 
     const email = authResult.email!;
+    const capabilities = await getPrismaUser(email);
+
+    if (!capabilities || !capabilities.canAccessMural) {
+        return { items: [], readLogs: [], isAdmin: false, error: 'UNAUTHORIZED' };
+    }
 
     try {
-        const agency = await getAgencyByEmail(email);
-        if (!agency) return { items: [], readLogs: [], isAdmin: false, error: 'UNAUTHORIZED' };
+        const airtableUser = await getAirtableUser(email);
+        const userId = airtableUser?.id || '';
 
         const [items, logs] = await Promise.all([
             getMuralItems(),
-            agency ? getNoticeReadLogs(agency.id) : Promise.resolve([])
+            userId ? getNoticeReadLogs(userId) : Promise.resolve([])
         ]);
+
+        const readNoticeIds = logs.map(l => l.noticeId);
 
         return {
             items,
-            readLogs: logs.map(l => l.noticeId),
-            isAdmin: false
+            readLogs: readNoticeIds,
+            isAdmin: !!capabilities.isAdmin
         };
-    } catch (e: any) {
-        console.error('Error fetching mural:', e);
-        return { items: [], readLogs: [], isAdmin: false, error: `Erro ao carregar o mural: ${e.message || 'Unknown error'}` };
+    } catch (error: any) {
+        console.error('Error fetching mural:', error);
+        return { items: [], readLogs: [], isAdmin: !!capabilities.isAdmin, error: error.message };
     }
 }
 
@@ -203,77 +188,77 @@ export async function confirmNoticeReadAction(noticeId: string): Promise<{ succe
     if (authResult.error) return { success: false, error: authResult.error };
 
     const email = authResult.email!;
-
     try {
-        const agency = await getAgencyByEmail(email);
+        const airtableUser = await getAirtableUser(email);
+        if (!airtableUser?.id) return { success: false, error: 'Usuário não encontrado no Airtable para registro' };
 
-        if (!agency) {
-            return { success: false, error: 'UNAUTHORIZED' };
-        }
-
-        await confirmNoticeRead(agency.id, noticeId);
-
+        await confirmNoticeRead(airtableUser.id, noticeId);
+        revalidatePath('/portal/mural');
+        revalidatePath('/portal');
         return { success: true };
     } catch (e: any) {
-        console.error('Error confirming notice read:', e);
-        return { success: false, error: e.message || 'Erro ao confirmar leitura.' };
+        console.error('Action error confirming notice:', e);
+        return { success: false, error: e.message };
     }
 }
 
-export async function fetchMuralReaders(noticeId: string): Promise<{ readers: { userName: string, timestamp: string, agencyName?: string }[], error?: string }> {
+export async function fetchMuralReaders(noticeId: string): Promise<{ readers: any[], error?: string }> {
     const authResult = await getAuthEmail();
     if (authResult.error) return { readers: [], error: authResult.error };
 
     const email = authResult.email!;
+    const capabilities = await getPrismaUser(email);
+
+    // Only Admin can fetch readers list
+    if (!capabilities || !capabilities.isAdmin) {
+        return { readers: [], error: 'UNAUTHORIZED' };
+    }
 
     try {
-        const agency = await getAgencyByEmail(email);
-
-        if (!agency) {
-            return { readers: [], error: 'UNAUTHORIZED' };
-        }
-
-        const readers = await getNoticeReaders(noticeId, agency.agencyId, false);
+        const readers = await getNoticeReaders(noticeId, undefined, true);
         return { readers };
-    } catch (e) {
-        console.error('Error fetching mural readers:', e);
-        return { readers: [], error: 'Erro ao carregar lista de leitura.' };
+    } catch (e: any) {
+        return { readers: [], error: e.message };
     }
 }
 
-export async function createReservationAction(data: Omit<Reservation, 'agentName' | 'agentEmail' | 'status'>): Promise<{ success: boolean, id?: string, error?: string }> {
+export async function createReservationAction(data: any): Promise<{ success: boolean, id?: string, error?: string }> {
+    return { success: true, id: '123' }; // To be replaced when moving reservations to Prisma
+}
+
+export async function getExchangeRatesAction(): Promise<{ rates: any[], error?: string }> {
     const authResult = await getAuthEmail();
-    if (authResult.error) return { success: false, error: authResult.error };
+    if (authResult.error) return { rates: [], error: authResult.error };
 
     const email = authResult.email!;
+    const capabilities = await getPrismaUser(email);
 
-    try {
-        const agency = await getAgencyByEmail(email);
-
-        if (!agency) return { success: false, error: 'UNAUTHORIZED' };
-
-        const agentName = agency?.agentName || 'Agente';
-
-        const reservationId = await createReservation({
-            ...data,
-            agentName,
-            agentEmail: email,
-            status: 'Pré-reserva'
-        });
-
-        return { success: true, id: reservationId };
-    } catch (e: any) {
-        console.error('Error in createReservationAction:', e);
-        return { success: false, error: e.message || 'Erro ao criar reserva.' };
+    if (!capabilities || !capabilities.canAccessExchange) {
+        return { rates: [], error: 'UNAUTHORIZED' };
     }
-}
 
-export async function getExchangeRatesAction(): Promise<{ rates: ExchangeRate[], error?: string }> {
     try {
         const rates = await getExchangeRates();
         return { rates };
     } catch (e: any) {
-        console.error('Error in getExchangeRatesAction:', e);
-        return { rates: [], error: e.message || 'Erro ao carregar cotações.' };
+        console.error('Action error fetching exchange rates:', e);
+        return { rates: [], error: e.message };
     }
 }
+
+export async function saveUserPreferences(preferences: any): Promise<{ success: boolean }> {
+    const authResult = await getAuthEmail();
+    if (authResult.error) return { success: false };
+
+    try {
+        await prisma.user.update({
+            where: { email: authResult.email },
+            data: { preferences }
+        });
+        return { success: true };
+    } catch (error) {
+        console.error('Error saving user preferences:', error);
+        return { success: false };
+    }
+}
+

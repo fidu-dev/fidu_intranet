@@ -1,8 +1,21 @@
-Requisitos do sistema
-1. Para Que seja visivel a guia Mural, o campo https://airtable.com/appcWpZWCEnxrN99F/tbljUc8sptfa7QnAE/viw2ucoLxsbjBXrJw/fldz3Jr6dgmmyPgY5 deve estar selecionado
-2. Se o campo https://airtable.com/appcWpZWCEnxrN99F/tbljUc8sptfa7QnAE/viw2ucoLxsbjBXrJw/fldFIYtK0lgaYjrzP estiver selecionado, o usuário está habilitado a ver
-    - Operadores (Na configuração da tabela ou no filtro) Caso contrário, não se exibe.
-    - Os valores da tabela iguais à base de dados. (Caso contrário, o usuário verá o valor da base de dados subtraido o comission_base https://airtable.com/appcWpZWCEnxrN99F/tbljUc8sptfa7QnAE/viw2ucoLxsbjBXrJw/fldfvUk5QMT8by8Wo)
-3. A guia Mural será exibida somente se o campo https://airtable.com/appcWpZWCEnxrN99F/tbljUc8sptfa7QnAE/viw2ucoLxsbjBXrJw/fldz3Jr6dgmmyPgY5 estiver selecionado.
-4. Se o campo https://airtable.com/appcWpZWCEnxrN99F/tbljUc8sptfa7QnAE/viw2ucoLxsbjBXrJw/fldwyiFd3fXiG5Kem estiver selecionado, o usuário poderá ver a faixa de cotação 
-5. ao efetuar login pelo clerk, o usuário só poderá entrar no aplicativo caso o e-mail figure no campo https://airtable.com/appcWpZWCEnxrN99F/tbljUc8sptfa7QnAE/viw2ucoLxsbjBXrJw/fldBgdDGKUCOxulR4. Qualquer outro critério deve ser removido.
+A tabela de Verão deve buscar os valores nos campos:
+Adulto: ver26adu
+Menor: ver26chd
+Bebê: ver26inf
+
+A tabela de Inverno deve buscar os valores nos campos:
+Adulto: inv26adu
+Menor: inv26chd
+Bebê: inv26inf
+
+O agente, verá nas tabelas, o valor de venda, subtraido o valor da comissão.
+incluir um botão para ver valor sugerido de venda.
+O banco de dados deve buscar no airtable os valors de cotação do dia e as atualizações do mural
+os mesmos devem aparecer para os usuários que tiverem permissão para acessar o mural e o cambio
+
+O campo Agente deve aparecer o nome do agente (Banco de dados planilha user, campo name)
+Ao lado, deve figurar o nome da agencia parceira. (o banco de dados deve buscar no airtable https://airtable.com/appcWpZWCEnxrN99F/tbljUc8sptfa7QnAE/viw2ucoLxsbjBXrJw/fldP8vuGwFWTkyOEp)
+A categoria do serviço (Banco de dados campo categoria) que aparecer como uma bolinha colorida ao lado do nome do produto não está atualizada. 
+a status (Banco de dados campo status) também não está atualizada.
+O destino Santiago não está aparecendo.
+

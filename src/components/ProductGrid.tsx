@@ -11,13 +11,14 @@ import { SalesSimulator } from './SalesSimulator';
 import { AgencyInfo } from '@/app/actions';
 import { Button } from '@/components/ui/button';
 import { useCart } from './CartContext';
-import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { Badge } from '@/components/ui/badge';
+import { saveUserPreferences } from '@/app/actions';
 
 interface ProductGridProps {
     products: AgencyProduct[];
     isInternal?: boolean;
     agencyInfo?: AgencyInfo;
+    initialPreferences?: any;
 }
 
 type SortConfig = {
@@ -40,7 +41,8 @@ const DESTINATION_COLORS: Record<string, string> = {
 };
 
 const getDestinationColor = (dest: string | undefined) => {
-    const key = dest?.toUpperCase() || '';
+    // Trim and normalize the destination to handle trailing spaces or inconsistent casing
+    const key = (dest || '').trim().toUpperCase();
     return DESTINATION_COLORS[key] || '#95a5a6';
 };
 
@@ -74,17 +76,26 @@ const SortIcon = ({ columnKey, sortConfig }: { columnKey: keyof AgencyProduct | 
 };
 
 
-export function ProductGrid({ products, isInternal, agencyInfo }: ProductGridProps) {
+export function ProductGrid({ products, isInternal, agencyInfo, initialPreferences }: ProductGridProps) {
     const { selectedProducts, addToCart, clearCart } = useCart();
 
-    // Use 'guest' for all users since there's no authentication
-    const storageKey = 'fidu_columns_guest';
+    const prefs = initialPreferences || {};
 
-    const [visibleColumns, setVisibleColumns] = useLocalStorage<string[]>(storageKey, DEFAULT_VISIBLE_COLUMNS);
+    const [visibleColumns, setVisibleColumns] = useState<string[]>(prefs.visibleColumns || DEFAULT_VISIBLE_COLUMNS);
+    const [columnWidths, setColumnWidths] = useState<Record<string, number>>(prefs.columnWidths || {});
+    const [showSuggestedPrice, setShowSuggestedPrice] = useState(prefs.showSuggestedPrice || false);
 
-    // Width persistence
-    const widthStorageKey = 'fidu_widths_guest';
-    const [columnWidths, setColumnWidths] = useLocalStorage<Record<string, number>>(widthStorageKey, {});
+    // Debounced preferences save
+    useEffect(() => {
+        const timeout = setTimeout(() => {
+            saveUserPreferences({
+                visibleColumns,
+                columnWidths,
+                showSuggestedPrice,
+            }).catch(console.error);
+        }, 1000);
+        return () => clearTimeout(timeout);
+    }, [visibleColumns, columnWidths, showSuggestedPrice]);
 
     // Resize handlers
     const resizingColumn = useRef<{ id: string; startX: number; startWidth: number } | null>(null);
@@ -122,16 +133,20 @@ export function ProductGrid({ products, isInternal, agencyInfo }: ProductGridPro
         window.addEventListener('mouseup', onMouseUp);
     };
 
+    const availableColumns = useMemo(() => {
+        return isInternal ? ALL_COLUMNS : ALL_COLUMNS.filter(c => c.id !== 'provider');
+    }, [isInternal]);
+
     // Filter out invalid columns (like 'status', 'category') that may have been saved before they were removed
     useEffect(() => {
-        const validColumnIds = ALL_COLUMNS.map(c => c.id);
+        const validColumnIds = availableColumns.map(c => c.id);
         const filteredColumns = visibleColumns.filter(col => validColumnIds.includes(col));
 
         // Only update if there are invalid columns
         if (filteredColumns.length !== visibleColumns.length) {
             setVisibleColumns(filteredColumns);
         }
-    }, [visibleColumns, setVisibleColumns]); // Run when visibleColumns/set changes to ensure cleanup happens
+    }, [visibleColumns, availableColumns]); // Run when visibleColumns/set changes to ensure cleanup happens
 
     const toggleColumn = (columnId: string) => {
         const newColumns = visibleColumns.includes(columnId)
@@ -152,7 +167,7 @@ export function ProductGrid({ products, isInternal, agencyInfo }: ProductGridPro
     const [searchTerm, setSearchTerm] = useState('');
     const [categoryFilter, setCategoryFilter] = useState('REG');
     const [destinationFilter, setDestinationFilter] = useState('all');
-    const [statusFilter, setStatusFilter] = useState('all');
+    const [statusFilter, setStatusFilter] = useState('Ativo');
     const [subCategoryFilter, setSubCategoryFilter] = useState<string[]>([]);
     const [providerFilter, setProviderFilter] = useState('all');
     const [season, setSeason] = useState<'VER26' | 'INV26'>('VER26'); // This is Pricing Mode
@@ -174,11 +189,11 @@ export function ProductGrid({ products, isInternal, agencyInfo }: ProductGridPro
         return s || 'Inativo';
     };
 
-    const categories = useMemo(() => Array.from(new Set(products.map(p => p.category))).filter((c): c is string => Boolean(c)).sort(), [products]);
-    const destinations = useMemo(() => Array.from(new Set(products.map(p => p.destination))).filter((d): d is string => Boolean(d)).sort(), [products]);
+    const categories = useMemo(() => Array.from(new Set(products.map(p => (p.category || '').trim()))).filter((c): c is string => Boolean(c)).sort(), [products]);
+    const destinations = useMemo(() => Array.from(new Set(products.map(p => (p.destination || '').trim()))).filter((d): d is string => Boolean(d)).sort(), [products]);
     const statuses = useMemo(() => Array.from(new Set(products.map(p => getEffectiveStatus(p.status)))).sort(), [products]);
     const subCategories = useMemo(() => Array.from(new Set(products.flatMap(p => p.subCategory?.split(', ') || []))).filter((sc): sc is string => Boolean(sc)).sort(), [products]);
-    const providers = useMemo(() => Array.from(new Set(products.map(p => p.provider))).filter((p): p is string => Boolean(p && p !== '–')).sort(), [products]);
+    const providers = useMemo(() => Array.from(new Set(products.map(p => (p.provider || '').trim()))).filter((p): p is string => Boolean(p && p !== '–')).sort(), [products]);
     const eligibleDays = useMemo(() => {
         const WEEKDAY_ORDER: Record<string, number> = {
             'DOMINGO': 0, 'SEGUNDA': 1, 'SEGUNDA-FEIRA': 1,
@@ -253,8 +268,8 @@ export function ProductGrid({ products, isInternal, agencyInfo }: ProductGridPro
             const matchesSearch =
                 (product.tourName?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
                 (product.destination?.toLowerCase() || '').includes(searchTerm.toLowerCase());
-            const matchesCategory = categoryFilter === 'all' || product.category === categoryFilter;
-            const matchesDestination = destinationFilter === 'all' || product.destination === destinationFilter;
+            const matchesCategory = categoryFilter === 'all' || (product.category || '').trim() === categoryFilter;
+            const matchesDestination = destinationFilter === 'all' || (product.destination || '').trim() === destinationFilter;
             const matchesStatus = statusFilter === 'all' || getEffectiveStatus(product.status) === statusFilter;
             const matchesSubCategory = subCategoryFilter.length === 0 || subCategoryFilter.some(tag => (product.subCategory || '').includes(tag));
             const matchesProvider = providerFilter === 'all' || product.provider === providerFilter;
@@ -353,22 +368,43 @@ export function ProductGrid({ products, isInternal, agencyInfo }: ProductGridPro
 
                 {/* 3. Price Mode (Compact) */}
                 {/* 3. Price Mode (Enhanced) */}
-                <div className="flex bg-gray-100 p-1 rounded-xl shrink-0 h-9 items-center">
-                    <button
-                        onClick={() => setSeason('VER26')}
-                        className={`px-4 h-full rounded-lg text-xs font-bold transition-all duration-200 flex items-center gap-2 ${season === 'VER26' ? 'bg-white text-orange-600 shadow-sm ring-1 ring-black/5 scale-[1.02]' : 'text-gray-400 hover:text-gray-600'}`}
-                    >
+                <div className="flex bg-gray-100 p-1 rounded-xl shrink-0 h-9 items-center group relative cursor-pointer" onClick={() => setSeason(s => s === 'VER26' ? 'INV26' : 'VER26')} title="Alternar Temporada">
+                    {/* Toggle Switch Background */}
+                    <div
+                        className="absolute w-1/2 h-7 bg-white rounded-lg shadow-sm transition-all duration-300 ease-in-out"
+                        style={{ left: season === 'VER26' ? '4px' : 'calc(50% - 4px)' }}
+                    />
+
+                    <div className={`relative z-10 px-4 h-full rounded-lg text-xs font-bold transition-all duration-200 flex items-center justify-center gap-2 ${season === 'VER26' ? 'text-orange-600' : 'text-gray-400'}`}>
                         <span className={season === 'VER26' ? "w-2 h-2 rounded-full bg-orange-500" : "w-2 h-2 rounded-full bg-gray-300"} />
                         Verão
-                    </button>
-                    <button
-                        onClick={() => setSeason('INV26')}
-                        className={`px-4 h-full rounded-lg text-xs font-bold transition-all duration-200 flex items-center gap-2 ${season === 'INV26' ? 'bg-white text-[#3b5998] shadow-sm ring-1 ring-black/5 scale-[1.02]' : 'text-gray-400 hover:text-gray-600'}`}
-                    >
+                    </div>
+                    <div className={`relative z-10 px-4 h-full rounded-lg text-xs font-bold transition-all duration-200 flex items-center justify-center gap-2 ${season === 'INV26' ? 'text-[#3b5998]' : 'text-gray-400'}`}>
                         <span className={season === 'INV26' ? "w-2 h-2 rounded-full bg-[#3b5998]" : "w-2 h-2 rounded-full bg-gray-300"} />
                         Inverno
-                    </button>
+                    </div>
                 </div>
+
+                {/* Separator */}
+                <div className="h-5 w-[1px] bg-gray-200 hidden lg:block mx-1" />
+
+                {/* Suggested Price Toggle */}
+                {!isInternal && (
+                    <div className="flex items-center gap-2 shrink-0">
+                        <label htmlFor="priceToggle" className="text-xs font-bold text-gray-600 cursor-pointer select-none flex items-center gap-2" title="Preço Sugerido (Original) vs Preço Líquido (Comissão deduzida)">
+                            Ver Valor Sugerido
+                        </label>
+                        <button
+                            id="priceToggle"
+                            role="switch"
+                            aria-checked={showSuggestedPrice}
+                            onClick={() => setShowSuggestedPrice(!showSuggestedPrice)}
+                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#3b5998] focus:ring-offset-2 ${showSuggestedPrice ? 'bg-[#3b5998]' : 'bg-gray-200'}`}
+                        >
+                            <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${showSuggestedPrice ? 'translate-x-6' : 'translate-x-1'}`} />
+                        </button>
+                    </div>
+                )}
 
                 {/* Active Filter Indicators (Compact) */}
                 {(categoryFilter !== 'REG' || statusFilter !== 'all' || temporadaFilter !== 'all' || subCategoryFilter.length > 0 || providerFilter !== 'all' || diasElegiveisFilter.length > 0) && (
@@ -444,18 +480,20 @@ export function ProductGrid({ products, isInternal, agencyInfo }: ProductGridPro
                                             </div>
                                         </div>
 
-                                        <div className="space-y-2">
-                                            <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Operador</label>
-                                            <Select value={providerFilter} onValueChange={setProviderFilter}>
-                                                <SelectTrigger className="w-full border-gray-200 rounded-lg h-9 bg-gray-50/50 text-xs">
-                                                    <SelectValue placeholder="Selecione o Operador" />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    <SelectItem value="all">Todos os Operadores</SelectItem>
-                                                    {providers.map(p => (<SelectItem key={p} value={p}>{p}</SelectItem>))}
-                                                </SelectContent>
-                                            </Select>
-                                        </div>
+                                        {isInternal && (
+                                            <div className="space-y-2">
+                                                <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Operador</label>
+                                                <Select value={providerFilter} onValueChange={setProviderFilter}>
+                                                    <SelectTrigger className="w-full border-gray-200 rounded-lg h-9 bg-gray-50/50 text-xs">
+                                                        <SelectValue placeholder="Selecione o Operador" />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        <SelectItem value="all">Todos os Operadores</SelectItem>
+                                                        {providers.map(p => (<SelectItem key={p} value={p}>{p}</SelectItem>))}
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
+                                        )}
 
                                         {/* Tags Section */}
                                         <div className="space-y-2">
@@ -560,7 +598,7 @@ export function ProductGrid({ products, isInternal, agencyInfo }: ProductGridPro
                             <div className="max-h-[400px] overflow-y-auto p-2 space-y-1">
                                 <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest p-2">Visíveis</div>
                                 {visibleColumns.map((colId, index) => {
-                                    const colDef = ALL_COLUMNS.find(c => c.id === colId);
+                                    const colDef = availableColumns.find(c => c.id === colId);
                                     if (!colDef) return null;
                                     return (
                                         <div key={colId} className="flex items-center justify-between p-2 rounded-lg bg-gray-50 hover:bg-gray-100 group">
@@ -576,7 +614,7 @@ export function ProductGrid({ products, isInternal, agencyInfo }: ProductGridPro
                                     );
                                 })}
                                 <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest p-2 mt-4">Invisíveis</div>
-                                {ALL_COLUMNS.filter(col => !visibleColumns.includes(col.id)).map(col => (
+                                {availableColumns.filter(col => !visibleColumns.includes(col.id)).map(col => (
                                     <button key={col.id} onClick={() => toggleColumn(col.id)} className="w-full flex items-center justify-between p-2 rounded-lg hover:bg-[#3b5998]/5 group">
                                         <span className="text-sm text-gray-500 group-hover:text-[#3b5998]">{col.label}</span>
                                         <Plus className="h-4 w-4 text-gray-300 group-hover:text-[#3b5998]" />
@@ -679,7 +717,8 @@ export function ProductGrid({ products, isInternal, agencyInfo }: ProductGridPro
                                             if (colId === 'tourName') {
                                                 const status = getEffectiveStatus(product.status);
                                                 const isActive = status.toLowerCase() === 'ativo';
-                                                const isRegular = product.category === 'REG';
+                                                const cat = (product.category || '').trim();
+                                                const isRegular = cat === 'REG' || cat === 'REGULAR';
                                                 return (
                                                     <td key={colId} className="px-4 py-5 overflow-hidden" style={{ width: columnWidths[colId] || 'auto', minWidth: columnWidths[colId] || 'auto' }}>
                                                         <div className="flex items-start gap-3">
@@ -730,7 +769,8 @@ export function ProductGrid({ products, isInternal, agencyInfo }: ProductGridPro
                                             if (['priceAdulto', 'priceMenor', 'priceBebe'].includes(colId)) {
                                                 const price = season === 'VER26' ? (product as any)[`${colId}Ver26`] : (product as any)[`${colId}Inv26`];
                                                 const netoPrice = season === 'VER26' ? (product as any)[`netoPrice${colId.charAt(5).toUpperCase() + colId.slice(6)}Ver26`] : (product as any)[`netoPrice${colId.charAt(5).toUpperCase() + colId.slice(6)}Inv26`];
-                                                const actualPrice = isInternal ? price : netoPrice;
+                                                // Se Internal ou ShowSuggestedPrice for true, exibe preço cheio do DB, senão exibe Neto (deduzida a comissão)
+                                                const actualPrice = (isInternal || showSuggestedPrice) ? price : netoPrice;
 
                                                 const isWinter = season === 'INV26';
 
@@ -744,7 +784,10 @@ export function ProductGrid({ products, isInternal, agencyInfo }: ProductGridPro
                                                 }
 
                                                 return (
-                                                    <td key={colId} className={`px-4 py-5 text-right overflow-hidden ${isInternal ? '' : 'cursor-help'}`} style={{ width: columnWidths[colId] || 'auto', minWidth: columnWidths[colId] || 'auto' }} title={isInternal ? undefined : `Sugestão de Venda: ${formatPrice(price || 0)}`}>
+                                                    <td key={colId} className={`px-4 py-5 text-right overflow-hidden ${(isInternal || showSuggestedPrice) ? '' : 'cursor-help'}`} style={{ width: columnWidths[colId] || 'auto', minWidth: columnWidths[colId] || 'auto' }} title={(isInternal || showSuggestedPrice) ? undefined : `Valor base: ${formatPrice(price || 0)}`}>
+                                                        {(!isInternal && showSuggestedPrice && price !== netoPrice) && (
+                                                            <div className="text-[10px] text-gray-400 line-through mb-0.5 leading-none mr-0.5">{formatPrice(netoPrice || 0)}</div>
+                                                        )}
                                                         <span className={`text-base font-bold tracking-tight ${textColorClass}`}>
                                                             {formatPrice(actualPrice || 0)}
                                                         </span>
@@ -938,15 +981,15 @@ export function ProductGrid({ products, isInternal, agencyInfo }: ProductGridPro
                                             <div className="space-y-3">
                                                 <div className="flex justify-between items-baseline">
                                                     <span className="text-xs text-gray-500 font-bold">Adulto</span>
-                                                    <span className="text-sm font-black text-orange-600">{formatPrice(isInternal ? (selectedDetailProduct as any).priceAdultoVer26 : (selectedDetailProduct as any).netoPriceAdultoVer26)}</span>
+                                                    <span className="text-sm font-black text-orange-600">{formatPrice((isInternal || showSuggestedPrice) ? (selectedDetailProduct as any).priceAdultoVer26 : (selectedDetailProduct as any).netoPriceAdultoVer26)}</span>
                                                 </div>
                                                 <div className="flex justify-between items-baseline">
                                                     <span className="text-xs text-gray-500 font-bold">Menor</span>
-                                                    <span className="text-sm font-black text-orange-600/80">{formatPrice(isInternal ? (selectedDetailProduct as any).priceMenorVer26 : (selectedDetailProduct as any).netoPriceMenorVer26)}</span>
+                                                    <span className="text-sm font-black text-orange-600/80">{formatPrice((isInternal || showSuggestedPrice) ? (selectedDetailProduct as any).priceMenorVer26 : (selectedDetailProduct as any).netoPriceMenorVer26)}</span>
                                                 </div>
                                                 <div className="flex justify-between items-baseline">
                                                     <span className="text-xs text-gray-500 font-bold">Bebê</span>
-                                                    <span className="text-sm font-black text-orange-600/60">{formatPrice(isInternal ? (selectedDetailProduct as any).priceBebeVer26 : (selectedDetailProduct as any).netoPriceBebeVer26)}</span>
+                                                    <span className="text-sm font-black text-orange-600/60">{formatPrice((isInternal || showSuggestedPrice) ? (selectedDetailProduct as any).priceBebeVer26 : (selectedDetailProduct as any).netoPriceBebeVer26)}</span>
                                                 </div>
                                             </div>
                                         </div>
@@ -959,15 +1002,15 @@ export function ProductGrid({ products, isInternal, agencyInfo }: ProductGridPro
                                             <div className="space-y-3">
                                                 <div className="flex justify-between items-baseline">
                                                     <span className="text-xs text-gray-500 font-bold">Adulto</span>
-                                                    <span className="text-sm font-black text-[#3b5998]">{formatPrice(isInternal ? (selectedDetailProduct as any).priceAdultoInv26 : (selectedDetailProduct as any).netoPriceAdultoInv26)}</span>
+                                                    <span className="text-sm font-black text-[#3b5998]">{formatPrice((isInternal || showSuggestedPrice) ? (selectedDetailProduct as any).priceAdultoInv26 : (selectedDetailProduct as any).netoPriceAdultoInv26)}</span>
                                                 </div>
                                                 <div className="flex justify-between items-baseline">
                                                     <span className="text-xs text-gray-500 font-bold">Menor</span>
-                                                    <span className="text-sm font-black text-[#3b5998]/80">{formatPrice(isInternal ? (selectedDetailProduct as any).priceMenorInv26 : (selectedDetailProduct as any).netoPriceMenorInv26)}</span>
+                                                    <span className="text-sm font-black text-[#3b5998]/80">{formatPrice((isInternal || showSuggestedPrice) ? (selectedDetailProduct as any).priceMenorInv26 : (selectedDetailProduct as any).netoPriceMenorInv26)}</span>
                                                 </div>
                                                 <div className="flex justify-between items-baseline">
                                                     <span className="text-xs text-gray-500 font-bold">Bebê</span>
-                                                    <span className="text-sm font-black text-[#3b5998]/60">{formatPrice(isInternal ? (selectedDetailProduct as any).priceBebeInv26 : (selectedDetailProduct as any).netoPriceBebeInv26)}</span>
+                                                    <span className="text-sm font-black text-[#3b5998]/60">{formatPrice((isInternal || showSuggestedPrice) ? (selectedDetailProduct as any).priceBebeInv26 : (selectedDetailProduct as any).netoPriceBebeInv26)}</span>
                                                 </div>
                                             </div>
                                         </div>

@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { AgencyInfo } from '@/app/actions';
+import { UserButton } from '@clerk/nextjs';
 
 interface PortalHeaderProps {
     agency?: AgencyInfo;
@@ -76,6 +77,16 @@ export function PortalHeader({ agency, hasUnreadMural }: PortalHeaderProps) {
                             )}
                         </div>
                     )}
+                    <div className="flex items-center pl-6 border-l ml-2">
+                        <UserButton
+                            afterSignOutUrl="/sign-in"
+                            appearance={{
+                                elements: {
+                                    userButtonAvatarBox: "w-10 h-10 ring-2 ring-white shadow-sm"
+                                }
+                            }}
+                        />
+                    </div>
                 </div>
             </div>
         </header>
