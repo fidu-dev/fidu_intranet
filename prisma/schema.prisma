@@ -1,0 +1,113 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  VENDEDOR_INTERNO
+  AGENCIA_PARCEIRA
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  PENDING
+}
+
+model User {
+  id              String     @id @default(uuid())
+  email           String     @unique
+  name            String?
+  role            Role       @default(AGENCIA_PARCEIRA)
+  status          UserStatus @default(ACTIVE)
+  flagMural       Boolean    @default(false)
+  flagReserva     Boolean    @default(false)
+  flagExchange    Boolean    @default(false)
+  commissionRate  Float      @default(0)
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+}
+
+model Tour {
+  id                  String   @id @default(uuid())
+  airtableRecordId    String   @unique
+  servico             String?
+  categoria           String?
+  destino             String?
+  atualizadoEm        String?
+  operador            String?
+  status              String?
+  temporada           String?
+  pickup              String?
+  retorno             String?
+  ver26Adu            String?
+  ver26Chd            String?
+  ver26Inf            String?
+  inv26Adu            String?
+  inv26Chd            String?
+  inv26Inf            String?
+  diasElegiveis       String?
+  valorExtra          String?
+  taxasExtras         String?
+  duracao             String?
+  tags                String?
+  restricoes          String?
+  opcionais           String?
+  variantes           String?
+  resumo              String?
+  observacoes         String?
+  oQueLevar           String?
+  midia               String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@index([categoria])
+  @@index([destino])
+}
+
+model MuralItem {
+  id          String   @id @default(uuid())
+  title       String
+  content     String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model NoticeRead {
+  id          String   @id @default(uuid())
+  userId      String
+  noticeId    String
+  readAt      DateTime @default(now())
+}
+
+model Reservation {
+  id          String   @id @default(uuid())
+  userId      String
+  tourId      String
+  status      String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model ExchangeRate {
+  id          String   @id @default(uuid())
+  currency    String
+  rate        Float
+  date        DateTime
+  createdAt   DateTime @default(now())
+}
+
+model AuditLog {
+  id          String   @id @default(uuid())
+  action      String
+  entityId    String
+  entityType  String
+  userId      String?
+  details     String?
+  createdAt   DateTime @default(now())
+}
