@@ -107,7 +107,7 @@ export const getAgencyByEmail = async (email: string): Promise<Agency | null> =>
     }
 
     const records = await base(AIRTABLE_TABLES.ACCESS).select({
-        filterByFormula: `{e-mail} = '${email}'`,
+        filterByFormula: `LOWER(TRIM({e-mail})) = LOWER('${email.trim()}')`,
         maxRecords: 1
     }).all();
 
