@@ -84,6 +84,7 @@ export function ProductGrid({ products, isInternal, agencyInfo, initialPreferenc
     const [visibleColumns, setVisibleColumns] = useState<string[]>(prefs.visibleColumns || DEFAULT_VISIBLE_COLUMNS);
     const [columnWidths, setColumnWidths] = useState<Record<string, number>>(prefs.columnWidths || {});
     const [showSuggestedPrice, setShowSuggestedPrice] = useState(prefs.showSuggestedPrice || false);
+    const [statusFilter, setStatusFilter] = useState(prefs.statusFilter || 'all');
 
     // Debounced preferences save
     useEffect(() => {
@@ -92,10 +93,11 @@ export function ProductGrid({ products, isInternal, agencyInfo, initialPreferenc
                 visibleColumns,
                 columnWidths,
                 showSuggestedPrice,
+                statusFilter,
             }).catch(console.error);
         }, 1000);
         return () => clearTimeout(timeout);
-    }, [visibleColumns, columnWidths, showSuggestedPrice]);
+    }, [visibleColumns, columnWidths, showSuggestedPrice, statusFilter]);
 
     // Resize handlers
     const resizingColumn = useRef<{ id: string; startX: number; startWidth: number } | null>(null);
@@ -167,7 +169,6 @@ export function ProductGrid({ products, isInternal, agencyInfo, initialPreferenc
     const [searchTerm, setSearchTerm] = useState('');
     const [categoryFilter, setCategoryFilter] = useState('REG');
     const [destinationFilter, setDestinationFilter] = useState('all');
-    const [statusFilter, setStatusFilter] = useState('Ativo');
     const [subCategoryFilter, setSubCategoryFilter] = useState<string[]>([]);
     const [providerFilter, setProviderFilter] = useState('all');
     const [season, setSeason] = useState<'VER26' | 'INV26'>('VER26'); // This is Pricing Mode
