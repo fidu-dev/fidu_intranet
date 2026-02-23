@@ -1,0 +1,8 @@
+Requisitos do sistema
+1. Para Que seja visivel a guia Mural, o campo https://airtable.com/appcWpZWCEnxrN99F/tbljUc8sptfa7QnAE/viw2ucoLxsbjBXrJw/fldz3Jr6dgmmyPgY5 deve estar selecionado
+2. Se o campo https://airtable.com/appcWpZWCEnxrN99F/tbljUc8sptfa7QnAE/viw2ucoLxsbjBXrJw/fldFIYtK0lgaYjrzP estiver selecionado, o usuário está habilitado a ver
+    - Operadores (Na configuração da tabela ou no filtro) Caso contrário, não se exibe.
+    - Os valores da tabela iguais à base de dados. (Caso contrário, o usuário verá o valor da base de dados subtraido o comission_base https://airtable.com/appcWpZWCEnxrN99F/tbljUc8sptfa7QnAE/viw2ucoLxsbjBXrJw/fldfvUk5QMT8by8Wo)
+3. A guia Mural será exibida somente se o campo https://airtable.com/appcWpZWCEnxrN99F/tbljUc8sptfa7QnAE/viw2ucoLxsbjBXrJw/fldz3Jr6dgmmyPgY5 estiver selecionado.
+4. Se o campo https://airtable.com/appcWpZWCEnxrN99F/tbljUc8sptfa7QnAE/viw2ucoLxsbjBXrJw/fldwyiFd3fXiG5Kem estiver selecionado, o usuário poderá ver a faixa de cotação 
+5. ao efetuar login pelo clerk, o usuário só poderá entrar no aplicativo caso o e-mail figure no campo https://airtable.com/appcWpZWCEnxrN99F/tbljUc8sptfa7QnAE/viw2ucoLxsbjBXrJw/fldBgdDGKUCOxulR4. Qualquer outro critério deve ser removido.
