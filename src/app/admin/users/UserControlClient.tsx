@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import { updateUserAccess, createNewUser } from '@/app/admin/actions';
 
+const AVAILABLE_DESTINATIONS = ["ATACAMA", "BARILOCHE", "CALAFATE", "CALAMA", "GENERAL", "PUERTO NATALES", "PUERTO VARAS", "SAN PEDRO", "SANTIAGO", "TORRES DEL PAINE", "USHUAIA"];
+
 export function UserControlClient({ initialUsers, agencies }: { initialUsers: any[], agencies: any[] }) {
     const [users, setUsers] = useState(initialUsers);
     const [saving, setSaving] = useState<string | null>(null);
@@ -16,7 +18,8 @@ export function UserControlClient({ initialUsers, agencies }: { initialUsers: an
         role: 'AGENCIA_PARCEIRA',
         flagMural: false,
         flagExchange: false,
-        flagReserva: false
+        flagReserva: false,
+        allowedDestinations: [] as string[]
     });
 
     const handleSave = async (user: any) => {
@@ -31,6 +34,7 @@ export function UserControlClient({ initialUsers, agencies }: { initialUsers: an
                     flagMural: user.flagMural,
                     flagExchange: user.flagExchange,
                     flagReserva: user.flagReserva,
+                    allowedDestinations: user.allowedDestinations,
                 });
                 if (result.success && result.user) {
                     setUsers([result.user, ...users]);
@@ -47,6 +51,7 @@ export function UserControlClient({ initialUsers, agencies }: { initialUsers: an
                     flagMural: user.flagMural,
                     flagExchange: user.flagExchange,
                     flagReserva: user.flagReserva,
+                    allowedDestinations: user.allowedDestinations,
                 });
                 alert('Salvo com sucesso!');
             }
@@ -93,6 +98,7 @@ export function UserControlClient({ initialUsers, agencies }: { initialUsers: an
                             <th className="px-6 py-4">Nome da Agência</th>
                             <th className="px-6 py-4">Role / Acesso</th>
                             <th className="px-6 py-4">Permissões Especiais</th>
+                            <th className="px-6 py-4">Destinos Permitidos</th>
                             <th className="px-6 py-4 text-right">Ação</th>
                         </tr>
                     </thead>
@@ -149,6 +155,26 @@ export function UserControlClient({ initialUsers, agencies }: { initialUsers: an
                                             <input type="checkbox" checked={newUser.flagExchange} onChange={(e) => setNewUser({ ...newUser, flagExchange: e.target.checked })} className="rounded text-[#3b5998]" />
                                             Câmbio
                                         </label>
+                                    </div>
+                                </td>
+                                <td className="px-6 py-4 min-w-[200px]">
+                                    <div className="text-[9px] text-gray-500 mb-1 leading-tight">Mantenha limpo para <br />acessar TODOS os destinos.</div>
+                                    <div className="grid grid-cols-2 gap-1 max-h-32 overflow-y-auto pr-1">
+                                        {AVAILABLE_DESTINATIONS.map(d => (
+                                            <label key={d} className="flex items-center gap-1 text-[10px] cursor-pointer hover:bg-white p-0.5 rounded">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={newUser.allowedDestinations?.includes(d)}
+                                                    onChange={(e) => {
+                                                        const current = newUser.allowedDestinations || [];
+                                                        const next = e.target.checked ? [...current, d] : current.filter(x => x !== d);
+                                                        setNewUser({ ...newUser, allowedDestinations: next });
+                                                    }}
+                                                    className="rounded text-[#3b5998] w-3 h-3"
+                                                />
+                                                <span className="truncate" title={d}>{d}</span>
+                                            </label>
+                                        ))}
                                     </div>
                                 </td>
                                 <td className="px-6 py-4 text-right">
@@ -225,6 +251,26 @@ export function UserControlClient({ initialUsers, agencies }: { initialUsers: an
                                             <input type="checkbox" checked={user.flagReserva} onChange={(e) => updateField(user.id, 'flagReserva', e.target.checked)} className="rounded text-blue-600" />
                                             Reservas
                                         </label>
+                                    </div>
+                                </td>
+                                <td className="px-6 py-4 min-w-[200px]">
+                                    <div className="text-[9px] text-gray-500 mb-1 leading-tight">Mantenha limpo para <br />acessar TODOS os destinos.</div>
+                                    <div className="grid grid-cols-2 gap-1 max-h-32 overflow-y-auto pr-1">
+                                        {AVAILABLE_DESTINATIONS.map(d => (
+                                            <label key={d} className="flex items-center gap-1 text-[10px] cursor-pointer hover:bg-gray-100 p-0.5 rounded">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={(user.allowedDestinations || []).includes(d)}
+                                                    onChange={(e) => {
+                                                        const current = user.allowedDestinations || [];
+                                                        const next = e.target.checked ? [...current, d] : current.filter((x: string) => x !== d);
+                                                        updateField(user.id, 'allowedDestinations', next);
+                                                    }}
+                                                    className="rounded text-blue-600 w-3 h-3"
+                                                />
+                                                <span className="truncate" title={d}>{d}</span>
+                                            </label>
+                                        ))}
                                     </div>
                                 </td>
                                 <td className="px-6 py-4 text-right">

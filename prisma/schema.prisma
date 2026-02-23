@@ -43,8 +43,9 @@ model User {
   status       UserStatus @default(ACTIVE)
   flagMural    Boolean    @default(false)
   flagReserva  Boolean    @default(false)
-  flagExchange Boolean    @default(false)
-  preferences  Json?
+  flagExchange         Boolean    @default(false)
+  allowedDestinations  String[]   @default([])
+  preferences          Json?
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
 }

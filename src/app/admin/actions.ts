@@ -120,12 +120,12 @@ export async function getSimulatorProducts(agencyId: string): Promise<SimulatedP
 export async function getUsers() {
     const users = await prisma.user.findMany({
         orderBy: { createdAt: 'desc' },
-        select: { id: true, email: true, name: true, agencyId: true, role: true, flagMural: true, flagExchange: true, flagReserva: true }
+        select: { id: true, email: true, name: true, agencyId: true, role: true, flagMural: true, flagExchange: true, flagReserva: true, allowedDestinations: true }
     });
     return users;
 }
 
-export async function updateUserAccess(userId: string, data: { email?: string, name?: string, agencyId?: string, role?: string, flagMural?: boolean, flagExchange?: boolean, flagReserva?: boolean }) {
+export async function updateUserAccess(userId: string, data: { email?: string, name?: string, agencyId?: string, role?: string, flagMural?: boolean, flagExchange?: boolean, flagReserva?: boolean, allowedDestinations?: string[] }) {
     await prisma.user.update({
         where: { id: userId },
         data: {
@@ -136,13 +136,14 @@ export async function updateUserAccess(userId: string, data: { email?: string, n
             flagMural: data.flagMural,
             flagExchange: data.flagExchange,
             flagReserva: data.flagReserva,
+            allowedDestinations: data.allowedDestinations,
         }
     });
     revalidatePath('/', 'layout');
     return { success: true };
 }
 
-export async function createNewUser(data: { email: string, name: string, agencyId?: string, role: string, flagMural: boolean, flagExchange: boolean, flagReserva: boolean }) {
+export async function createNewUser(data: { email: string, name: string, agencyId?: string, role: string, flagMural: boolean, flagExchange: boolean, flagReserva: boolean, allowedDestinations?: string[] }) {
     const user = await prisma.user.create({
         data: {
             email: data.email,
@@ -152,6 +153,7 @@ export async function createNewUser(data: { email: string, name: string, agencyI
             flagMural: data.flagMural,
             flagExchange: data.flagExchange,
             flagReserva: data.flagReserva,
+            allowedDestinations: data.allowedDestinations || [],
         }
     });
     return { success: true, user };

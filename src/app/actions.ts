@@ -16,6 +16,7 @@ export interface AgencyInfo {
     canAccessMural: boolean;
     isInternal: boolean;
     canAccessExchange: boolean;
+    allowedDestinations: string[];
 }
 
 // Get the currently authenticated Clerk user's primary email
@@ -53,10 +54,16 @@ export async function getAgencyProducts(): Promise<{ products: any[], agency?: A
             canReserve: capabilities.canReserve,
             canAccessMural: capabilities.canAccessMural,
             isInternal: capabilities.isInternal,
-            canAccessExchange: capabilities.canAccessExchange
+            canAccessExchange: capabilities.canAccessExchange,
+            allowedDestinations: capabilities.allowedDestinations || []
         };
 
-        const products = await getProducts();
+        const rawProducts = await getProducts();
+
+        // Filter by allowed destinations (empty array means ALL destinations are allowed)
+        const products = agencyInfo.allowedDestinations.length > 0
+            ? rawProducts.filter(p => agencyInfo.allowedDestinations.includes((p.destino || '').trim().toUpperCase()))
+            : rawProducts;
 
         if (!products || products.length === 0) {
             return { products: [], agency: agencyInfo, preferences: capabilities.preferences, hasUnreadMural: false };

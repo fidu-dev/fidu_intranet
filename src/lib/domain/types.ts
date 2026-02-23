@@ -9,6 +9,7 @@ export type UserCapabilities = {
     isInternal: boolean
     isAdmin: boolean
     agencyName?: string
+    allowedDestinations: string[]
     preferences?: any
 }
 

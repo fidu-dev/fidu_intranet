@@ -26,6 +26,7 @@ export async function getUserCapabilities(email: string): Promise<UserCapabiliti
         isInternal,
         isAdmin,
         agencyName: user.agency?.name,
+        allowedDestinations: user.allowedDestinations,
         preferences: user.preferences,
     }
 }
