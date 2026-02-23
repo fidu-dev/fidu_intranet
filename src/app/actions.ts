@@ -253,7 +253,7 @@ export async function saveUserPreferences(preferences: any): Promise<{ success: 
     try {
         await prisma.user.update({
             where: { email: authResult.email },
-            data: { preferences }
+            data: { preferences } as any
         });
         return { success: true };
     } catch (error) {
