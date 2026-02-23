@@ -6,10 +6,8 @@ import { LayoutDashboard, Users, Package, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const sidebarItems = [
-    { icon: LayoutDashboard, label: "Dashboard", href: "/admin" },
     { icon: Users, label: "Access Control", href: "/admin/users" },
     { icon: Package, label: "Agencies", href: "/admin/agencies" },
-    { icon: Package, label: "Products Base", href: "/admin/products" },
     { icon: Settings, label: "Settings", href: "/admin/settings" },
 ];
 
