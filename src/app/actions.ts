@@ -52,10 +52,10 @@ export async function getAgencyProducts(): Promise<{ products: AgencyProduct[], 
             agentName: agency?.agentName || 'Agente',
             agencyName: agency?.name || 'Fidu Viagens',
             commissionRate: commissionRate,
-            canReserve: agency?.canReserve || true,
-            canAccessMural: agency?.canAccessMural || true,
-            isInternal: agency?.isInternal || false,
-            canAccessExchange: agency?.canAccessExchange || true
+            canReserve: agency?.canReserve ?? false,
+            canAccessMural: agency?.canAccessMural ?? false,
+            isInternal: agency?.isInternal ?? false,
+            canAccessExchange: agency?.canAccessExchange ?? false
         };
 
         // Fetch Mural items to check for unread
