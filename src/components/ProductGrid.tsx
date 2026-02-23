@@ -892,17 +892,37 @@ export function ProductGrid({ products, isInternal, agencyInfo }: ProductGridPro
                                         sections.push({ label: 'Taxas Adicionais', value: p.valorExtra || '' });
                                     }
 
-                                    return sections.map(section => (
-                                        <div key={section.label} className="space-y-3 bg-gray-50/50 p-5 rounded-xl border border-gray-100/80">
-                                            <div className="flex items-center gap-2">
-                                                <div className="w-1.5 h-4 bg-[#3b5998] rounded-full" />
-                                                <label className="text-[10px] font-black uppercase tracking-widest text-[#3b5998]">{section.label}</label>
+                                    return sections.map(section => {
+                                        const isRestrictions = section.label === 'Restrições';
+                                        const chips = isRestrictions
+                                            ? String(section.value ?? '').split(/[,\n]+/).map(s => s.trim()).filter(Boolean)
+                                            : [];
+
+                                        return (
+                                            <div key={section.label} className="space-y-3 bg-gray-50/50 p-5 rounded-xl border border-gray-100/80">
+                                                <div className="flex items-center gap-2">
+                                                    <div className={`w-1.5 h-4 rounded-full ${isRestrictions ? 'bg-red-400' : 'bg-[#3b5998]'}`} />
+                                                    <label className={`text-[10px] font-black uppercase tracking-widest ${isRestrictions ? 'text-red-500' : 'text-[#3b5998]'}`}>{section.label}</label>
+                                                </div>
+                                                {isRestrictions && chips.length > 0 ? (
+                                                    <div className="flex flex-wrap gap-2">
+                                                        {chips.map((chip, i) => (
+                                                            <span
+                                                                key={i}
+                                                                className="inline-flex items-center px-3 py-1 rounded-full border border-red-200 bg-red-50 text-red-700 text-xs font-bold uppercase tracking-wide"
+                                                            >
+                                                                {chip}
+                                                            </span>
+                                                        ))}
+                                                    </div>
+                                                ) : (
+                                                    <div className="text-sm text-gray-600 leading-relaxed font-medium whitespace-pre-wrap">
+                                                        {section.value}
+                                                    </div>
+                                                )}
                                             </div>
-                                            <div className="text-sm text-gray-600 leading-relaxed font-medium whitespace-pre-wrap">
-                                                {section.value}
-                                            </div>
-                                        </div>
-                                    ));
+                                        );
+                                    });
                                 })()}
 
                                 {/* Seasonal Pricing Table */}
