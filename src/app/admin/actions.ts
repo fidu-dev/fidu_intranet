@@ -2,6 +2,7 @@
 
 import { getProducts } from '@/lib/services/productService';
 import { prisma } from '@/lib/db/prisma';
+import { revalidatePath } from 'next/cache';
 
 // Admin routes are now publicly accessible - consider adding IP whitelist or password protection
 export async function getAdminProducts() {
@@ -137,6 +138,7 @@ export async function updateUserAccess(userId: string, data: { email?: string, n
             flagReserva: data.flagReserva,
         }
     });
+    revalidatePath('/', 'layout');
     return { success: true };
 }
 
