@@ -6,9 +6,9 @@ import { Users, Package, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const sidebarItems = [
-    { icon: Users, label: "Access Control", href: "/admin/users" },
-    { icon: Package, label: "Agencies", href: "/admin/agencies" },
-    { icon: Settings, label: "Settings", href: "/admin/settings" },
+    { icon: Users, label: "Controle de Acesso", href: "/admin/users" },
+    { icon: Package, label: "Agências", href: "/admin/agencies" },
+    { icon: Settings, label: "Configurações", href: "/admin/settings" },
 ];
 
 export function AdminSidebar() {

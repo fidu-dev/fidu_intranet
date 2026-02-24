@@ -99,7 +99,7 @@ export function UserControlClient({ initialUsers, agencies }: { initialUsers: an
                         <tr>
                             <th className="px-3 py-4 w-[220px]">Usuário / Email</th>
                             <th className="px-3 py-4 w-[140px]">Agência</th>
-                            <th className="px-3 py-4 w-[130px]">Role</th>
+                            <th className="px-3 py-4 w-[130px]">Nível de acesso</th>
                             <th className="px-3 py-4 w-[90px]">Status</th>
                             <th className="px-3 py-4 w-[110px]">Permissões</th>
                             <th className="px-3 py-4 w-[100px]">
@@ -219,16 +219,23 @@ export function UserControlClient({ initialUsers, agencies }: { initialUsers: an
                                     <input
                                         type="email"
                                         className="w-full px-2 py-1 text-xs border rounded bg-white font-medium mb-1"
-                                        placeholder="Email"
+                                        placeholder="E-mail"
                                         value={user.email || ''}
                                         onChange={(e) => updateField(user.id, 'email', e.target.value)}
                                     />
                                     <input
                                         type="text"
-                                        className="w-full px-2 py-1 text-xs border rounded bg-white"
+                                        className="w-full px-2 py-1 text-xs border rounded bg-white mb-1"
                                         placeholder="Nome do Agente"
                                         value={user.name || ''}
                                         onChange={(e) => updateField(user.id, 'name', e.target.value)}
+                                    />
+                                    <input
+                                        type="tel"
+                                        className="w-full px-2 py-1 text-xs border rounded bg-white text-gray-500"
+                                        placeholder="Telefone / WhatsApp"
+                                        value={user.phone || ''}
+                                        onChange={(e) => updateField(user.id, 'phone', e.target.value)}
                                     />
                                 </td>
                                 <td className="px-3 py-4 min-w-[140px] max-w-[180px]">

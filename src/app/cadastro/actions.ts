@@ -5,6 +5,7 @@ import { prisma } from '@/lib/db/prisma';
 export interface RequestedUser {
     name: string;
     email: string;
+    phone?: string;
 }
 
 export interface AgencyRegistrationData {

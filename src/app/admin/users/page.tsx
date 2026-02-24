@@ -24,8 +24,8 @@ export default async function AdminUsersPage() {
     return (
         <div className="space-y-6">
             <div>
-                <h1 className="text-2xl font-bold tracking-tight">Access Control</h1>
-                <p className="text-gray-500">Gerenciar usuários, permissões de sistema e nomes de agências cruzados.</p>
+                <h1 className="text-2xl font-bold tracking-tight">Controle de Acesso</h1>
+                <p className="text-gray-500">Gerencie usuários, permissões e agências parceiras.</p>
             </div>
 
             <UserControlClient initialUsers={dbUsers} agencies={agencies} />

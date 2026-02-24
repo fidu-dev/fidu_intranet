@@ -25,7 +25,7 @@ export default function CadastroForm() {
         bankDetails: '',
     });
 
-    const [users, setUsers] = useState<RequestedUser[]>([{ name: '', email: '' }]);
+    const [users, setUsers] = useState<RequestedUser[]>([{ name: '', email: '', phone: '' }]);
 
     const handleAddUser = () => setUsers([...users, { name: '', email: '' }]);
 
@@ -163,6 +163,10 @@ export default function CadastroForm() {
                                     <div className="space-y-1.5 flex-1 w-full">
                                         <Label className="text-xs text-gray-500">E-mail corporativo</Label>
                                         <Input type="email" value={user.email} onChange={e => handleUserChange(index, 'email', e.target.value)} placeholder="joao@agencia.com" required />
+                                    </div>
+                                    <div className="space-y-1.5 flex-1 w-full">
+                                        <Label className="text-xs text-gray-500">Telefone / WhatsApp</Label>
+                                        <Input type="tel" value={user.phone || ''} onChange={e => handleUserChange(index, 'phone', e.target.value)} placeholder="(11) 99999-9999" />
                                     </div>
                                     <Button
                                         type="button"
