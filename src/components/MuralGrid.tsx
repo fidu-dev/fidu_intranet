@@ -67,9 +67,9 @@ export function MuralGrid({ items, readLogs, isAdmin }: MuralGridProps) {
                         <thead>
                             <tr className="bg-gray-50/50 border-b border-gray-100">
                                 <th className="px-6 py-3 text-[11px] font-bold text-gray-500 uppercase tracking-tight w-24">Data</th>
-                                <th className="px-4 py-3 text-[11px] font-bold text-gray-500 uppercase tracking-tight">Categoria</th>
-                                <th className="px-4 py-3 text-[11px] font-bold text-gray-500 uppercase tracking-tight">Aviso</th>
-                                <th className="px-4 py-3 text-[11px] font-bold text-gray-500 uppercase tracking-tight">Detalhes</th>
+                                <th className="px-4 py-3 text-[11px] font-bold text-gray-500 uppercase tracking-tight w-32">Categoria</th>
+                                <th className="px-4 py-3 text-[11px] font-bold text-gray-500 uppercase tracking-tight w-1/4 min-w-[200px]">Aviso</th>
+                                <th className="px-4 py-3 text-[11px] font-bold text-gray-500 uppercase tracking-tight w-1/2">Detalhes</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-50">
@@ -90,8 +90,8 @@ export function MuralGrid({ items, readLogs, isAdmin }: MuralGridProps) {
                                                     )}
                                                     {['Crítica', 'Alta'].includes(item.priority) && (
                                                         <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold uppercase w-fit border ${item.priority === 'Crítica'
-                                                                ? 'bg-red-600 text-white border-red-700'
-                                                                : 'bg-red-100 text-red-600 border-red-200'
+                                                            ? 'bg-red-600 text-white border-red-700'
+                                                            : 'bg-red-100 text-red-600 border-red-200'
                                                             }`}>
                                                             {item.priority === 'Crítica' ? 'Crítica' : 'Urgente'}
                                                         </span>
