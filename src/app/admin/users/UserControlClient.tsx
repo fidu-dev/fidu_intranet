@@ -102,7 +102,7 @@ export function UserControlClient({ initialUsers, agencies }: { initialUsers: an
                                 Destinos Permitidos
                                 <div className="text-[9px] text-gray-400 font-normal mt-0.5 normal-case tracking-normal">Mantenha limpo para acesso total.</div>
                             </th>
-                            <th className="px-6 py-4 text-right">Ação</th>
+                            <th className="px-6 py-4 text-center">Ação</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
@@ -179,8 +179,8 @@ export function UserControlClient({ initialUsers, agencies }: { initialUsers: an
                                         ))}
                                     </div>
                                 </td>
-                                <td className="px-6 py-4 text-right">
-                                    <div className="flex justify-end gap-2">
+                                <td className="px-6 py-4 text-center">
+                                    <div className="flex justify-center gap-2">
                                         <button
                                             onClick={() => setIsAddingUser(false)}
                                             className="px-3 py-1 bg-gray-200 text-gray-700 rounded text-xs font-semibold"
@@ -274,7 +274,7 @@ export function UserControlClient({ initialUsers, agencies }: { initialUsers: an
                                         ))}
                                     </div>
                                 </td>
-                                <td className="px-6 py-4 text-right">
+                                <td className="px-6 py-4 text-center">
                                     <button
                                         onClick={() => handleSave(user)}
                                         disabled={saving === user.id}
