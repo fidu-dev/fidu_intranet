@@ -174,7 +174,7 @@ export function UserControlClient({ initialUsers, agencies }: { initialUsers: an
                                                     }}
                                                     className="rounded text-[#3b5998] w-3 h-3"
                                                 />
-                                                <span className="truncate" title={d}>{d}</span>
+                                                <span title={d}>{d}</span>
                                             </label>
                                         ))}
                                     </div>
@@ -269,7 +269,7 @@ export function UserControlClient({ initialUsers, agencies }: { initialUsers: an
                                                     }}
                                                     className="rounded text-blue-600 w-3 h-3"
                                                 />
-                                                <span className="truncate" title={d}>{d}</span>
+                                                <span title={d}>{d}</span>
                                             </label>
                                         ))}
                                     </div>
