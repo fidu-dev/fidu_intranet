@@ -98,7 +98,10 @@ export function UserControlClient({ initialUsers, agencies }: { initialUsers: an
                             <th className="px-6 py-4">Nome da Agência</th>
                             <th className="px-6 py-4">Role / Acesso</th>
                             <th className="px-6 py-4">Permissões Especiais</th>
-                            <th className="px-6 py-4">Destinos Permitidos</th>
+                            <th className="px-6 py-4">
+                                Destinos Permitidos
+                                <div className="text-[9px] text-gray-400 font-normal mt-0.5 normal-case tracking-normal">Mantenha limpo para acesso total.</div>
+                            </th>
                             <th className="px-6 py-4 text-right">Ação</th>
                         </tr>
                     </thead>
@@ -245,7 +248,7 @@ export function UserControlClient({ initialUsers, agencies }: { initialUsers: an
                                         </label>
                                         <label className="flex items-center gap-2 cursor-pointer">
                                             <input type="checkbox" checked={user.flagExchange} onChange={(e) => updateField(user.id, 'flagExchange', e.target.checked)} className="rounded text-blue-600" />
-                                            Câmbio (Exchange)
+                                            Câmbio
                                         </label>
                                         <label className="flex items-center gap-2 cursor-pointer">
                                             <input type="checkbox" checked={user.flagReserva} onChange={(e) => updateField(user.id, 'flagReserva', e.target.checked)} className="rounded text-blue-600" />
