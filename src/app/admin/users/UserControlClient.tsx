@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { updateUserAccess, createNewUser } from '@/app/admin/actions';
 
-const AVAILABLE_DESTINATIONS = ["ATACAMA", "BARILOCHE", "CALAFATE", "CALAMA", "GENERAL", "PUERTO NATALES", "PUERTO VARAS", "SAN PEDRO", "SANTIAGO", "TORRES DEL PAINE", "USHUAIA"];
+const AVAILABLE_DESTINATIONS = ["ATACAMA", "BARILOCHE", "SANTIAGO"];
 
 export function UserControlClient({ initialUsers, agencies }: { initialUsers: any[], agencies: any[] }) {
     const [users, setUsers] = useState(initialUsers);
