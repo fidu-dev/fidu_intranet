@@ -125,7 +125,7 @@ export function UserControlClient({ initialUsers, agencies }: { initialUsers: an
                                         onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
                                     />
                                 </td>
-                                <td className="px-6 py-4">
+                                <td className="px-6 py-4 min-w-[180px]">
                                     <select
                                         className="w-full px-2 py-1 text-xs border rounded bg-white text-gray-700 font-medium border-blue-300"
                                         value={newUser.agencyId}
@@ -137,7 +137,7 @@ export function UserControlClient({ initialUsers, agencies }: { initialUsers: an
                                         ))}
                                     </select>
                                 </td>
-                                <td className="px-6 py-4">
+                                <td className="px-6 py-4 min-w-[160px]">
                                     <select
                                         className="w-full px-2 py-1 text-xs border rounded bg-white border-blue-300"
                                         value={newUser.role}
@@ -216,7 +216,7 @@ export function UserControlClient({ initialUsers, agencies }: { initialUsers: an
                                         onChange={(e) => updateField(user.id, 'name', e.target.value)}
                                     />
                                 </td>
-                                <td className="px-6 py-4">
+                                <td className="px-6 py-4 min-w-[180px]">
                                     <select
                                         className="w-full px-2 py-1 text-xs border rounded bg-white text-gray-700 font-medium"
                                         value={user.agencyId || ''}
@@ -228,7 +228,7 @@ export function UserControlClient({ initialUsers, agencies }: { initialUsers: an
                                         ))}
                                     </select>
                                 </td>
-                                <td className="px-6 py-4">
+                                <td className="px-6 py-4 min-w-[160px]">
                                     <select
                                         className="w-full px-2 py-1 text-xs border rounded bg-white"
                                         value={user.role}
