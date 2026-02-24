@@ -15,7 +15,7 @@ export default function CadastroPage() {
                 <div className="text-center mb-10">
                     <h1 className="text-4xl font-extrabold text-white tracking-tight drop-shadow-md">Seja Parceiro Fidu</h1>
                     <p className="mt-3 text-lg text-blue-100 max-w-2xl mx-auto drop-shadow">
-                        Junte-se a nós e ofereça as melhores experiências do mundo aos seus passageiros com comissionamento e suporte de ponta.
+                        Junte-se a nós e ofereça as melhores experiências aos seus passageiros com comissionamento e suporte de ponta.
                     </p>
                 </div>
 
