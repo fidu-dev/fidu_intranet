@@ -11,6 +11,7 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
     Dialog,
     DialogContent,
@@ -22,7 +23,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Plus, Pencil, Save, Loader2, X } from 'lucide-react';
+import { Plus, Pencil, Save, Loader2, X, CheckCircle, XCircle } from 'lucide-react';
 
 export interface AgencyFull {
     id: string;
@@ -32,7 +33,12 @@ export interface AgencyFull {
     cadastur: string | null;
     address: string | null;
     responsibleName: string | null;
+    responsiblePhone: string | null;
+    instagram: string | null;
+    bankDetails: string | null;
     commissionRate: number;
+    status: string;
+    requestedUsers?: any;
 }
 
 interface AgenciesTableProps {
@@ -50,7 +56,7 @@ export function AgenciesTable({ initialAgencies }: AgenciesTableProps) {
 
     // New Agency State
     const [newAgency, setNewAgency] = useState<Partial<AgencyFull>>({
-        name: '', legalName: '', cnpj: '', cadastur: '', address: '', responsibleName: '', commissionRate: 0
+        name: '', legalName: '', cnpj: '', cadastur: '', address: '', responsibleName: '', responsiblePhone: '', instagram: '', bankDetails: '', commissionRate: 0, status: 'APPROVED'
     });
 
     const handleEdit = (agency: AgencyFull) => {
@@ -62,7 +68,12 @@ export function AgenciesTable({ initialAgencies }: AgenciesTableProps) {
             cadastur: agency.cadastur || '',
             address: agency.address || '',
             responsibleName: agency.responsibleName || '',
+            responsiblePhone: agency.responsiblePhone || '',
+            instagram: agency.instagram || '',
+            bankDetails: agency.bankDetails || '',
             commissionRate: agency.commissionRate * 100,
+            status: agency.status,
+            requestedUsers: agency.requestedUsers
         });
     };
 
@@ -79,8 +90,9 @@ export function AgenciesTable({ initialAgencies }: AgenciesTableProps) {
             await updateAgency(id, payload);
             setAgencies(agencies.map(a => a.id === id ? { ...a, ...payload } : a));
             setEditingId(null);
-        } catch (e) {
-            alert('Falha ao atualizar agência');
+        } catch (e: any) {
+            console.error('Save Agency Error:', e);
+            alert(`Falha ao atualizar agência: ${e.message || e}`);
         } finally {
             setIsSaving(false);
         }
@@ -92,11 +104,37 @@ export function AgenciesTable({ initialAgencies }: AgenciesTableProps) {
         try {
             await createNewAgency({ ...newAgency, commissionRate: rate });
             window.location.reload();
-        } catch (e) {
-            alert('Falha ao criar agência');
+        } catch (e: any) {
+            console.error('Create Agency Error:', e);
+            alert(`Falha ao criar agência: ${e.message || e}`);
         } finally {
             setIsSaving(false);
             setIsCreateOpen(false);
+        }
+    };
+
+    const handleApprove = async (id: string, currentRate: number) => {
+        setIsSaving(true);
+        try {
+            await updateAgency(id, { status: 'APPROVED', commissionRate: currentRate });
+            setAgencies(agencies.map(a => a.id === id ? { ...a, status: 'APPROVED' } : a));
+        } catch (e) {
+            alert('Falha ao aprovar agência');
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const handleReject = async (id: string) => {
+        if (!confirm('Deseja realmente rejeitar esta agência?')) return;
+        setIsSaving(true);
+        try {
+            await updateAgency(id, { status: 'REJECTED' });
+            setAgencies(agencies.map(a => a.id === id ? { ...a, status: 'REJECTED' } : a));
+        } catch (e) {
+            alert('Falha ao rejeitar agência');
+        } finally {
+            setIsSaving(false);
         }
     };
 
@@ -136,12 +174,24 @@ export function AgenciesTable({ initialAgencies }: AgenciesTableProps) {
                                 <Input value={newAgency.cadastur!} onChange={e => setNewAgency({ ...newAgency, cadastur: e.target.value })} className="col-span-3 h-8 text-sm" />
                             </div>
                             <div className="grid grid-cols-4 items-center gap-4">
+                                <Label className="text-right text-xs">Instagram</Label>
+                                <Input value={newAgency.instagram!} onChange={e => setNewAgency({ ...newAgency, instagram: e.target.value })} className="col-span-3 h-8 text-sm" placeholder="@agencia" />
+                            </div>
+                            <div className="grid grid-cols-4 items-center gap-4">
                                 <Label className="text-right text-xs">Responsável</Label>
                                 <Input value={newAgency.responsibleName!} onChange={e => setNewAgency({ ...newAgency, responsibleName: e.target.value })} className="col-span-3 h-8 text-sm" />
+                            </div>
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <Label className="text-right text-xs">Tel. Responsável</Label>
+                                <Input value={newAgency.responsiblePhone!} onChange={e => setNewAgency({ ...newAgency, responsiblePhone: e.target.value })} className="col-span-3 h-8 text-sm" placeholder="(11) 99999-9999" />
                             </div>
                             <div className="grid grid-cols-4 gap-4">
                                 <Label className="text-right text-xs pt-2">Endereço</Label>
                                 <textarea value={newAgency.address!} onChange={e => setNewAgency({ ...newAgency, address: e.target.value })} className="col-span-3 flex min-h-[60px] w-full rounded-md border border-slate-200 bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-950 disabled:cursor-not-allowed disabled:opacity-50" />
+                            </div>
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <Label className="text-right text-xs">Dados Bancários / Pix</Label>
+                                <Input value={newAgency.bankDetails!} onChange={e => setNewAgency({ ...newAgency, bankDetails: e.target.value })} className="col-span-3 h-8 text-sm" placeholder="Chave celular, CNPJ, ou Ag/Cc" />
                             </div>
                             <div className="grid grid-cols-4 items-center gap-4">
                                 <Label className="text-right text-xs font-bold text-blue-600">Comissão %</Label>
@@ -158,15 +208,16 @@ export function AgenciesTable({ initialAgencies }: AgenciesTableProps) {
                 </Dialog>
             </div>
 
-            <div className="border border-gray-200 rounded-xl bg-white overflow-hidden shadow-sm">
-                <Table>
+            <div className="border border-gray-200 rounded-xl bg-white shadow-sm">
+                <Table className="min-w-[1100px]">
                     <TableHeader>
                         <TableRow className="bg-gray-50/50">
                             <TableHead className="w-[180px]">Fantasia</TableHead>
-                            <TableHead>Dados Empresariais</TableHead>
-                            <TableHead>Responsável</TableHead>
-                            <TableHead className="w-[120px]">Comissão Base</TableHead>
-                            <TableHead className="text-right w-[100px]">Ações</TableHead>
+                            <TableHead className="w-[320px]">Dados Empresariais</TableHead>
+                            <TableHead className="w-[280px]">Responsável</TableHead>
+                            <TableHead className="w-[110px]">Comissão Base</TableHead>
+                            <TableHead className="w-[120px]">Status</TableHead>
+                            <TableHead className="text-right w-[90px]">Ações</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -191,26 +242,42 @@ export function AgenciesTable({ initialAgencies }: AgenciesTableProps) {
                                                 <div className="flex items-center gap-2"><span className="w-16 text-gray-400">Razão:</span><Input className="h-7 text-xs flex-1" value={editData.legalName!} onChange={e => setEditData({ ...editData, legalName: e.target.value })} /></div>
                                                 <div className="flex items-center gap-2"><span className="w-16 text-gray-400">CNPJ:</span><Input className="h-7 text-xs flex-1" value={editData.cnpj!} onChange={e => setEditData({ ...editData, cnpj: e.target.value })} /></div>
                                                 <div className="flex items-center gap-2"><span className="w-16 text-gray-400">Cadastur:</span><Input className="h-7 text-xs flex-1" value={editData.cadastur!} onChange={e => setEditData({ ...editData, cadastur: e.target.value })} /></div>
+                                                <div className="flex items-center gap-2"><span className="w-16 text-gray-400">Insta:</span><Input className="h-7 text-xs flex-1" value={editData.instagram!} onChange={e => setEditData({ ...editData, instagram: e.target.value })} placeholder="@agencia" /></div>
                                                 <div className="flex items-start gap-2"><span className="w-16 text-gray-400 mt-1.5">Endereço:</span><textarea className="flex-1 min-h-[40px] rounded-md border text-xs p-2" value={editData.address!} onChange={e => setEditData({ ...editData, address: e.target.value })} /></div>
+                                                <div className="flex items-start gap-2"><span className="w-16 text-gray-400 mt-1.5">Banco/Pix:</span><textarea className="flex-1 min-h-[40px] rounded-md border text-xs p-2" value={editData.bankDetails!} onChange={e => setEditData({ ...editData, bankDetails: e.target.value })} /></div>
                                             </div>
                                         ) : (
                                             <div className="space-y-1 text-xs text-gray-500">
                                                 {agency.legalName && <div><span className="text-gray-400">Razão:</span> {agency.legalName}</div>}
                                                 {agency.cnpj && <div><span className="text-gray-400">CNPJ:</span> {agency.cnpj}</div>}
                                                 {agency.cadastur && <div><span className="text-gray-400">Cadastur:</span> {agency.cadastur}</div>}
+                                                {agency.instagram && <div><span className="text-gray-400">Insta:</span> {agency.instagram}</div>}
                                                 {agency.address && <div className="truncate max-w-xs" title={agency.address}><span className="text-gray-400">End.:</span> {agency.address}</div>}
+                                                {agency.bankDetails && <div className="truncate max-w-xs" title={agency.bankDetails}><span className="text-gray-400">Banco:</span> {agency.bankDetails}</div>}
                                             </div>
                                         )}
                                     </TableCell>
                                     <TableCell className="align-top pt-4 text-gray-600">
                                         {isEditing ? (
-                                            <Input
-                                                className="h-8 text-sm w-full"
-                                                value={editData.responsibleName!}
-                                                onChange={e => setEditData({ ...editData, responsibleName: e.target.value })}
-                                            />
+                                            <div className="flex flex-col gap-2 w-full pr-4">
+                                                <Input
+                                                    className="h-8 text-sm w-full"
+                                                    placeholder="Nome"
+                                                    value={editData.responsibleName!}
+                                                    onChange={e => setEditData({ ...editData, responsibleName: e.target.value })}
+                                                />
+                                                <Input
+                                                    className="h-8 text-sm w-full"
+                                                    placeholder="Telefone"
+                                                    value={editData.responsiblePhone!}
+                                                    onChange={e => setEditData({ ...editData, responsiblePhone: e.target.value })}
+                                                />
+                                            </div>
                                         ) : (
-                                            agency.responsibleName || '-'
+                                            <div className="space-y-1">
+                                                <div className="font-semibold text-gray-800">{agency.responsibleName || '-'}</div>
+                                                {agency.responsiblePhone && <div className="text-xs text-gray-500">{agency.responsiblePhone}</div>}
+                                            </div>
                                         )}
                                     </TableCell>
                                     <TableCell className="align-top pt-4">
@@ -231,6 +298,25 @@ export function AgenciesTable({ initialAgencies }: AgenciesTableProps) {
                                             </span>
                                         )}
                                     </TableCell>
+                                    <TableCell className="align-top pt-4">
+                                        {isEditing ? (
+                                            <select
+                                                className="h-8 text-sm w-full border border-gray-300 rounded px-2 bg-white"
+                                                value={editData.status}
+                                                onChange={e => setEditData({ ...editData, status: e.target.value })}
+                                            >
+                                                <option value="PENDING">Pendente</option>
+                                                <option value="APPROVED">Aprovada</option>
+                                                <option value="REJECTED">Rejeitada</option>
+                                            </select>
+                                        ) : agency.status === 'PENDING' ? (
+                                            <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">Pendente</Badge>
+                                        ) : agency.status === 'APPROVED' ? (
+                                            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">Aprovada</Badge>
+                                        ) : (
+                                            <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">Rejeitada</Badge>
+                                        )}
+                                    </TableCell>
                                     <TableCell className="text-right align-top pt-4">
                                         {isEditing ? (
                                             <div className="flex items-center justify-end gap-1">
@@ -247,14 +333,38 @@ export function AgenciesTable({ initialAgencies }: AgenciesTableProps) {
                                                 </Button>
                                             </div>
                                         ) : (
-                                            <Button
-                                                size="sm"
-                                                variant="ghost"
-                                                className="h-8 w-8 p-0"
-                                                onClick={() => handleEdit(agency)}
-                                            >
-                                                <Pencil className="h-4 w-4 text-gray-500" />
-                                            </Button>
+                                            <div className="flex items-center justify-end gap-1">
+                                                {agency.status === 'PENDING' && (
+                                                    <>
+                                                        <Button
+                                                            size="sm"
+                                                            variant="ghost"
+                                                            className="h-8 w-8 p-0 text-green-600 hover:text-green-700 hover:bg-green-50"
+                                                            onClick={() => handleApprove(agency.id, agency.commissionRate)}
+                                                            title="Aprovar Agência"
+                                                        >
+                                                            <CheckCircle className="h-4 w-4" />
+                                                        </Button>
+                                                        <Button
+                                                            size="sm"
+                                                            variant="ghost"
+                                                            className="h-8 w-8 p-0 text-red-500 hover:text-red-600 hover:bg-red-50"
+                                                            onClick={() => handleReject(agency.id)}
+                                                            title="Rejeitar Agência"
+                                                        >
+                                                            <XCircle className="h-4 w-4" />
+                                                        </Button>
+                                                    </>
+                                                )}
+                                                <Button
+                                                    size="sm"
+                                                    variant="ghost"
+                                                    className="h-8 w-8 p-0"
+                                                    onClick={() => handleEdit(agency)}
+                                                >
+                                                    <Pencil className="h-4 w-4 text-gray-500" />
+                                                </Button>
+                                            </div>
                                         )}
                                     </TableCell>
                                 </TableRow>
@@ -262,7 +372,7 @@ export function AgenciesTable({ initialAgencies }: AgenciesTableProps) {
                         })}
                         {agencies.length === 0 && (
                             <TableRow>
-                                <TableCell colSpan={5} className="text-center py-8 text-gray-500">Nenhuma agência cadastrada.</TableCell>
+                                <TableCell colSpan={6} className="text-center py-8 text-gray-500">Nenhuma agência cadastrada.</TableCell>
                             </TableRow>
                         )}
                     </TableBody>

@@ -8,9 +8,10 @@ import { UserButton } from '@clerk/nextjs';
 interface PortalHeaderProps {
     agency?: AgencyInfo;
     hasUnreadMural?: boolean;
+    isPublic?: boolean;
 }
 
-export function PortalHeader({ agency, hasUnreadMural }: PortalHeaderProps) {
+export function PortalHeader({ agency, hasUnreadMural, isPublic = false }: PortalHeaderProps) {
     const pathname = usePathname();
 
     const navItems = [
@@ -18,6 +19,7 @@ export function PortalHeader({ agency, hasUnreadMural }: PortalHeaderProps) {
         { label: 'Reservas', href: '/portal/reservas', icon: null, permission: agency?.canReserve },
         { label: 'Mural', href: '/portal/mural', icon: null, showBadge: hasUnreadMural, permission: agency?.canAccessMural },
         { label: 'Portfólio', href: 'https://portfolio.fiduviagens.com.br', icon: null, external: true },
+        { label: 'Configurações', href: '/admin', icon: null, permission: agency?.isAdmin },
     ];
 
     return (
@@ -31,20 +33,24 @@ export function PortalHeader({ agency, hasUnreadMural }: PortalHeaderProps) {
 
                     <nav className="hidden md:flex items-center gap-1 border-l pl-6 ml-2">
                         {navItems.map((item) => {
-                            const hasPermission = item.permission !== false;
+                            const hasPermission = isPublic || item.permission !== false;
                             if (!hasPermission) return null;
                             const isActive = pathname === item.href;
+                            const isClickable = !isPublic;
 
                             return (
                                 <Link
                                     key={item.href}
-                                    href={item.href}
-                                    target={item.external ? "_blank" : undefined}
-                                    rel={item.external ? "noopener noreferrer" : undefined}
+                                    href={isClickable ? item.href : '#'}
+                                    target={isClickable && item.external ? "_blank" : undefined}
+                                    rel={isClickable && item.external ? "noopener noreferrer" : undefined}
                                     className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${isActive
                                         ? 'bg-blue-50 text-[#3b5998]'
-                                        : 'text-gray-600 hover:bg-gray-50'
-                                        }`}
+                                        : 'text-gray-600'
+                                        } ${!isClickable ? 'opacity-50 cursor-default hover:bg-transparent' : 'hover:bg-gray-50'}`}
+                                    onClick={(e) => {
+                                        if (!isClickable) e.preventDefault();
+                                    }}
                                 >
                                     {item.label}
                                     {item.showBadge && (
@@ -78,14 +84,20 @@ export function PortalHeader({ agency, hasUnreadMural }: PortalHeaderProps) {
                         </div>
                     )}
                     <div className="flex items-center pl-6 border-l ml-2">
-                        <UserButton
-                            afterSignOutUrl="/sign-in"
-                            appearance={{
-                                elements: {
-                                    userButtonAvatarBox: "w-10 h-10 ring-2 ring-white shadow-sm"
-                                }
-                            }}
-                        />
+                        {isPublic ? (
+                            <Link href="/sign-in" className="text-sm font-bold text-[#3b5998] hover:underline">
+                                Fazer Login
+                            </Link>
+                        ) : (
+                            <UserButton
+                                afterSignOutUrl="/sign-in"
+                                appearance={{
+                                    elements: {
+                                        userButtonAvatarBox: "w-10 h-10 ring-2 ring-white shadow-sm"
+                                    }
+                                }}
+                            />
+                        )}
                     </div>
                 </div>
             </div>

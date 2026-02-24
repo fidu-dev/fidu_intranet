@@ -19,6 +19,12 @@ enum UserStatus {
   PENDING
 }
 
+enum AgencyStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 model Agency {
   id              String   @id @default(uuid())
   name            String
@@ -27,10 +33,15 @@ model Agency {
   cadastur        String?
   address         String?
   responsibleName String?
-  commissionRate  Float    @default(0)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  users           User[]
+  responsiblePhone String?
+  instagram        String?
+  bankDetails      String?
+  commissionRate   Float        @default(0)
+  status           AgencyStatus @default(PENDING)
+  requestedUsers   Json?
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  users            User[]
 }
 
 model User {

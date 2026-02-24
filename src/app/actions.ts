@@ -15,6 +15,7 @@ export interface AgencyInfo {
     canReserve: boolean;
     canAccessMural: boolean;
     isInternal: boolean;
+    isAdmin: boolean;
     canAccessExchange: boolean;
     allowedDestinations: string[];
 }
@@ -54,6 +55,7 @@ export async function getAgencyProducts(): Promise<{ products: any[], agency?: A
             canReserve: capabilities.canReserve,
             canAccessMural: capabilities.canAccessMural,
             isInternal: capabilities.isInternal,
+            isAdmin: capabilities.isAdmin || false,
             canAccessExchange: capabilities.canAccessExchange,
             allowedDestinations: capabilities.allowedDestinations || []
         };

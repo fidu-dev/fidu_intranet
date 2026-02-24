@@ -35,25 +35,75 @@ export async function getAgencies(): Promise<any[]> {
         cadastur: record.cadastur,
         address: record.address,
         responsibleName: record.responsibleName,
+        responsiblePhone: record.responsiblePhone,
+        instagram: record.instagram,
+        bankDetails: record.bankDetails,
         commissionRate: record.commissionRate,
+        status: record.status,
+        requestedUsers: record.requestedUsers,
     }));
 }
 
 export async function updateAgency(agencyId: string, data: any) {
-    await prisma.agency.update({
-        where: { id: agencyId },
-        data: {
-            name: data.name,
-            legalName: data.legalName,
-            cnpj: data.cnpj,
-            cadastur: data.cadastur,
-            address: data.address,
-            responsibleName: data.responsibleName,
-            commissionRate: data.commissionRate !== undefined ? Number(data.commissionRate) : undefined
-        }
-    });
+    try {
+        const existingAgency = await prisma.agency.findUnique({
+            where: { id: agencyId }
+        });
 
-    return { success: true };
+        if (!existingAgency) {
+            throw new Error('Agência não encontrada');
+        }
+
+        const updatedAgency = await prisma.agency.update({
+            where: { id: agencyId },
+            data: {
+                name: data.name,
+                legalName: data.legalName,
+                cnpj: data.cnpj,
+                cadastur: data.cadastur,
+                address: data.address,
+                responsibleName: data.responsibleName,
+                responsiblePhone: data.responsiblePhone,
+                instagram: data.instagram,
+                bankDetails: data.bankDetails,
+                commissionRate: data.commissionRate !== undefined ? Number(data.commissionRate) : undefined,
+                status: data.status,
+                requestedUsers: data.requestedUsers
+            }
+        });
+
+        // Auto-create initial users upon agency approval
+        if (data.status === 'APPROVED' && existingAgency.status !== 'APPROVED') {
+            const reqUsers = updatedAgency.requestedUsers as any;
+            if (Array.isArray(reqUsers) && reqUsers.length > 0) {
+                for (const reqUser of reqUsers) {
+                    if (!reqUser.email || !reqUser.name) continue;
+
+                    // Avoid duplicating existing users
+                    const existingUser = await prisma.user.findUnique({
+                        where: { email: String(reqUser.email).trim().toLowerCase() }
+                    });
+
+                    if (!existingUser) {
+                        await prisma.user.create({
+                            data: {
+                                email: String(reqUser.email).trim().toLowerCase(),
+                                name: String(reqUser.name),
+                                agencyId: updatedAgency.id,
+                                role: 'AGENCIA_PARCEIRA',
+                                status: 'ACTIVE'
+                            }
+                        });
+                    }
+                }
+            }
+        }
+
+        return { success: true };
+    } catch (e: any) {
+        console.error('Update Agency Action Error:', e);
+        throw new Error(`Erro no servidor ao atualizar: ${e.message}`);
+    }
 }
 
 export async function createNewAgency(data: any) {
@@ -65,7 +115,12 @@ export async function createNewAgency(data: any) {
             cadastur: data.cadastur,
             address: data.address,
             responsibleName: data.responsibleName,
-            commissionRate: data.commissionRate !== undefined ? Number(data.commissionRate) : 0
+            responsiblePhone: data.responsiblePhone,
+            instagram: data.instagram,
+            bankDetails: data.bankDetails,
+            commissionRate: data.commissionRate !== undefined ? Number(data.commissionRate) : 0,
+            status: data.status || 'PENDING',
+            requestedUsers: data.requestedUsers || []
         }
     });
 
@@ -120,12 +175,12 @@ export async function getSimulatorProducts(agencyId: string): Promise<SimulatedP
 export async function getUsers() {
     const users = await prisma.user.findMany({
         orderBy: { createdAt: 'desc' },
-        select: { id: true, email: true, name: true, agencyId: true, role: true, flagMural: true, flagExchange: true, flagReserva: true, allowedDestinations: true }
+        select: { id: true, email: true, name: true, agencyId: true, role: true, status: true, flagMural: true, flagExchange: true, flagReserva: true, allowedDestinations: true }
     });
     return users;
 }
 
-export async function updateUserAccess(userId: string, data: { email?: string, name?: string, agencyId?: string, role?: string, flagMural?: boolean, flagExchange?: boolean, flagReserva?: boolean, allowedDestinations?: string[] }) {
+export async function updateUserAccess(userId: string, data: { email?: string, name?: string, agencyId?: string, role?: string, status?: string, flagMural?: boolean, flagExchange?: boolean, flagReserva?: boolean, allowedDestinations?: string[] }) {
     await prisma.user.update({
         where: { id: userId },
         data: {
@@ -133,6 +188,7 @@ export async function updateUserAccess(userId: string, data: { email?: string, n
             name: data.name,
             agencyId: data.agencyId || null,
             role: data.role as any,
+            status: data.status as any,
             flagMural: data.flagMural,
             flagExchange: data.flagExchange,
             flagReserva: data.flagReserva,
@@ -143,13 +199,14 @@ export async function updateUserAccess(userId: string, data: { email?: string, n
     return { success: true };
 }
 
-export async function createNewUser(data: { email: string, name: string, agencyId?: string, role: string, flagMural: boolean, flagExchange: boolean, flagReserva: boolean, allowedDestinations?: string[] }) {
+export async function createNewUser(data: { email: string, name: string, agencyId?: string, role: string, status?: string, flagMural: boolean, flagExchange: boolean, flagReserva: boolean, allowedDestinations?: string[] }) {
     const user = await prisma.user.create({
         data: {
             email: data.email,
             name: data.name,
             agencyId: data.agencyId || null,
             role: data.role as any,
+            status: data.status as any ?? 'ACTIVE',
             flagMural: data.flagMural,
             flagExchange: data.flagExchange,
             flagReserva: data.flagReserva,

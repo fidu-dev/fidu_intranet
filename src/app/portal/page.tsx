@@ -35,6 +35,7 @@ export default async function Portal() {
                             canReserve: !!agency.canReserve,
                             canAccessMural: !!agency.canAccessMural,
                             isInternal: !!agency.isInternal,
+                            isAdmin: !!agency.isAdmin,
                             canAccessExchange: !!agency.canAccessExchange,
                             allowedDestinations: agency.allowedDestinations || []
                         } : undefined}

@@ -16,6 +16,7 @@ export function UserControlClient({ initialUsers, agencies }: { initialUsers: an
         name: '',
         agencyId: '',
         role: 'AGENCIA_PARCEIRA',
+        status: 'ACTIVE',
         flagMural: false,
         flagExchange: false,
         flagReserva: false,
@@ -31,6 +32,7 @@ export function UserControlClient({ initialUsers, agencies }: { initialUsers: an
                     name: user.name,
                     agencyId: user.agencyId,
                     role: user.role,
+                    status: user.status,
                     flagMural: user.flagMural,
                     flagExchange: user.flagExchange,
                     flagReserva: user.flagReserva,
@@ -48,6 +50,7 @@ export function UserControlClient({ initialUsers, agencies }: { initialUsers: an
                     email: user.email,
                     agencyId: user.agencyId,
                     role: user.role,
+                    status: user.status,
                     flagMural: user.flagMural,
                     flagExchange: user.flagExchange,
                     flagReserva: user.flagReserva,
@@ -94,15 +97,16 @@ export function UserControlClient({ initialUsers, agencies }: { initialUsers: an
                 <table className="w-full text-sm text-left">
                     <thead className="text-xs text-gray-500 bg-gray-50 uppercase font-semibold">
                         <tr>
-                            <th className="px-6 py-4">Usuário / Email</th>
-                            <th className="px-6 py-4">Nome da Agência</th>
-                            <th className="px-6 py-4">Role / Acesso</th>
-                            <th className="px-6 py-4">Permissões Especiais</th>
-                            <th className="px-6 py-4">
-                                Destinos Permitidos
-                                <div className="text-[9px] text-gray-400 font-normal mt-0.5 normal-case tracking-normal">Mantenha limpo para acesso total.</div>
+                            <th className="px-3 py-4 w-[220px]">Usuário / Email</th>
+                            <th className="px-3 py-4 w-[140px]">Agência</th>
+                            <th className="px-3 py-4 w-[130px]">Role</th>
+                            <th className="px-3 py-4 w-[90px]">Status</th>
+                            <th className="px-3 py-4 w-[110px]">Permissões</th>
+                            <th className="px-3 py-4 w-[100px]">
+                                Destinos
+                                <div className="text-[9px] text-gray-400 font-normal mt-0.5 normal-case tracking-normal">Limpo = total.</div>
                             </th>
-                            <th className="px-6 py-4 text-center">Ação</th>
+                            <th className="px-3 py-4 text-center w-[100px]">Ação</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
@@ -146,6 +150,17 @@ export function UserControlClient({ initialUsers, agencies }: { initialUsers: an
                                         <option value="AGENCIA_PARCEIRA">Agência Parceira</option>
                                         <option value="VENDEDOR_INTERNO">Vendedor Interno</option>
                                         <option value="ADMIN">Admin</option>
+                                    </select>
+                                </td>
+                                <td className="px-6 py-4 min-w-[120px]">
+                                    <select
+                                        className="w-full px-2 py-1 text-xs border rounded bg-white border-blue-300 font-medium"
+                                        value={newUser.status}
+                                        onChange={(e) => setNewUser({ ...newUser, status: e.target.value })}
+                                    >
+                                        <option value="ACTIVE">Ativo</option>
+                                        <option value="INACTIVE">Inativo</option>
+                                        <option value="PENDING">Pendente</option>
                                     </select>
                                 </td>
                                 <td className="px-6 py-4">
@@ -200,7 +215,7 @@ export function UserControlClient({ initialUsers, agencies }: { initialUsers: an
                         )}
                         {filteredUsers.map((user) => (
                             <tr key={user.id} className="hover:bg-gray-50/50">
-                                <td className="px-6 py-4 min-w-[250px]">
+                                <td className="px-3 py-4 w-[220px]">
                                     <input
                                         type="email"
                                         className="w-full px-2 py-1 text-xs border rounded bg-white font-medium mb-1"
@@ -216,7 +231,7 @@ export function UserControlClient({ initialUsers, agencies }: { initialUsers: an
                                         onChange={(e) => updateField(user.id, 'name', e.target.value)}
                                     />
                                 </td>
-                                <td className="px-6 py-4 min-w-[180px]">
+                                <td className="px-3 py-4 min-w-[140px] max-w-[180px]">
                                     <select
                                         className="w-full px-2 py-1 text-xs border rounded bg-white text-gray-700 font-medium"
                                         value={user.agencyId || ''}
@@ -228,35 +243,47 @@ export function UserControlClient({ initialUsers, agencies }: { initialUsers: an
                                         ))}
                                     </select>
                                 </td>
-                                <td className="px-6 py-4 min-w-[200px]">
+                                <td className="px-3 py-4 min-w-[140px]">
                                     <select
-                                        className="w-full px-2 py-1 text-xs border rounded bg-white"
+                                        className="w-full px-2 py-1 text-[11px] border rounded bg-white"
                                         value={user.role}
                                         onChange={(e) => updateField(user.id, 'role', e.target.value)}
                                     >
                                         <option value="ADMIN">Administrador</option>
                                         <option value="VENDEDOR_INTERNO">Interno / Operações</option>
-                                        <option value="AGENCIA_PARCEIRA">Agência Parceira</option>
+                                        <option value="AGENCIA_PARCEIRA">Parceira</option>
                                     </select>
                                 </td>
-                                <td className="px-6 py-4">
-                                    <div className="space-y-2 text-xs">
-                                        <label className="flex items-center gap-2 cursor-pointer">
-                                            <input type="checkbox" checked={user.flagMural} onChange={(e) => updateField(user.id, 'flagMural', e.target.checked)} className="rounded text-blue-600" />
+                                <td className="px-3 py-4 min-w-[100px]">
+                                    <select
+                                        className="w-full px-2 py-1 text-[11px] border rounded font-medium focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                                        style={{ backgroundColor: user.status === 'ACTIVE' ? '#dcfce7' : user.status === 'INACTIVE' ? '#fee2e2' : '#fef9c3', color: user.status === 'ACTIVE' ? '#166534' : user.status === 'INACTIVE' ? '#9f1239' : '#854d0e', borderColor: 'transparent' }}
+                                        value={user.status}
+                                        onChange={(e) => updateField(user.id, 'status', e.target.value)}
+                                    >
+                                        <option value="ACTIVE">Ativo</option>
+                                        <option value="INACTIVE">Inativo</option>
+                                        <option value="PENDING">Pendente</option>
+                                    </select>
+                                </td>
+                                <td className="px-3 py-4 min-w-[90px]">
+                                    <div className="space-y-2 text-[10px]">
+                                        <label className="flex items-center gap-1 cursor-pointer">
+                                            <input type="checkbox" checked={user.flagMural} onChange={(e) => updateField(user.id, 'flagMural', e.target.checked)} className="rounded text-blue-600 scale-90" />
                                             Mural
                                         </label>
-                                        <label className="flex items-center gap-2 cursor-pointer">
-                                            <input type="checkbox" checked={user.flagExchange} onChange={(e) => updateField(user.id, 'flagExchange', e.target.checked)} className="rounded text-blue-600" />
+                                        <label className="flex items-center gap-1 cursor-pointer">
+                                            <input type="checkbox" checked={user.flagExchange} onChange={(e) => updateField(user.id, 'flagExchange', e.target.checked)} className="rounded text-blue-600 scale-90" />
                                             Câmbio
                                         </label>
-                                        <label className="flex items-center gap-2 cursor-pointer">
-                                            <input type="checkbox" checked={user.flagReserva} onChange={(e) => updateField(user.id, 'flagReserva', e.target.checked)} className="rounded text-blue-600" />
+                                        <label className="flex items-center gap-1 cursor-pointer">
+                                            <input type="checkbox" checked={user.flagReserva} onChange={(e) => updateField(user.id, 'flagReserva', e.target.checked)} className="rounded text-blue-600 scale-90" />
                                             Reservas
                                         </label>
                                     </div>
                                 </td>
-                                <td className="px-6 py-4 min-w-[200px]">
-                                    <div className="grid grid-cols-2 gap-1 max-h-32 overflow-y-auto pr-1">
+                                <td className="px-3 py-4 w-[120px]">
+                                    <div className="flex flex-col gap-1">
                                         {AVAILABLE_DESTINATIONS.map(d => (
                                             <label key={d} className="flex items-center gap-1 text-[10px] cursor-pointer hover:bg-gray-100 p-0.5 rounded">
                                                 <input
