@@ -7,6 +7,53 @@ import { useRouter } from 'next/navigation';
 import { confirmNoticeReadAction, fetchMuralReaders } from '@/app/actions';
 import { Button } from '@/components/ui/button';
 
+function SimpleMarkdown({ text }: { text: string }) {
+    const lines = text.split('\n');
+    const elements: React.ReactNode[] = [];
+
+    const renderInline = (line: string, key: number): React.ReactNode => {
+        // Replace **bold** and *italic*
+        const parts = line.split(/(\*\*[^*]+\*\*|\*[^*]+\*)/g);
+        return (
+            <span key={key}>
+                {parts.map((part, i) => {
+                    if (part.startsWith('**') && part.endsWith('**')) {
+                        return <strong key={i} className="font-bold text-gray-900">{part.slice(2, -2)}</strong>;
+                    }
+                    if (part.startsWith('*') && part.endsWith('*')) {
+                        return <em key={i}>{part.slice(1, -1)}</em>;
+                    }
+                    return part;
+                })}
+            </span>
+        );
+    };
+
+    lines.forEach((line, i) => {
+        if (line.startsWith('### ')) {
+            elements.push(<h3 key={i} className="text-base font-bold text-gray-900 mt-4 mb-1">{line.slice(4)}</h3>);
+        } else if (line.startsWith('## ')) {
+            elements.push(<h2 key={i} className="text-[15px] font-bold text-[#3b5998] mt-5 mb-1 border-b border-blue-100 pb-1">{line.slice(3)}</h2>);
+        } else if (line.startsWith('# ')) {
+            elements.push(<h1 key={i} className="text-lg font-extrabold text-gray-900 mt-5 mb-2">{line.slice(2)}</h1>);
+        } else if (line.startsWith('- ') || line.startsWith('* ')) {
+            elements.push(
+                <div key={i} className="flex items-start gap-2 text-[14px] text-gray-700 leading-relaxed">
+                    <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-[#3b5998] flex-shrink-0" />
+                    <span>{renderInline(line.slice(2), i)}</span>
+                </div>
+            );
+        } else if (line.trim() === '') {
+            elements.push(<div key={i} className="h-2" />);
+        } else {
+            elements.push(<p key={i} className="text-[14px] text-gray-700 leading-relaxed">{renderInline(line, i)}</p>);
+        }
+    });
+
+    return <div className="space-y-1">{elements}</div>;
+}
+
+
 interface MuralModalProps {
     item: MuralItem;
     initiallyRead: boolean;
@@ -102,8 +149,8 @@ export function MuralModal({ item, initiallyRead, isAdmin, onClose }: MuralModal
                 <div className="flex-1 overflow-y-auto p-6 space-y-6">
                     {/* 2) Bloco de Impacto (Novo Componente) */}
                     <div className={`p-4 rounded-xl border ${item.priority === 'Crítica'
-                            ? 'bg-red-50 border-red-100'
-                            : 'bg-gray-50 border-gray-100'
+                        ? 'bg-red-50 border-red-100'
+                        : 'bg-gray-50 border-gray-100'
                         }`}>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div className="flex items-center gap-3">
@@ -151,9 +198,7 @@ export function MuralModal({ item, initiallyRead, isAdmin, onClose }: MuralModal
 
                     {/* 4) Explicação detalhada (texto longo) */}
                     <div className="prose prose-blue max-w-none">
-                        <div className="text-gray-700 text-[15px] leading-relaxed whitespace-pre-wrap">
-                            {item.content}
-                        </div>
+                        <SimpleMarkdown text={item.content || ''} />
                     </div>
 
                     {/* Attachments */}
