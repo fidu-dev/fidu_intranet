@@ -137,7 +137,7 @@ export function UserControlClient({ initialUsers, agencies }: { initialUsers: an
                                         ))}
                                     </select>
                                 </td>
-                                <td className="px-6 py-4 min-w-[160px]">
+                                <td className="px-6 py-4 min-w-[200px]">
                                     <select
                                         className="w-full px-2 py-1 text-xs border rounded bg-white border-blue-300"
                                         value={newUser.role}
@@ -228,7 +228,7 @@ export function UserControlClient({ initialUsers, agencies }: { initialUsers: an
                                         ))}
                                     </select>
                                 </td>
-                                <td className="px-6 py-4 min-w-[160px]">
+                                <td className="px-6 py-4 min-w-[200px]">
                                     <select
                                         className="w-full px-2 py-1 text-xs border rounded bg-white"
                                         value={user.role}
