@@ -191,7 +191,17 @@ export function ProductGrid({ products, isInternal, agencyInfo, initialPreferenc
     };
 
     const categories = useMemo(() => Array.from(new Set(products.map(p => (p.category || '').trim()))).filter((c): c is string => Boolean(c)).sort(), [products]);
-    const destinations = useMemo(() => Array.from(new Set(products.map(p => (p.destination || '').trim()))).filter((d): d is string => Boolean(d)).sort(), [products]);
+    const destinations = useMemo(() => {
+        const allDestinations = Array.from(new Set(products.map(p => (p.destination || '').trim())))
+            .filter((d): d is string => Boolean(d))
+            .sort();
+
+        if (agencyInfo?.allowedDestinations && agencyInfo.allowedDestinations.length > 0) {
+            return allDestinations.filter(d => agencyInfo.allowedDestinations.includes(d.toUpperCase()));
+        }
+
+        return allDestinations;
+    }, [products, agencyInfo?.allowedDestinations]);
     const statuses = useMemo(() => Array.from(new Set(products.map(p => getEffectiveStatus(p.status)))).sort(), [products]);
     const subCategories = useMemo(() => Array.from(new Set(products.flatMap(p => p.subCategory?.split(', ') || []))).filter((sc): sc is string => Boolean(sc)).sort(), [products]);
     const providers = useMemo(() => Array.from(new Set(products.map(p => (p.provider || '').trim()))).filter((p): p is string => Boolean(p && p !== '–')).sort(), [products]);
