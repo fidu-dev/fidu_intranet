@@ -161,7 +161,6 @@ export function UserControlClient({ initialUsers, agencies }: { initialUsers: an
                                     </div>
                                 </td>
                                 <td className="px-6 py-4 min-w-[200px]">
-                                    <div className="text-[9px] text-gray-500 mb-1 leading-tight">Mantenha limpo para <br />acessar TODOS os destinos.</div>
                                     <div className="grid grid-cols-2 gap-1 max-h-32 overflow-y-auto pr-1">
                                         {AVAILABLE_DESTINATIONS.map(d => (
                                             <label key={d} className="flex items-center gap-1 text-[10px] cursor-pointer hover:bg-white p-0.5 rounded">
@@ -257,7 +256,6 @@ export function UserControlClient({ initialUsers, agencies }: { initialUsers: an
                                     </div>
                                 </td>
                                 <td className="px-6 py-4 min-w-[200px]">
-                                    <div className="text-[9px] text-gray-500 mb-1 leading-tight">Mantenha limpo para <br />acessar TODOS os destinos.</div>
                                     <div className="grid grid-cols-2 gap-1 max-h-32 overflow-y-auto pr-1">
                                         {AVAILABLE_DESTINATIONS.map(d => (
                                             <label key={d} className="flex items-center gap-1 text-[10px] cursor-pointer hover:bg-gray-100 p-0.5 rounded">
