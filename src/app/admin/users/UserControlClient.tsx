@@ -108,7 +108,7 @@ export function UserControlClient({ initialUsers, agencies }: { initialUsers: an
                     <tbody className="divide-y divide-gray-100">
                         {isAddingUser && (
                             <tr className="bg-blue-50/50">
-                                <td className="px-6 py-4">
+                                <td className="px-6 py-4 min-w-[250px]">
                                     <input
                                         type="email"
                                         className="w-full px-2 py-1 text-xs border rounded bg-white font-medium mb-1 border-blue-300"
@@ -200,7 +200,7 @@ export function UserControlClient({ initialUsers, agencies }: { initialUsers: an
                         )}
                         {filteredUsers.map((user) => (
                             <tr key={user.id} className="hover:bg-gray-50/50">
-                                <td className="px-6 py-4">
+                                <td className="px-6 py-4 min-w-[250px]">
                                     <input
                                         type="email"
                                         className="w-full px-2 py-1 text-xs border rounded bg-white font-medium mb-1"
