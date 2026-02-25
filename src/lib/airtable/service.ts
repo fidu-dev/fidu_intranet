@@ -106,46 +106,51 @@ export const getAgencyByEmail = async (email: string): Promise<Agency | null> =>
         return null;
     }
 
-    const records = await base(AIRTABLE_TABLES.ACCESS).select({
-        filterByFormula: `LOWER(TRIM({e-mail})) = LOWER('${email.trim()}')`,
-        maxRecords: 1
-    }).all();
+    try {
+        const records = await base(AIRTABLE_TABLES.ACCESS).select({
+            filterByFormula: `LOWER(TRIM({e-mail})) = LOWER('${email.trim()}')`,
+            maxRecords: 1
+        }).all();
 
-    if (records.length === 0) return null;
+        if (records.length === 0) return null;
 
-    const record = records[0];
-    const fields = record.fields;
+        const record = records[0];
+        const fields = record.fields;
 
-    // Field mapping matching actual Airtable column names
-    const agencyNameField = fields['Agency'] || fields['Agência'];
-    const emailField = fields['e-mail'] || fields['Email'];
-    // Comision_base is stored as a string like "15%", parse it
-    const commissionRaw = fields['Comision_base'] as string || '';
-    const commissionRate = commissionRaw
-        ? parseFloat(commissionRaw.replace('%', '')) / 100
-        : 0.15;
-    const userNameField = fields['User'] || fields['Usuário'];
-    const skillsField = fields['Skill'] || fields['Destinos'];
+        // Field mapping matching actual Airtable column names
+        const agencyNameField = fields['Agency'] || fields['Agência'];
+        const emailField = fields['e-mail'] || fields['Email'];
+        // Comision_base is stored as a string like "15%", parse it
+        const commissionRaw = fields['Comision_base'] as string || '';
+        const commissionRate = commissionRaw
+            ? parseFloat(commissionRaw.replace('%', '')) / 100
+            : 0.15;
+        const userNameField = fields['User'] || fields['Usuário'];
+        const skillsField = fields['Skill'] || fields['Destinos'];
 
-    // Handle both string and lookup/array values
-    const agencyName = (Array.isArray(agencyNameField) ? agencyNameField[0] : agencyNameField) as string;
-    const userName = (Array.isArray(userNameField) ? userNameField[0] : userNameField) as string;
-    const agencyId = (fields['Agency_ID (from Agency)'] as string[])?.[0] || '';
+        // Handle both string and lookup/array values
+        const agencyName = (Array.isArray(agencyNameField) ? agencyNameField[0] : agencyNameField) as string;
+        const userName = (Array.isArray(userNameField) ? userNameField[0] : userNameField) as string;
+        const agencyId = (fields['Agency_ID (from Agency)'] as string[])?.[0] || '';
 
-    return {
-        id: record.id,
-        agencyId,
-        name: fields['Nome da Agência'] as string || agencyName || userName || 'Agente',
-        agentName: fields['Name'] as string || userName,
-        email: emailField as string,
-        commissionRate,
-        skills: skillsField as string[] || [],
-        canReserve: fields['Reserva'] as boolean || false,
-        canAccessMural: fields['Mural'] as boolean || false,
-        isInternal: fields['Interno'] as boolean || false,
-        canAccessExchange: fields['Exchange'] as boolean || false,
-        isAdmin: fields['Admin'] as boolean || false,
-    };
+        return {
+            id: record.id,
+            agencyId,
+            name: fields['Nome da Agência'] as string || agencyName || userName || 'Agente',
+            agentName: fields['Name'] as string || userName,
+            email: emailField as string,
+            commissionRate,
+            skills: skillsField as string[] || [],
+            canReserve: fields['Reserva'] as boolean || false,
+            canAccessMural: fields['Mural'] as boolean || false,
+            isInternal: fields['Interno'] as boolean || false,
+            canAccessExchange: fields['Exchange'] as boolean || false,
+            isAdmin: fields['Admin'] as boolean || false,
+        };
+    } catch (err) {
+        console.error('Error fetching agency from Airtable:', err);
+        return null;
+    }
 };
 
 
