@@ -16,13 +16,5 @@ export default async function EditarPasseioPage({ params }: Props) {
         notFound();
     }
 
-    return (
-        <div className="space-y-6">
-            <div>
-                <h1 className="text-2xl font-bold tracking-tight">Editar Passeio</h1>
-                <p className="text-gray-500">{passeio.title || 'Sem título'}</p>
-            </div>
-            <PasseioEditarClient passeio={passeio} />
-        </div>
-    );
+    return <PasseioEditarClient passeio={passeio} />;
 }

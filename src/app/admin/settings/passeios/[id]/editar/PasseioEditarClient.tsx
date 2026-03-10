@@ -3,9 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { PasseioForm, type PasseioFormData, type SeasonInfo } from '@/components/admin/PasseioForm';
 import { updatePasseio, getSelectOptionsMulti, getSeasons } from '@/app/admin/actions';
-import { Button } from '@/components/ui/button';
-import { Loader2, Save, ArrowLeft, CheckCircle2 } from 'lucide-react';
-import Link from 'next/link';
+import { StickyHeader } from '@/components/admin/passeio-form/StickyHeader';
 
 const OPTION_GROUPS = ['destino', 'categoria', 'operador', 'temporada', 'moeda', 'tag'];
 
@@ -67,24 +65,23 @@ export function PasseioEditarClient({ passeio }: Props) {
         }
     };
 
-    return (
-        <div className="space-y-6">
-            <div className="flex items-center justify-between">
-                <Link href="/admin/settings/passeios" className="text-sm text-gray-500 hover:text-gray-700 flex items-center gap-1">
-                    <ArrowLeft className="h-4 w-4" /> Voltar para listagem
-                </Link>
-                <Button onClick={handleSave} disabled={isSaving} className="bg-blue-600 hover:bg-blue-700 text-white gap-2">
-                    {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                    {isSaving ? 'Salvando...' : 'Salvar Alterações'}
-                </Button>
-            </div>
+    const handleStatusChange = (field: 'statusOperativo' | 'statusIntranet', value: string) => {
+        setFormData(prev => ({ ...prev, [field]: value }));
+    };
 
-            {message && (
-                <div className={`p-4 rounded-lg flex items-start gap-3 text-sm ${message.type === 'success' ? 'bg-green-50 text-green-800 border border-green-200' : 'bg-red-50 text-red-800 border border-red-200'}`}>
-                    {message.type === 'success' && <CheckCircle2 className="h-5 w-5 text-green-500 shrink-0" />}
-                    <p>{message.text}</p>
-                </div>
-            )}
+    return (
+        <>
+            <StickyHeader
+                title={formData.title}
+                statusOperativo={formData.statusOperativo}
+                statusIntranet={formData.statusIntranet}
+                onStatusChange={handleStatusChange}
+                onSave={handleSave}
+                backHref="/admin/settings/passeios"
+                isSaving={isSaving}
+                saveLabel="Salvar Alterações"
+                message={message}
+            />
 
             <PasseioForm
                 data={formData}
@@ -95,13 +92,6 @@ export function PasseioEditarClient({ passeio }: Props) {
                 onOptionsChanged={loadOptions}
                 onSeasonsChanged={loadSeasons}
             />
-
-            <div className="flex justify-end">
-                <Button onClick={handleSave} disabled={isSaving} className="bg-blue-600 hover:bg-blue-700 text-white gap-2">
-                    {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                    {isSaving ? 'Salvando...' : 'Salvar Alterações'}
-                </Button>
-            </div>
-        </div>
+        </>
     );
 }

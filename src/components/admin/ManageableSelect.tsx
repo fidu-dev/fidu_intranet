@@ -188,7 +188,7 @@ export function ManageableChipSelect({
 
 // ── Option Manager Dialog Content ──
 
-function OptionManager({
+export function OptionManager({
     group,
     currentOptions,
     onDone,
