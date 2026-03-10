@@ -164,6 +164,18 @@ export function ManageableChipSelect({
                 </div>
             </div>
             <div className="flex flex-wrap gap-1.5">
+                {/* Valores órfãos: selecionados mas não existem nas opções do DB */}
+                {selected.filter(s => !options.includes(s)).map(orphan => (
+                    <button
+                        key={orphan}
+                        type="button"
+                        onClick={() => toggle(orphan)}
+                        className="px-2.5 py-1 rounded-full text-xs font-medium border transition-colors cursor-pointer bg-amber-50 text-amber-700 border-amber-300"
+                        title="Valor legado — clique para remover"
+                    >
+                        {orphan} <X className="inline h-3 w-3 ml-0.5" />
+                    </button>
+                ))}
                 {options.map(opt => {
                     const active = selected.includes(opt);
                     return (
