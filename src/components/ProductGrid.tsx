@@ -19,6 +19,7 @@ interface ProductGridProps {
     isInternal?: boolean;
     agencyInfo?: AgencyInfo;
     initialPreferences?: any;
+    seasons?: { code: string; label: string }[];
 }
 
 type SortConfig = {
@@ -76,7 +77,7 @@ const SortIcon = ({ columnKey, sortConfig }: { columnKey: keyof AgencyProduct | 
 };
 
 
-export function ProductGrid({ products, isInternal, agencyInfo, initialPreferences }: ProductGridProps) {
+export function ProductGrid({ products, isInternal, agencyInfo, initialPreferences, seasons: seasonsProp }: ProductGridProps) {
     const { selectedProducts, addToCart, clearCart } = useCart();
 
     const prefs = initialPreferences || {};
@@ -171,7 +172,7 @@ export function ProductGrid({ products, isInternal, agencyInfo, initialPreferenc
     const [destinationFilter, setDestinationFilter] = useState('all');
     const [subCategoryFilter, setSubCategoryFilter] = useState<string[]>([]);
     const [providerFilter, setProviderFilter] = useState('all');
-    const [season, setSeason] = useState<'VER26' | 'INV26'>('VER26'); // This is Pricing Mode
+    const [season, setSeason] = useState<string>(seasonsProp?.[0]?.code || 'VER26'); // This is Pricing Mode
     const [temporadaFilter, setTemporadaFilter] = useState('all'); // This is Data Filtering
     const [diasElegiveisFilter, setDiasElegiveisFilter] = useState<string[]>([]);
     const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'tourName', direction: 'asc' });
@@ -257,17 +258,18 @@ export function ProductGrid({ products, isInternal, agencyInfo, initialPreferenc
     };
 
     const handleProductClick = (product: AgencyProduct) => {
+        const sp = (product as any).seasonPrices?.[season] || {};
         const seasonalProduct = {
             ...product,
-            priceAdulto: season === 'VER26' ? product.priceAdultoVer26 : product.priceAdultoInv26,
-            priceMenor: season === 'VER26' ? product.priceMenorVer26 : product.priceMenorInv26,
-            priceBebe: season === 'VER26' ? product.priceBebeVer26 : product.priceBebeInv26,
-            netoPriceAdulto: season === 'VER26' ? product.netoPriceAdultoVer26 : product.netoPriceAdultoInv26,
-            netoPriceMenor: season === 'VER26' ? product.netoPriceMenorVer26 : product.netoPriceMenorInv26,
-            netoPriceBebe: season === 'VER26' ? product.netoPriceBebeVer26 : product.netoPriceBebeInv26,
-            salePriceAdulto: season === 'VER26' ? product.salePriceAdultoVer26 : product.salePriceAdultoInv26,
-            salePriceMenor: season === 'VER26' ? product.salePriceMenorVer26 : product.salePriceMenorInv26,
-            salePriceBebe: season === 'VER26' ? product.salePriceBebeVer26 : product.salePriceBebeInv26,
+            priceAdulto: sp.priceAdulto ?? 0,
+            priceMenor: sp.priceMenor ?? 0,
+            priceBebe: sp.priceBebe ?? 0,
+            netoPriceAdulto: sp.netoPriceAdulto ?? 0,
+            netoPriceMenor: sp.netoPriceMenor ?? 0,
+            netoPriceBebe: sp.netoPriceBebe ?? 0,
+            salePriceAdulto: sp.salePriceAdulto ?? 0,
+            salePriceMenor: sp.salePriceMenor ?? 0,
+            salePriceBebe: sp.salePriceBebe ?? 0,
         };
 
         addToCart(seasonalProduct);
@@ -377,24 +379,28 @@ export function ProductGrid({ products, isInternal, agencyInfo, initialPreferenc
                     </Select>
                 </div>
 
-                {/* 3. Price Mode (Compact) */}
-                {/* 3. Price Mode (Enhanced) */}
-                <div className="flex bg-gray-100 p-1 rounded-xl shrink-0 h-9 items-center group relative cursor-pointer" onClick={() => setSeason(s => s === 'VER26' ? 'INV26' : 'VER26')} title="Alternar Temporada">
-                    {/* Toggle Switch Background */}
-                    <div
-                        className="absolute w-1/2 h-7 bg-white rounded-lg shadow-sm transition-all duration-300 ease-in-out"
-                        style={{ left: season === 'VER26' ? '4px' : 'calc(50% - 4px)' }}
-                    />
-
-                    <div className={`relative z-10 px-4 h-full rounded-lg text-xs font-bold transition-all duration-200 flex items-center justify-center gap-2 ${season === 'VER26' ? 'text-orange-600' : 'text-gray-400'}`}>
-                        <span className={season === 'VER26' ? "w-2 h-2 rounded-full bg-orange-500" : "w-2 h-2 rounded-full bg-gray-300"} />
-                        Verão
+                {/* 3. Price Mode (Dynamic Seasons) */}
+                {seasonsProp && seasonsProp.length > 0 && (
+                    <div className="flex bg-gray-100 p-1 rounded-xl shrink-0 h-9 items-center relative">
+                        {seasonsProp.map((s) => {
+                            const isActive = season === s.code;
+                            const isWinter = s.code.startsWith('INV');
+                            const activeColor = isWinter ? 'text-[#3b5998]' : 'text-orange-600';
+                            const dotColor = isWinter ? 'bg-[#3b5998]' : 'bg-orange-500';
+                            return (
+                                <button
+                                    key={s.code}
+                                    type="button"
+                                    onClick={() => setSeason(s.code)}
+                                    className={`relative z-10 px-4 h-7 rounded-lg text-xs font-bold transition-all duration-200 flex items-center justify-center gap-2 ${isActive ? `${activeColor} bg-white shadow-sm` : 'text-gray-400'}`}
+                                >
+                                    <span className={`w-2 h-2 rounded-full ${isActive ? dotColor : 'bg-gray-300'}`} />
+                                    {s.label}
+                                </button>
+                            );
+                        })}
                     </div>
-                    <div className={`relative z-10 px-4 h-full rounded-lg text-xs font-bold transition-all duration-200 flex items-center justify-center gap-2 ${season === 'INV26' ? 'text-[#3b5998]' : 'text-gray-400'}`}>
-                        <span className={season === 'INV26' ? "w-2 h-2 rounded-full bg-[#3b5998]" : "w-2 h-2 rounded-full bg-gray-300"} />
-                        Inverno
-                    </div>
-                </div>
+                )}
 
                 {/* Separator */}
                 <div className="h-5 w-[1px] bg-gray-200 hidden lg:block mx-1" />
@@ -675,9 +681,9 @@ export function ProductGrid({ products, isInternal, agencyInfo, initialPreferenc
                                             key={colId}
                                             className="group relative px-4 py-3 text-[11px] font-bold text-gray-500 uppercase tracking-tight text-right cursor-pointer hover:bg-gray-100 transition-colors"
                                             style={{ width: columnWidths[colId] || 'auto', minWidth: columnWidths[colId] || 'auto' }}
-                                            onClick={() => requestSort(season === 'VER26' ? `${colId}Ver26` : `${colId}Inv26` as any)}
+                                            onClick={() => requestSort(colId as any)}
                                         >
-                                            <div className="flex items-center justify-end">{ALL_COLUMNS.find(c => c.id === colId)?.label} <SortIcon columnKey={season === 'VER26' ? `${colId}Ver26` : `${colId}Inv26`} sortConfig={sortConfig} /></div>
+                                            <div className="flex items-center justify-end">{ALL_COLUMNS.find(c => c.id === colId)?.label} <SortIcon columnKey={colId} sortConfig={sortConfig} /></div>
                                             <div className="absolute right-0 top-0 h-full w-1 cursor-col-resize hover:bg-[#3b5998]/30 transition-colors z-10" onMouseDown={(e) => onResizeStart(e, colId)} />
                                         </th>
                                     );
@@ -778,12 +784,15 @@ export function ProductGrid({ products, isInternal, agencyInfo, initialPreferenc
                                                 </td>
                                             );
                                             if (['priceAdulto', 'priceMenor', 'priceBebe'].includes(colId)) {
-                                                const price = season === 'VER26' ? (product as any)[`${colId}Ver26`] : (product as any)[`${colId}Inv26`];
-                                                const netoPrice = season === 'VER26' ? (product as any)[`netoPrice${colId.charAt(5).toUpperCase() + colId.slice(6)}Ver26`] : (product as any)[`netoPrice${colId.charAt(5).toUpperCase() + colId.slice(6)}Inv26`];
+                                                const sp = (product as any).seasonPrices?.[season] || {};
+                                                const priceKey = colId; // priceAdulto, priceMenor, priceBebe
+                                                const netoKey = `netoPrice${colId.charAt(5).toUpperCase() + colId.slice(6)}`; // netoPriceAdulto, etc.
+                                                const price = sp[priceKey] ?? 0;
+                                                const netoPrice = sp[netoKey] ?? 0;
                                                 // Se Internal ou ShowSuggestedPrice for true, exibe preço cheio do DB, senão exibe Neto (deduzida a comissão)
                                                 const actualPrice = (isInternal || showSuggestedPrice) ? price : netoPrice;
 
-                                                const isWinter = season === 'INV26';
+                                                const isWinter = season.startsWith('INV');
 
                                                 let textColorClass = "";
                                                 if (colId === 'priceAdulto') {
@@ -982,49 +991,37 @@ export function ProductGrid({ products, isInternal, agencyInfo, initialPreferenc
                                 {/* Seasonal Pricing Table */}
                                 <div className="space-y-4">
                                     <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Tabela de Preços (Completa)</label>
-                                    <div className="grid grid-cols-2 gap-4">
-                                        {/* Verão */}
-                                        <div className="p-4 rounded-xl border border-orange-100 bg-orange-50/20">
-                                            <h4 className="text-[10px] font-black text-orange-600 uppercase tracking-widest mb-3 flex items-center gap-2">
-                                                <div className="w-1.5 h-1.5 rounded-full bg-orange-500" />
-                                                Verão 2026
-                                            </h4>
-                                            <div className="space-y-3">
-                                                <div className="flex justify-between items-baseline">
-                                                    <span className="text-xs text-gray-500 font-bold">Adulto</span>
-                                                    <span className="text-sm font-black text-orange-600">{formatPrice((isInternal || showSuggestedPrice) ? (selectedDetailProduct as any).priceAdultoVer26 : (selectedDetailProduct as any).netoPriceAdultoVer26)}</span>
+                                    <div className={`grid gap-4 ${seasonsProp && seasonsProp.length > 2 ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-2'}`}>
+                                        {(seasonsProp || []).map((s) => {
+                                            const isWinter = s.code.startsWith('INV');
+                                            const borderColor = isWinter ? 'border-blue-100' : 'border-orange-100';
+                                            const bgColor = isWinter ? 'bg-blue-50/20' : 'bg-orange-50/20';
+                                            const textColor = isWinter ? 'text-[#3b5998]' : 'text-orange-600';
+                                            const dotColor = isWinter ? 'bg-[#3b5998]' : 'bg-orange-500';
+                                            const sp = (selectedDetailProduct as any)?.seasonPrices?.[s.code] || {};
+                                            return (
+                                                <div key={s.code} className={`p-4 rounded-xl border ${borderColor} ${bgColor}`}>
+                                                    <h4 className={`text-[10px] font-black ${textColor} uppercase tracking-widest mb-3 flex items-center gap-2`}>
+                                                        <div className={`w-1.5 h-1.5 rounded-full ${dotColor}`} />
+                                                        {s.label}
+                                                    </h4>
+                                                    <div className="space-y-3">
+                                                        <div className="flex justify-between items-baseline">
+                                                            <span className="text-xs text-gray-500 font-bold">Adulto</span>
+                                                            <span className={`text-sm font-black ${textColor}`}>{formatPrice((isInternal || showSuggestedPrice) ? (sp.priceAdulto ?? 0) : (sp.netoPriceAdulto ?? 0))}</span>
+                                                        </div>
+                                                        <div className="flex justify-between items-baseline">
+                                                            <span className="text-xs text-gray-500 font-bold">Menor</span>
+                                                            <span className={`text-sm font-black ${textColor} opacity-80`}>{formatPrice((isInternal || showSuggestedPrice) ? (sp.priceMenor ?? 0) : (sp.netoPriceMenor ?? 0))}</span>
+                                                        </div>
+                                                        <div className="flex justify-between items-baseline">
+                                                            <span className="text-xs text-gray-500 font-bold">Bebê</span>
+                                                            <span className={`text-sm font-black ${textColor} opacity-60`}>{formatPrice((isInternal || showSuggestedPrice) ? (sp.priceBebe ?? 0) : (sp.netoPriceBebe ?? 0))}</span>
+                                                        </div>
+                                                    </div>
                                                 </div>
-                                                <div className="flex justify-between items-baseline">
-                                                    <span className="text-xs text-gray-500 font-bold">Menor</span>
-                                                    <span className="text-sm font-black text-orange-600/80">{formatPrice((isInternal || showSuggestedPrice) ? (selectedDetailProduct as any).priceMenorVer26 : (selectedDetailProduct as any).netoPriceMenorVer26)}</span>
-                                                </div>
-                                                <div className="flex justify-between items-baseline">
-                                                    <span className="text-xs text-gray-500 font-bold">Bebê</span>
-                                                    <span className="text-sm font-black text-orange-600/60">{formatPrice((isInternal || showSuggestedPrice) ? (selectedDetailProduct as any).priceBebeVer26 : (selectedDetailProduct as any).netoPriceBebeVer26)}</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        {/* Inverno */}
-                                        <div className="p-4 rounded-xl border border-blue-100 bg-blue-50/20">
-                                            <h4 className="text-[10px] font-black text-[#3b5998] uppercase tracking-widest mb-3 flex items-center gap-2">
-                                                <div className="w-1.5 h-1.5 rounded-full bg-[#3b5998]" />
-                                                Inverno 2026
-                                            </h4>
-                                            <div className="space-y-3">
-                                                <div className="flex justify-between items-baseline">
-                                                    <span className="text-xs text-gray-500 font-bold">Adulto</span>
-                                                    <span className="text-sm font-black text-[#3b5998]">{formatPrice((isInternal || showSuggestedPrice) ? (selectedDetailProduct as any).priceAdultoInv26 : (selectedDetailProduct as any).netoPriceAdultoInv26)}</span>
-                                                </div>
-                                                <div className="flex justify-between items-baseline">
-                                                    <span className="text-xs text-gray-500 font-bold">Menor</span>
-                                                    <span className="text-sm font-black text-[#3b5998]/80">{formatPrice((isInternal || showSuggestedPrice) ? (selectedDetailProduct as any).priceMenorInv26 : (selectedDetailProduct as any).netoPriceMenorInv26)}</span>
-                                                </div>
-                                                <div className="flex justify-between items-baseline">
-                                                    <span className="text-xs text-gray-500 font-bold">Bebê</span>
-                                                    <span className="text-sm font-black text-[#3b5998]/60">{formatPrice((isInternal || showSuggestedPrice) ? (selectedDetailProduct as any).priceBebeInv26 : (selectedDetailProduct as any).netoPriceBebeInv26)}</span>
-                                                </div>
-                                            </div>
-                                        </div>
+                                            );
+                                        })}
                                     </div>
                                 </div>
                             </div>

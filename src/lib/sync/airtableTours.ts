@@ -23,6 +23,10 @@ export async function syncToursFromAirtable(): Promise<{ count: number; success:
         const tableId = 'tbl4RRA0YiPk8DMjs' // the table used for products
         const records = await base(tableId).select().all()
 
+        // Pre-fetch season IDs for TourPrice dual-write
+        const ver26Season = await prisma.season.findUnique({ where: { code: 'VER26' } })
+        const inv26Season = await prisma.season.findUnique({ where: { code: 'INV26' } })
+
         let count = 0
 
         for (const record of records) {
@@ -79,7 +83,7 @@ export async function syncToursFromAirtable(): Promise<{ count: number; success:
             const oQueLevar = fields['O que levar'] ? String(fields['O que levar']) : ''
             const midia = fields['Mídia do Passeio']?.[0]?.url || ''
 
-            await prisma.tour.upsert({
+            const tour = await prisma.tour.upsert({
                 where: { airtableRecordId: record.id },
                 update: {
                     title, categoria, destino, operador, statusOperativo, temporada, pickup, retorno,
@@ -95,6 +99,23 @@ export async function syncToursFromAirtable(): Promise<{ count: number; success:
                     description, observacoes, oQueLevar, midia
                 }
             })
+
+            // Dual-write: upsert TourPrice for VER26 and INV26
+            if (ver26Season) {
+                await prisma.tourPrice.upsert({
+                    where: { tourId_seasonId: { tourId: tour.id, seasonId: ver26Season.id } },
+                    update: { adu: ver26Adu, chd: ver26Chd, inf: ver26Inf },
+                    create: { tourId: tour.id, seasonId: ver26Season.id, adu: ver26Adu, chd: ver26Chd, inf: ver26Inf },
+                })
+            }
+            if (inv26Season) {
+                await prisma.tourPrice.upsert({
+                    where: { tourId_seasonId: { tourId: tour.id, seasonId: inv26Season.id } },
+                    update: { adu: inv26Adu, chd: inv26Chd, inf: inv26Inf },
+                    create: { tourId: tour.id, seasonId: inv26Season.id, adu: inv26Adu, chd: inv26Chd, inf: inv26Inf },
+                })
+            }
+
             count++
         }
 

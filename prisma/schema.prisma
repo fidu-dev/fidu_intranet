@@ -123,12 +123,51 @@ model Tour {
   variantsCount     Int?      @default(0)
   imagesCount       Int?      @default(0)
 
+  // Relações
+  prices           TourPrice[]
+
   // Timestamps
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 
   @@index([categoria])
   @@index([destino])
+}
+
+model SelectOption {
+  id        String   @id @default(uuid())
+  group     String
+  value     String
+  sortOrder Int      @default(0)
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  @@unique([group, value])
+  @@index([group, active])
+}
+
+model Season {
+  id        String      @id @default(uuid())
+  code      String      @unique
+  label     String
+  sortOrder Int         @default(0)
+  active    Boolean     @default(true)
+  createdAt DateTime    @default(now())
+  prices    TourPrice[]
+}
+
+model TourPrice {
+  id       String  @id @default(uuid())
+  tourId   String
+  seasonId String
+  adu      String?
+  chd      String?
+  inf      String?
+  tour     Tour    @relation(fields: [tourId], references: [id], onDelete: Cascade)
+  season   Season  @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+
+  @@unique([tourId, seasonId])
+  @@index([tourId])
 }
 
 model MuralItem {

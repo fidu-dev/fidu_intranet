@@ -24,12 +24,15 @@ export type Product = {
     temporada: string
     pickup: string
     retorno: string
+    // Campos legados (compat Airtable)
     ver26Adu: string
     ver26Chd: string
     ver26Inf: string
     inv26Adu: string
     inv26Chd: string
     inv26Inf: string
+    // Preços dinâmicos por temporada
+    prices: Record<string, { adu: string; chd: string; inf: string }>
     diasElegiveis: string[]
     valorExtra: string
     taxasExtras: string

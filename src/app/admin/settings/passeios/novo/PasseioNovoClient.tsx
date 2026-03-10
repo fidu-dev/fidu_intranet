@@ -1,12 +1,14 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { PasseioForm, EMPTY_FORM, type PasseioFormData } from '@/components/admin/PasseioForm';
-import { createPasseio } from '@/app/admin/actions';
+import { PasseioForm, EMPTY_FORM, type PasseioFormData, type SeasonInfo } from '@/components/admin/PasseioForm';
+import { createPasseio, getSelectOptionsMulti, getSeasons } from '@/app/admin/actions';
 import { Button } from '@/components/ui/button';
 import { Loader2, Save, ArrowLeft, CheckCircle2 } from 'lucide-react';
 import Link from 'next/link';
+
+const OPTION_GROUPS = ['destino', 'categoria', 'operador', 'temporada', 'moeda', 'tag'];
 
 function validate(data: PasseioFormData): Record<string, string> {
     const errors: Record<string, string> = {};
@@ -24,6 +26,23 @@ export function PasseioNovoClient() {
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [isSaving, setIsSaving] = useState(false);
     const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+    const [options, setOptions] = useState<Record<string, string[]>>({});
+    const [seasons, setSeasons] = useState<SeasonInfo[]>([]);
+
+    const loadOptions = useCallback(async () => {
+        const opts = await getSelectOptionsMulti(OPTION_GROUPS);
+        setOptions(opts);
+    }, []);
+
+    const loadSeasons = useCallback(async () => {
+        const s = await getSeasons();
+        setSeasons(s);
+    }, []);
+
+    useEffect(() => {
+        loadOptions();
+        loadSeasons();
+    }, [loadOptions, loadSeasons]);
 
     const handleSave = async () => {
         const validationErrors = validate(formData);
@@ -65,7 +84,15 @@ export function PasseioNovoClient() {
                 </div>
             )}
 
-            <PasseioForm data={formData} onChange={setFormData} errors={errors} />
+            <PasseioForm
+                data={formData}
+                onChange={setFormData}
+                errors={errors}
+                options={options}
+                seasons={seasons}
+                onOptionsChanged={loadOptions}
+                onSeasonsChanged={loadSeasons}
+            />
 
             <div className="flex justify-end">
                 <Button onClick={handleSave} disabled={isSaving} className="bg-blue-600 hover:bg-blue-700 text-white gap-2">

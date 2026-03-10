@@ -4,7 +4,37 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { ShoppingCart } from 'lucide-react';
+import { Button } from "@/components/ui/button";
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from '@/components/ui/dialog';
+import { ShoppingCart, X, Plus, Settings2 } from 'lucide-react';
+import { ManageableSelect, ManageableChipSelect } from './ManageableSelect';
+import { createSeason, getSeasons as fetchSeasons } from '@/app/admin/actions';
+import { useState } from 'react';
+
+// ── Constantes locais (dias não precisam de gerenciamento DB) ──
+
+const DIAS_SEMANA = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
+const DIAS_ESPECIAIS = ['Diário', 'Consultar'];
+
+// ── Tipos ──
+
+export interface SeasonPriceData {
+    adu: string;
+    chd: string;
+    inf: string;
+}
+
+export interface SeasonInfo {
+    id: string;
+    code: string;
+    label: string;
+}
 
 export interface PasseioFormData {
     // Bloco 1 — Dados Principais
@@ -26,7 +56,9 @@ export interface PasseioFormData {
     tags: string;
     statusOperativo: string;
     statusIntranet: string;
-    // Bloco 2 — Preços e Regras Comerciais
+    // Bloco 2 — Preços dinâmicos + Regras Comerciais
+    prices: Record<string, SeasonPriceData>;
+    // Campos legados (mantidos para compat com Airtable)
     ver26Adu: string;
     ver26Chd: string;
     ver26Inf: string;
@@ -38,7 +70,7 @@ export interface PasseioFormData {
     valorExtra: string;
     taxasExtras: string;
     precoConvertido: string;
-    // Bloco 3 — E-commerce (será adicionado no Prompt 5)
+    // Bloco 3 — E-commerce
     productId: string;
     status: string;
     handle: string;
@@ -65,6 +97,7 @@ export const EMPTY_FORM: PasseioFormData = {
     pickup: '', retorno: '', duracao: '', description: '', observacoes: '',
     oQueLevar: '', restricoes: '', opcionais: '', variantes: '', moeda: 'BRL',
     tags: '', statusOperativo: 'Ativo', statusIntranet: 'Visível',
+    prices: {},
     ver26Adu: '', ver26Chd: '', ver26Inf: '',
     inv26Adu: '', inv26Chd: '', inv26Inf: '',
     diasElegiveis: '', valorNeto: '', valorExtra: '', taxasExtras: '', precoConvertido: '',
@@ -79,7 +112,15 @@ interface PasseioFormProps {
     data: PasseioFormData;
     onChange: (data: PasseioFormData) => void;
     errors?: Record<string, string>;
+    options: Record<string, string[]>;
+    seasons: SeasonInfo[];
+    onOptionsChanged: () => void;
+    onSeasonsChanged: () => void;
 }
+
+// ── Componentes auxiliares ──
+
+const selectClass = "flex h-9 w-full rounded-md border border-gray-200 bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-gray-950";
 
 function Field({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
     return (
@@ -92,9 +133,152 @@ function Field({ label, required, children }: { label: string; required?: boolea
     );
 }
 
-export function PasseioForm({ data, onChange, errors = {} }: PasseioFormProps) {
+function DaysSelect({ value, onChange }: { value: string; onChange: (val: string) => void }) {
+    const selected = value ? value.split(',').map(s => s.trim()).filter(Boolean) : [];
+    const isSpecial = DIAS_ESPECIAIS.includes(value.trim());
+
+    const toggleDay = (day: string) => {
+        if (isSpecial) { onChange(day); return; }
+        const next = selected.includes(day)
+            ? selected.filter(s => s !== day)
+            : [...selected, day];
+        onChange(next.join(', '));
+    };
+
+    const setSpecial = (val: string) => {
+        onChange(val === value.trim() ? '' : val);
+    };
+
+    return (
+        <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+                <Label className="text-sm font-medium text-gray-700">Dias Elegíveis</Label>
+                {value && (
+                    <button type="button" onClick={() => onChange('')} className="text-xs text-gray-400 hover:text-gray-600 flex items-center gap-0.5">
+                        <X className="h-3 w-3" /> Limpar
+                    </button>
+                )}
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+                {DIAS_ESPECIAIS.map(opt => (
+                    <button
+                        key={opt}
+                        type="button"
+                        onClick={() => setSpecial(opt)}
+                        className={`px-2.5 py-1 rounded-full text-xs font-semibold border transition-colors cursor-pointer ${
+                            value.trim() === opt
+                                ? 'bg-green-50 text-green-700 border-green-300'
+                                : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100'
+                        }`}
+                    >
+                        {opt}
+                    </button>
+                ))}
+                <span className="text-gray-300 self-center">|</span>
+                {DIAS_SEMANA.map(day => {
+                    const active = !isSpecial && selected.includes(day);
+                    return (
+                        <button
+                            key={day}
+                            type="button"
+                            onClick={() => toggleDay(day)}
+                            className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-colors cursor-pointer ${
+                                active
+                                    ? 'bg-blue-50 text-blue-700 border-blue-300'
+                                    : isSpecial
+                                    ? 'bg-gray-50 text-gray-300 border-gray-100 cursor-not-allowed'
+                                    : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100'
+                            }`}
+                            disabled={isSpecial}
+                        >
+                            {day.slice(0, 3)}
+                        </button>
+                    );
+                })}
+            </div>
+        </div>
+    );
+}
+
+function AddSeasonDialog({ onCreated }: { onCreated: () => void }) {
+    const [open, setOpen] = useState(false);
+    const [code, setCode] = useState('');
+    const [label, setLabel] = useState('');
+    const [saving, setSaving] = useState(false);
+    const [error, setError] = useState('');
+
+    const handleCreate = async () => {
+        if (!code.trim() || !label.trim()) return;
+        setSaving(true);
+        setError('');
+        const result = await createSeason(code.trim().toUpperCase(), label.trim());
+        if (result.success) {
+            setCode('');
+            setLabel('');
+            setOpen(false);
+            onCreated();
+        } else {
+            setError(result.error || 'Erro ao criar temporada');
+        }
+        setSaving(false);
+    };
+
+    return (
+        <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+                <button
+                    type="button"
+                    className="text-xs text-blue-600 hover:text-blue-700 flex items-center gap-0.5"
+                >
+                    <Plus className="h-3 w-3" /> Nova Temporada
+                </button>
+            </DialogTrigger>
+            <DialogContent className="max-w-sm">
+                <DialogHeader>
+                    <DialogTitle>Nova Temporada de Preços</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-3">
+                    <Field label="Código">
+                        <Input
+                            value={code}
+                            onChange={e => setCode(e.target.value)}
+                            placeholder="Ex: VER27, INV27"
+                        />
+                    </Field>
+                    <Field label="Nome">
+                        <Input
+                            value={label}
+                            onChange={e => setLabel(e.target.value)}
+                            placeholder="Ex: Verão 2027"
+                        />
+                    </Field>
+                    {error && <p className="text-xs text-red-500">{error}</p>}
+                    <div className="flex justify-end gap-2">
+                        <Button type="button" variant="outline" size="sm" onClick={() => setOpen(false)}>Cancelar</Button>
+                        <Button type="button" size="sm" onClick={handleCreate} disabled={saving || !code.trim() || !label.trim()}>
+                            Criar
+                        </Button>
+                    </div>
+                </div>
+            </DialogContent>
+        </Dialog>
+    );
+}
+
+// ── Formulário principal ──
+
+export function PasseioForm({ data, onChange, errors = {}, options, seasons, onOptionsChanged, onSeasonsChanged }: PasseioFormProps) {
     const set = (field: keyof PasseioFormData, value: string | boolean) => {
         onChange({ ...data, [field]: value });
+    };
+
+    const setSeasonPrice = (seasonCode: string, field: keyof SeasonPriceData, value: string) => {
+        const current = data.prices[seasonCode] || { adu: '', chd: '', inf: '' };
+        const updated = { ...current, [field]: value };
+        onChange({
+            ...data,
+            prices: { ...data.prices, [seasonCode]: updated },
+        });
     };
 
     return (
@@ -105,39 +289,98 @@ export function PasseioForm({ data, onChange, errors = {} }: PasseioFormProps) {
                     <h2 className="text-lg font-semibold text-gray-800">Dados Principais</h2>
                 </div>
                 <div className="p-6 space-y-5">
-                    {/* Linha 1: Título + Destino */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <Field label="Título do Passeio" required>
-                            <Input
-                                value={data.title}
-                                onChange={e => set('title', e.target.value)}
-                                placeholder="Ex: Tour Vulcão Villarrica"
-                                className={errors.title ? 'border-red-300' : ''}
-                            />
-                            {errors.title && <p className="text-xs text-red-500">{errors.title}</p>}
-                        </Field>
-                        <Field label="Destino" required>
-                            <Input
+                    {/* Linha 1: Título + Toggles */}
+                    <div className="flex flex-col gap-4">
+                        <div className="flex flex-col sm:flex-row sm:items-end gap-4">
+                            <div className="flex-1">
+                                <Field label="Título do Passeio" required>
+                                    <Input
+                                        value={data.title}
+                                        onChange={e => set('title', e.target.value)}
+                                        placeholder="Ex: Tour Vulcão Villarrica"
+                                        className={errors.title ? 'border-red-300' : ''}
+                                    />
+                                    {errors.title && <p className="text-xs text-red-500">{errors.title}</p>}
+                                </Field>
+                            </div>
+                            <div className="flex items-center gap-3 pb-0.5">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        const next = data.statusOperativo === 'Ativo' ? 'Inativo' : data.statusOperativo === 'Inativo' ? 'Suspenso' : 'Ativo';
+                                        set('statusOperativo', next);
+                                    }}
+                                    className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold border transition-colors cursor-pointer ${
+                                        data.statusOperativo === 'Ativo'
+                                            ? 'bg-green-50 text-green-700 border-green-300 hover:bg-green-100'
+                                            : data.statusOperativo === 'Suspenso'
+                                            ? 'bg-yellow-50 text-yellow-700 border-yellow-300 hover:bg-yellow-100'
+                                            : 'bg-gray-100 text-gray-500 border-gray-300 hover:bg-gray-200'
+                                    }`}
+                                    title="Clique para alternar o status operativo"
+                                >
+                                    <span className={`h-2 w-2 rounded-full ${
+                                        data.statusOperativo === 'Ativo' ? 'bg-green-500' : data.statusOperativo === 'Suspenso' ? 'bg-yellow-500' : 'bg-gray-400'
+                                    }`} />
+                                    {data.statusOperativo || 'Ativo'}
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => set('statusIntranet', data.statusIntranet === 'Visível' ? 'Oculto' : 'Visível')}
+                                    className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold border transition-colors cursor-pointer ${
+                                        data.statusIntranet === 'Visível'
+                                            ? 'bg-blue-50 text-blue-700 border-blue-300 hover:bg-blue-100'
+                                            : 'bg-gray-100 text-gray-500 border-gray-300 hover:bg-gray-200'
+                                    }`}
+                                    title="Clique para alternar visibilidade na intranet"
+                                >
+                                    <span className={`h-2 w-2 rounded-full ${
+                                        data.statusIntranet === 'Visível' ? 'bg-blue-500' : 'bg-gray-400'
+                                    }`} />
+                                    Intranet: {data.statusIntranet || 'Visível'}
+                                </button>
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <ManageableSelect
+                                label="Destino"
+                                group="destino"
                                 value={data.destino}
-                                onChange={e => set('destino', e.target.value)}
-                                placeholder="Ex: Atacama"
-                                className={errors.destino ? 'border-red-300' : ''}
+                                onChange={val => set('destino', val)}
+                                options={options.destino || []}
+                                onOptionsChanged={onOptionsChanged}
+                                required
+                                error={errors.destino}
                             />
-                            {errors.destino && <p className="text-xs text-red-500">{errors.destino}</p>}
-                        </Field>
+                        </div>
                     </div>
 
                     {/* Linha 2: Categoria + Operador + Temporada */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <Field label="Categoria">
-                            <Input value={data.categoria} onChange={e => set('categoria', e.target.value)} placeholder="Ex: Aventura" />
-                        </Field>
-                        <Field label="Operador">
-                            <Input value={data.operador} onChange={e => set('operador', e.target.value)} />
-                        </Field>
-                        <Field label="Temporada">
-                            <Input value={data.temporada} onChange={e => set('temporada', e.target.value)} placeholder="Ex: Verão, Inverno" />
-                        </Field>
+                        <ManageableSelect
+                            label="Categoria"
+                            group="categoria"
+                            value={data.categoria}
+                            onChange={val => set('categoria', val)}
+                            options={options.categoria || []}
+                            onOptionsChanged={onOptionsChanged}
+                        />
+                        <ManageableSelect
+                            label="Operador"
+                            group="operador"
+                            value={data.operador}
+                            onChange={val => set('operador', val)}
+                            options={options.operador || []}
+                            onOptionsChanged={onOptionsChanged}
+                        />
+                        <ManageableSelect
+                            label="Temporada"
+                            group="temporada"
+                            value={data.temporada}
+                            onChange={val => set('temporada', val)}
+                            options={options.temporada || []}
+                            onOptionsChanged={onOptionsChanged}
+                        />
                     </div>
 
                     {/* Linha 3: Pickup + Retorno + Duração */}
@@ -185,89 +428,89 @@ export function PasseioForm({ data, onChange, errors = {} }: PasseioFormProps) {
                         </Field>
                     </div>
 
-                    {/* Variantes + Moeda + Tags */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {/* Variantes + Moeda */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <Field label="Variantes">
                             <Input value={data.variantes} onChange={e => set('variantes', e.target.value)} />
                         </Field>
-                        <Field label="Moeda">
-                            <Input value={data.moeda} onChange={e => set('moeda', e.target.value)} />
-                        </Field>
-                        <Field label="Tags">
-                            <Input value={data.tags} onChange={e => set('tags', e.target.value)} placeholder="Separar por vírgula" />
-                        </Field>
+                        <ManageableSelect
+                            label="Moeda"
+                            group="moeda"
+                            value={data.moeda}
+                            onChange={val => set('moeda', val)}
+                            options={options.moeda || []}
+                            onOptionsChanged={onOptionsChanged}
+                        />
                     </div>
 
-                    {/* Status Operativo + Status Intranet */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <Field label="Status Operativo">
-                            <select
-                                value={data.statusOperativo}
-                                onChange={e => set('statusOperativo', e.target.value)}
-                                className="flex h-9 w-full rounded-md border border-gray-200 bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-gray-950"
-                            >
-                                <option value="Ativo">Ativo</option>
-                                <option value="Inativo">Inativo</option>
-                                <option value="Suspenso">Suspenso</option>
-                            </select>
-                        </Field>
-                        <Field label="Status Intranet">
-                            <select
-                                value={data.statusIntranet}
-                                onChange={e => set('statusIntranet', e.target.value)}
-                                className="flex h-9 w-full rounded-md border border-gray-200 bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-gray-950"
-                            >
-                                <option value="Visível">Visível</option>
-                                <option value="Oculto">Oculto</option>
-                            </select>
-                        </Field>
-                    </div>
+                    {/* Tags — multi-select chips com gerenciamento */}
+                    <ManageableChipSelect
+                        label="Tags"
+                        group="tag"
+                        value={data.tags}
+                        onChange={val => set('tags', val)}
+                        options={options.tag || []}
+                        onOptionsChanged={onOptionsChanged}
+                    />
+
                 </div>
             </section>
 
             {/* ─── BLOCO 2 — Preços e Regras Comerciais ─── */}
             <section className="bg-white rounded-xl border border-gray-200 shadow-sm">
-                <div className="px-6 py-4 border-b border-gray-100">
+                <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
                     <h2 className="text-lg font-semibold text-gray-800">Preços e Regras Comerciais</h2>
+                    <AddSeasonDialog onCreated={onSeasonsChanged} />
                 </div>
                 <div className="p-6 space-y-5">
-                    {/* Verão 2026 */}
-                    <div>
-                        <p className="text-sm font-medium text-gray-500 mb-3">Verão 2026</p>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <Field label="VER26 Adulto">
-                                <Input type="text" value={data.ver26Adu} onChange={e => set('ver26Adu', e.target.value)} placeholder="0.00" />
-                            </Field>
-                            <Field label="VER26 Criança">
-                                <Input type="text" value={data.ver26Chd} onChange={e => set('ver26Chd', e.target.value)} placeholder="0.00" />
-                            </Field>
-                            <Field label="VER26 Infante">
-                                <Input type="text" value={data.ver26Inf} onChange={e => set('ver26Inf', e.target.value)} placeholder="0.00" />
-                            </Field>
-                        </div>
-                    </div>
+                    {/* Temporadas dinâmicas */}
+                    {seasons.map(season => {
+                        const sp = data.prices[season.code] || { adu: '', chd: '', inf: '' };
+                        return (
+                            <div key={season.id}>
+                                <p className="text-sm font-medium text-gray-500 mb-3">{season.label}</p>
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    <Field label={`${season.code} Adulto`}>
+                                        <Input
+                                            type="text"
+                                            value={sp.adu}
+                                            onChange={e => setSeasonPrice(season.code, 'adu', e.target.value)}
+                                            placeholder="0.00"
+                                        />
+                                    </Field>
+                                    <Field label={`${season.code} Criança`}>
+                                        <Input
+                                            type="text"
+                                            value={sp.chd}
+                                            onChange={e => setSeasonPrice(season.code, 'chd', e.target.value)}
+                                            placeholder="0.00"
+                                        />
+                                    </Field>
+                                    <Field label={`${season.code} Infante`}>
+                                        <Input
+                                            type="text"
+                                            value={sp.inf}
+                                            onChange={e => setSeasonPrice(season.code, 'inf', e.target.value)}
+                                            placeholder="0.00"
+                                        />
+                                    </Field>
+                                </div>
+                            </div>
+                        );
+                    })}
 
-                    {/* Inverno 2026 */}
-                    <div>
-                        <p className="text-sm font-medium text-gray-500 mb-3">Inverno 2026</p>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <Field label="INV26 Adulto">
-                                <Input type="text" value={data.inv26Adu} onChange={e => set('inv26Adu', e.target.value)} placeholder="0.00" />
-                            </Field>
-                            <Field label="INV26 Criança">
-                                <Input type="text" value={data.inv26Chd} onChange={e => set('inv26Chd', e.target.value)} placeholder="0.00" />
-                            </Field>
-                            <Field label="INV26 Infante">
-                                <Input type="text" value={data.inv26Inf} onChange={e => set('inv26Inf', e.target.value)} placeholder="0.00" />
-                            </Field>
-                        </div>
-                    </div>
+                    {seasons.length === 0 && (
+                        <p className="text-sm text-gray-400 text-center py-4">
+                            Nenhuma temporada cadastrada. Use &quot;Nova Temporada&quot; para adicionar.
+                        </p>
+                    )}
 
-                    {/* Regras Comerciais */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <Field label="Dias Elegíveis">
-                            <Input value={data.diasElegiveis} onChange={e => set('diasElegiveis', e.target.value)} placeholder="Ex: Seg, Qua, Sex" />
-                        </Field>
+                    {/* Dias Elegíveis + Regras Comerciais */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
+                        <DaysSelect
+                            value={data.diasElegiveis}
+                            onChange={val => set('diasElegiveis', val)}
+                        />
                         <Field label="Valor Neto">
                             <Input type="text" value={data.valorNeto} onChange={e => set('valorNeto', e.target.value)} placeholder="0.00" />
                         </Field>
@@ -295,7 +538,6 @@ export function PasseioForm({ data, onChange, errors = {} }: PasseioFormProps) {
                     </Badge>
                 </div>
                 <div className="p-6 space-y-5">
-                    {/* IDs e Identificação */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <Field label="Product ID">
                             <Input value={data.productId} onChange={e => set('productId', e.target.value)} />
@@ -307,7 +549,7 @@ export function PasseioForm({ data, onChange, errors = {} }: PasseioFormProps) {
                             <select
                                 value={data.status}
                                 onChange={e => set('status', e.target.value)}
-                                className="flex h-9 w-full rounded-md border border-gray-200 bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-gray-950"
+                                className={selectClass}
                             >
                                 <option value="active">Active</option>
                                 <option value="draft">Draft</option>
@@ -316,7 +558,6 @@ export function PasseioForm({ data, onChange, errors = {} }: PasseioFormProps) {
                         </Field>
                     </div>
 
-                    {/* Vendor, Tipo, Imagem */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <Field label="Vendor">
                             <Input value={data.vendor} onChange={e => set('vendor', e.target.value)} />
@@ -329,7 +570,6 @@ export function PasseioForm({ data, onChange, errors = {} }: PasseioFormProps) {
                         </Field>
                     </div>
 
-                    {/* Preços e-commerce */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <Field label="Preço">
                             <Input type="text" value={data.price} onChange={e => set('price', e.target.value)} placeholder="0.00" className={errors.price ? 'border-red-300' : ''} />
@@ -340,7 +580,6 @@ export function PasseioForm({ data, onChange, errors = {} }: PasseioFormProps) {
                         </Field>
                     </div>
 
-                    {/* Estoque */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <Field label="Quantidade em Estoque">
                             <Input type="text" value={data.inventoryQuantity} onChange={e => set('inventoryQuantity', e.target.value)} placeholder="0" className={errors.inventoryQuantity ? 'border-red-300' : ''} />
@@ -350,7 +589,7 @@ export function PasseioForm({ data, onChange, errors = {} }: PasseioFormProps) {
                             <select
                                 value={data.inventoryPolicy}
                                 onChange={e => set('inventoryPolicy', e.target.value)}
-                                className="flex h-9 w-full rounded-md border border-gray-200 bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-gray-950"
+                                className={selectClass}
                             >
                                 <option value="deny">Deny</option>
                                 <option value="continue">Continue</option>
@@ -361,7 +600,6 @@ export function PasseioForm({ data, onChange, errors = {} }: PasseioFormProps) {
                         </Field>
                     </div>
 
-                    {/* Booleanos */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="flex items-center gap-3 pt-2">
                             <input
@@ -389,12 +627,10 @@ export function PasseioForm({ data, onChange, errors = {} }: PasseioFormProps) {
                         </div>
                     </div>
 
-                    {/* Opções JSON */}
                     <Field label="Opções (JSON)">
                         <Textarea value={data.options} onChange={e => set('options', e.target.value)} rows={3} placeholder='[{"name": "Tamanho", "values": ["P","M","G"]}]' />
                     </Field>
 
-                    {/* IDs técnicos */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <Field label="Admin GraphQL API ID">
                             <Input value={data.adminGraphqlApiId} onChange={e => set('adminGraphqlApiId', e.target.value)} />
@@ -404,7 +640,6 @@ export function PasseioForm({ data, onChange, errors = {} }: PasseioFormProps) {
                         </Field>
                     </div>
 
-                    {/* Publicação e contadores */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <Field label="Publicado em">
                             <Input type="datetime-local" value={data.publishedAt} onChange={e => set('publishedAt', e.target.value)} />

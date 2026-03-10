@@ -216,6 +216,110 @@ export async function createNewUser(data: { email: string, name: string, agencyI
     return { success: true, user };
 }
 
+// ── SelectOption Actions ──
+
+export async function getSelectOptionsMulti(groups: string[]): Promise<Record<string, string[]>> {
+    const options = await prisma.selectOption.findMany({
+        where: { group: { in: groups }, active: true },
+        orderBy: { sortOrder: 'asc' },
+    });
+    const result: Record<string, string[]> = {};
+    for (const g of groups) result[g] = [];
+    for (const o of options) result[o.group].push(o.value);
+    return result;
+}
+
+export async function createSelectOption(group: string, value: string): Promise<{ success: boolean; error?: string }> {
+    try {
+        const maxOrder = await prisma.selectOption.aggregate({ where: { group }, _max: { sortOrder: true } });
+        await prisma.selectOption.create({
+            data: { group, value, sortOrder: (maxOrder._max.sortOrder ?? 0) + 1 },
+        });
+        return { success: true };
+    } catch (e: any) {
+        if (e.code === 'P2002') return { success: false, error: 'Valor já existe neste grupo.' };
+        return { success: false, error: e.message };
+    }
+}
+
+export async function updateSelectOption(id: string, data: { value?: string; sortOrder?: number; active?: boolean }): Promise<{ success: boolean; error?: string }> {
+    try {
+        await prisma.selectOption.update({ where: { id }, data });
+        return { success: true };
+    } catch (e: any) {
+        if (e.code === 'P2002') return { success: false, error: 'Valor já existe neste grupo.' };
+        return { success: false, error: e.message };
+    }
+}
+
+export async function deleteSelectOption(id: string): Promise<{ success: boolean; error?: string }> {
+    try {
+        await prisma.selectOption.delete({ where: { id } });
+        return { success: true };
+    } catch (e: any) {
+        return { success: false, error: e.message };
+    }
+}
+
+export async function getSelectOptionsFull(group: string) {
+    return prisma.selectOption.findMany({
+        where: { group },
+        orderBy: { sortOrder: 'asc' },
+    });
+}
+
+// ── Season Actions ──
+
+export interface SeasonItem {
+    id: string;
+    code: string;
+    label: string;
+    sortOrder: number;
+    active: boolean;
+}
+
+export async function getSeasons(): Promise<SeasonItem[]> {
+    return prisma.season.findMany({
+        where: { active: true },
+        orderBy: { sortOrder: 'asc' },
+    });
+}
+
+export async function getAllSeasons(): Promise<SeasonItem[]> {
+    return prisma.season.findMany({ orderBy: { sortOrder: 'asc' } });
+}
+
+export async function createSeason(code: string, label: string): Promise<{ success: boolean; error?: string }> {
+    try {
+        const maxOrder = await prisma.season.aggregate({ _max: { sortOrder: true } });
+        await prisma.season.create({
+            data: { code, label, sortOrder: (maxOrder._max.sortOrder ?? 0) + 1 },
+        });
+        return { success: true };
+    } catch (e: any) {
+        if (e.code === 'P2002') return { success: false, error: 'Código de temporada já existe.' };
+        return { success: false, error: e.message };
+    }
+}
+
+export async function updateSeason(id: string, data: { code?: string; label?: string; active?: boolean; sortOrder?: number }): Promise<{ success: boolean; error?: string }> {
+    try {
+        await prisma.season.update({ where: { id }, data });
+        return { success: true };
+    } catch (e: any) {
+        return { success: false, error: e.message };
+    }
+}
+
+export async function deleteSeason(id: string): Promise<{ success: boolean; error?: string }> {
+    try {
+        await prisma.season.delete({ where: { id } });
+        return { success: true };
+    } catch (e: any) {
+        return { success: false, error: e.message };
+    }
+}
+
 // ── Passeios Actions ──
 
 export interface PasseioListItem {
@@ -282,8 +386,17 @@ export async function deactivatePasseio(id: string): Promise<{ success: boolean;
 }
 
 export async function getPasseioById(id: string) {
-    const tour = await prisma.tour.findUnique({ where: { id } });
+    const tour = await prisma.tour.findUnique({
+        where: { id },
+        include: { prices: { include: { season: true } } },
+    });
     if (!tour) return null;
+
+    // Montar mapa de preços dinâmicos: { "VER26": { adu, chd, inf }, ... }
+    const prices: Record<string, { adu: string; chd: string; inf: string }> = {};
+    for (const tp of tour.prices) {
+        prices[tp.season.code] = { adu: tp.adu || '', chd: tp.chd || '', inf: tp.inf || '' };
+    }
 
     return {
         id: tour.id,
@@ -305,12 +418,15 @@ export async function getPasseioById(id: string) {
         tags: tour.tags || '',
         statusOperativo: tour.statusOperativo || 'Ativo',
         statusIntranet: tour.statusIntranet || 'Visível',
+        // Campos legados mantidos para compat
         ver26Adu: tour.ver26Adu || '',
         ver26Chd: tour.ver26Chd || '',
         ver26Inf: tour.ver26Inf || '',
         inv26Adu: tour.inv26Adu || '',
         inv26Chd: tour.inv26Chd || '',
         inv26Inf: tour.inv26Inf || '',
+        // Preços dinâmicos
+        prices,
         diasElegiveis: tour.diasElegiveis || '',
         valorNeto: tour.valorNeto || '',
         valorExtra: tour.valorExtra || '',
@@ -391,6 +507,22 @@ function buildTourData(data: any) {
     };
 }
 
+async function saveTourPrices(tourId: string, prices: Record<string, { adu: string; chd: string; inf: string }>) {
+    if (!prices || typeof prices !== 'object') return;
+    const seasons = await prisma.season.findMany();
+    const seasonMap = new Map(seasons.map(s => [s.code, s.id]));
+
+    for (const [code, vals] of Object.entries(prices)) {
+        const seasonId = seasonMap.get(code);
+        if (!seasonId) continue;
+        await prisma.tourPrice.upsert({
+            where: { tourId_seasonId: { tourId, seasonId } },
+            update: { adu: vals.adu || null, chd: vals.chd || null, inf: vals.inf || null },
+            create: { tourId, seasonId, adu: vals.adu || null, chd: vals.chd || null, inf: vals.inf || null },
+        });
+    }
+}
+
 export async function createPasseio(data: any): Promise<{ success: boolean; id?: string; error?: string }> {
     try {
         const tourData = buildTourData(data);
@@ -401,6 +533,10 @@ export async function createPasseio(data: any): Promise<{ success: boolean; id?:
                 ativo: true,
             },
         });
+        // Salvar preços dinâmicos
+        if (data.prices) {
+            await saveTourPrices(tour.id, data.prices);
+        }
         revalidatePath('/admin/settings/passeios');
         return { success: true, id: tour.id };
     } catch (e: any) {
@@ -415,6 +551,10 @@ export async function updatePasseio(id: string, data: any): Promise<{ success: b
             where: { id },
             data: buildTourData(data),
         });
+        // Salvar preços dinâmicos
+        if (data.prices) {
+            await saveTourPrices(id, data.prices);
+        }
         revalidatePath('/admin/settings/passeios');
         return { success: true };
     } catch (e: any) {

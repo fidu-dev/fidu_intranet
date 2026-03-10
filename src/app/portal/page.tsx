@@ -6,7 +6,7 @@ import { redirect } from 'next/navigation';
 export const dynamic = 'force-dynamic';
 
 export default async function Portal() {
-    const { products, agency, preferences, error } = await getAgencyProducts();
+    const { products, agency, preferences, seasons, error } = await getAgencyProducts();
 
     if (error === 'UNAUTHENTICATED') {
         redirect('/sign-in');
@@ -40,6 +40,7 @@ export default async function Portal() {
                             allowedDestinations: agency.allowedDestinations || []
                         } : undefined}
                         initialPreferences={preferences}
+                        seasons={seasons}
                     />
                 )}
 

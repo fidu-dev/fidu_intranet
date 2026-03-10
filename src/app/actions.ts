@@ -1,6 +1,6 @@
 'use server'
 
-import { getProducts } from '@/lib/services/productService';
+import { getProducts, getActiveSeasons } from '@/lib/services/productService';
 import { getAgencyByEmail as getPrismaUser } from '@/lib/services/userService';
 import { getAgencyByEmail as getAirtableUser, getMuralItems, getNoticeReadLogs, confirmNoticeRead, getNoticeReaders, getExchangeRates } from '@/lib/airtable/service';
 import { revalidatePath } from 'next/cache';
@@ -36,7 +36,7 @@ async function getAuthEmail(): Promise<{ email?: string, error?: 'UNAUTHENTICATE
     }
 }
 
-export async function getAgencyProducts(): Promise<{ products: any[], agency?: AgencyInfo, preferences?: any, hasUnreadMural?: boolean, error?: string | 'UNAUTHENTICATED' | 'UNAUTHORIZED' }> {
+export async function getAgencyProducts(): Promise<{ products: any[], agency?: AgencyInfo, preferences?: any, hasUnreadMural?: boolean, seasons?: { code: string; label: string }[], error?: string | 'UNAUTHENTICATED' | 'UNAUTHORIZED' }> {
     const authResult = await getAuthEmail();
     if (authResult.error) return { products: [], error: authResult.error };
 
@@ -49,8 +49,8 @@ export async function getAgencyProducts(): Promise<{ products: any[], agency?: A
         const commissionRate = capabilities.commissionRate || 0.15;
 
         const agencyInfo: AgencyInfo = {
-            agentName: capabilities.name || email, // Nome do agente (usuário)
-            agencyName: capabilities.agencyName || capabilities.name || email, // Nome da agência
+            agentName: capabilities.name || email,
+            agencyName: capabilities.agencyName || capabilities.name || email,
             commissionRate: commissionRate,
             canReserve: capabilities.canReserve,
             canAccessMural: capabilities.canAccessMural,
@@ -60,7 +60,10 @@ export async function getAgencyProducts(): Promise<{ products: any[], agency?: A
             allowedDestinations: capabilities.allowedDestinations || []
         };
 
-        const rawProducts = await getProducts();
+        const [rawProducts, seasons] = await Promise.all([
+            getProducts(),
+            getActiveSeasons(),
+        ]);
 
         // Filter by allowed destinations (empty array means ALL destinations are allowed)
         const products = agencyInfo.allowedDestinations.length > 0
@@ -68,62 +71,74 @@ export async function getAgencyProducts(): Promise<{ products: any[], agency?: A
             : rawProducts;
 
         if (!products || products.length === 0) {
-            return { products: [], agency: agencyInfo, preferences: capabilities.preferences, hasUnreadMural: false };
+            return { products: [], agency: agencyInfo, preferences: capabilities.preferences, hasUnreadMural: false, seasons };
         }
+
+        const parsePrice = (priceStr: string) => {
+            const cleaned = priceStr.replace(/[^0-9,.]/g, '').replace(',', '.');
+            return parseFloat(cleaned) || 0;
+        };
 
         const agencyProducts = products
             .map(product => {
                 const calculateNeto = (venda: number) => Math.round(venda * (1 - commissionRate) * 100) / 100;
 
-                const parsePrice = (priceStr: string) => {
-                    const cleaned = priceStr.replace(/[^0-9,.]/g, '').replace(',', '.');
-                    return parseFloat(cleaned) || 0;
-                };
+                // Preços dinâmicos por temporada
+                const seasonPrices: Record<string, {
+                    priceAdulto: number; priceMenor: number; priceBebe: number;
+                    salePriceAdulto: number; netoPriceAdulto: number;
+                    salePriceMenor: number; netoPriceMenor: number;
+                    salePriceBebe: number; netoPriceBebe: number;
+                }> = {};
 
-                const basePrice = parsePrice(product.inv26Adu);
-                const priceAdulto = parsePrice(product.inv26Adu);
-                const priceMenor = parsePrice(product.inv26Chd);
-                const priceBebe = parsePrice(product.inv26Inf);
+                for (const season of seasons) {
+                    const sp = product.prices[season.code];
+                    const adu = sp ? parsePrice(sp.adu) : 0;
+                    const chd = sp ? parsePrice(sp.chd) : 0;
+                    const inf = sp ? parsePrice(sp.inf) : 0;
+                    seasonPrices[season.code] = {
+                        priceAdulto: adu, priceMenor: chd, priceBebe: inf,
+                        salePriceAdulto: adu, netoPriceAdulto: calculateNeto(adu),
+                        salePriceMenor: chd, netoPriceMenor: calculateNeto(chd),
+                        salePriceBebe: inf, netoPriceBebe: calculateNeto(inf),
+                    };
+                }
 
-                const priceAdultoVer26 = parsePrice(product.ver26Adu);
-                const priceMenorVer26 = parsePrice(product.ver26Chd);
-                const priceBebeVer26 = parsePrice(product.ver26Inf);
+                // Default: primeiro season ou fallback legado
+                const defaultSeason = seasons[0]?.code;
+                const defaultPrices = defaultSeason && seasonPrices[defaultSeason]
+                    ? seasonPrices[defaultSeason]
+                    : { priceAdulto: 0, priceMenor: 0, priceBebe: 0, salePriceAdulto: 0, netoPriceAdulto: 0, salePriceMenor: 0, netoPriceMenor: 0, salePriceBebe: 0, netoPriceBebe: 0 };
 
                 return {
                     id: product.id,
                     destination: product.destino,
                     tourName: product.title,
                     category: product.categoria,
-                    basePrice,
-                    priceAdulto,
-                    priceMenor,
-                    priceBebe,
-                    salePriceAdulto: priceAdulto,
-                    netoPriceAdulto: calculateNeto(priceAdulto),
-                    salePriceMenor: priceMenor,
-                    netoPriceMenor: calculateNeto(priceMenor),
-                    salePriceBebe: priceBebe,
-                    netoPriceBebe: calculateNeto(priceBebe),
-
-                    priceAdultoVer26,
-                    priceMenorVer26,
-                    priceBebeVer26,
-                    salePriceAdultoVer26: priceAdultoVer26,
-                    netoPriceAdultoVer26: calculateNeto(priceAdultoVer26),
-                    salePriceMenorVer26: priceMenorVer26,
-                    netoPriceMenorVer26: calculateNeto(priceMenorVer26),
-                    salePriceBebeVer26: priceBebeVer26,
-                    netoPriceBebeVer26: calculateNeto(priceBebeVer26),
-
-                    priceAdultoInv26: priceAdulto,
-                    priceMenorInv26: priceMenor,
-                    priceBebeInv26: priceBebe,
-                    salePriceAdultoInv26: priceAdulto,
-                    netoPriceAdultoInv26: calculateNeto(priceAdulto),
-                    salePriceMenorInv26: priceMenor,
-                    netoPriceMenorInv26: calculateNeto(priceMenor),
-                    salePriceBebeInv26: priceBebe,
-                    netoPriceBebeInv26: calculateNeto(priceBebe),
+                    basePrice: defaultPrices.priceAdulto,
+                    // Default prices (backward compat)
+                    ...defaultPrices,
+                    // Preços por temporada
+                    seasonPrices,
+                    // Compat legado explícito para VER26/INV26
+                    priceAdultoVer26: seasonPrices['VER26']?.priceAdulto ?? 0,
+                    priceMenorVer26: seasonPrices['VER26']?.priceMenor ?? 0,
+                    priceBebeVer26: seasonPrices['VER26']?.priceBebe ?? 0,
+                    salePriceAdultoVer26: seasonPrices['VER26']?.salePriceAdulto ?? 0,
+                    netoPriceAdultoVer26: seasonPrices['VER26']?.netoPriceAdulto ?? 0,
+                    salePriceMenorVer26: seasonPrices['VER26']?.salePriceMenor ?? 0,
+                    netoPriceMenorVer26: seasonPrices['VER26']?.netoPriceMenor ?? 0,
+                    salePriceBebeVer26: seasonPrices['VER26']?.salePriceBebe ?? 0,
+                    netoPriceBebeVer26: seasonPrices['VER26']?.netoPriceBebe ?? 0,
+                    priceAdultoInv26: seasonPrices['INV26']?.priceAdulto ?? 0,
+                    priceMenorInv26: seasonPrices['INV26']?.priceMenor ?? 0,
+                    priceBebeInv26: seasonPrices['INV26']?.priceBebe ?? 0,
+                    salePriceAdultoInv26: seasonPrices['INV26']?.salePriceAdulto ?? 0,
+                    netoPriceAdultoInv26: seasonPrices['INV26']?.netoPriceAdulto ?? 0,
+                    salePriceMenorInv26: seasonPrices['INV26']?.salePriceMenor ?? 0,
+                    netoPriceMenorInv26: seasonPrices['INV26']?.netoPriceMenor ?? 0,
+                    salePriceBebeInv26: seasonPrices['INV26']?.salePriceBebe ?? 0,
+                    netoPriceBebeInv26: seasonPrices['INV26']?.netoPriceBebe ?? 0,
 
                     pickup: product.pickup,
                     retorno: product.retorno,
@@ -147,7 +162,7 @@ export async function getAgencyProducts(): Promise<{ products: any[], agency?: A
                 };
             });
 
-        return { products: agencyProducts, agency: agencyInfo, preferences: capabilities.preferences, hasUnreadMural: false };
+        return { products: agencyProducts, agency: agencyInfo, preferences: capabilities.preferences, hasUnreadMural: false, seasons };
     } catch (err: any) {
         console.error('Error in getAgencyProducts:', err);
         const errorMessage = typeof err === 'string' ? err : (err?.message || 'Unknown error');
