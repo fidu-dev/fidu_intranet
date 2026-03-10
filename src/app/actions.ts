@@ -36,7 +36,7 @@ async function getAuthEmail(): Promise<{ email?: string, error?: 'UNAUTHENTICATE
     }
 }
 
-export async function getAgencyProducts(): Promise<{ products: any[], agency?: AgencyInfo, preferences?: any, hasUnreadMural?: boolean, seasons?: { code: string; label: string }[], error?: string | 'UNAUTHENTICATED' | 'UNAUTHORIZED' }> {
+export async function getAgencyProducts(): Promise<{ products: any[], agency?: AgencyInfo, preferences?: any, hasUnreadMural?: boolean, seasons?: { code: string; label: string; color: string | null }[], error?: string | 'UNAUTHENTICATED' | 'UNAUTHORIZED' }> {
     const authResult = await getAuthEmail();
     if (authResult.error) return { products: [], error: authResult.error };
 

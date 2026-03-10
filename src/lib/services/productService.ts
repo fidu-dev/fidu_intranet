@@ -55,6 +55,6 @@ export async function getActiveSeasons() {
     return prisma.season.findMany({
         where: { active: true },
         orderBy: { sortOrder: 'asc' },
-        select: { code: true, label: true },
+        select: { code: true, label: true, color: true },
     })
 }

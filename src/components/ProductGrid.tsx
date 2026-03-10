@@ -19,7 +19,7 @@ interface ProductGridProps {
     isInternal?: boolean;
     agencyInfo?: AgencyInfo;
     initialPreferences?: any;
-    seasons?: { code: string; label: string }[];
+    seasons?: { code: string; label: string; color?: string | null }[];
 }
 
 type SortConfig = {
@@ -173,6 +173,7 @@ export function ProductGrid({ products, isInternal, agencyInfo, initialPreferenc
     const [subCategoryFilter, setSubCategoryFilter] = useState<string[]>([]);
     const [providerFilter, setProviderFilter] = useState('all');
     const [season, setSeason] = useState<string>(seasonsProp?.[0]?.code || 'VER26'); // This is Pricing Mode
+    const activeSeasonColor = seasonsProp?.find(s => s.code === season)?.color || '#3b82f6';
     const [temporadaFilter, setTemporadaFilter] = useState('all'); // This is Data Filtering
     const [diasElegiveisFilter, setDiasElegiveisFilter] = useState<string[]>([]);
     const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'tourName', direction: 'asc' });
@@ -384,17 +385,16 @@ export function ProductGrid({ products, isInternal, agencyInfo, initialPreferenc
                     <div className="flex bg-gray-100 p-1 rounded-xl shrink-0 h-9 items-center relative">
                         {seasonsProp.map((s) => {
                             const isActive = season === s.code;
-                            const isWinter = s.code.startsWith('INV');
-                            const activeColor = isWinter ? 'text-[#3b5998]' : 'text-orange-600';
-                            const dotColor = isWinter ? 'bg-[#3b5998]' : 'bg-orange-500';
+                            const seasonColor = s.color || '#3b82f6';
                             return (
                                 <button
                                     key={s.code}
                                     type="button"
                                     onClick={() => setSeason(s.code)}
-                                    className={`relative z-10 px-4 h-7 rounded-lg text-xs font-bold transition-all duration-200 flex items-center justify-center gap-2 ${isActive ? `${activeColor} bg-white shadow-sm` : 'text-gray-400'}`}
+                                    className={`relative z-10 px-4 h-7 rounded-lg text-xs font-bold transition-all duration-200 flex items-center justify-center gap-2 ${isActive ? 'bg-white shadow-sm' : 'text-gray-400'}`}
+                                    style={isActive ? { color: seasonColor } : undefined}
                                 >
-                                    <span className={`w-2 h-2 rounded-full ${isActive ? dotColor : 'bg-gray-300'}`} />
+                                    <span className="w-2 h-2 rounded-full" style={{ backgroundColor: isActive ? seasonColor : '#d1d5db' }} />
                                     {s.label}
                                 </button>
                             );
@@ -792,23 +792,15 @@ export function ProductGrid({ products, isInternal, agencyInfo, initialPreferenc
                                                 // Se Internal ou ShowSuggestedPrice for true, exibe preço cheio do DB, senão exibe Neto (deduzida a comissão)
                                                 const actualPrice = (isInternal || showSuggestedPrice) ? price : netoPrice;
 
-                                                const isWinter = season.startsWith('INV');
-
-                                                let textColorClass = "";
-                                                if (colId === 'priceAdulto') {
-                                                    textColorClass = isWinter ? "text-[#3b5998]" : "text-orange-600";
-                                                } else if (colId === 'priceMenor') {
-                                                    textColorClass = isWinter ? "text-[#3b5998]/80" : "text-orange-600/80";
-                                                } else if (colId === 'priceBebe') {
-                                                    textColorClass = isWinter ? "text-[#3b5998]/60" : "text-orange-600/60";
-                                                }
+                                                const opacityMap: Record<string, number> = { priceAdulto: 1, priceMenor: 0.8, priceBebe: 0.6 };
+                                                const opacity = opacityMap[colId] ?? 1;
 
                                                 return (
                                                     <td key={colId} className={`px-4 py-5 text-right overflow-hidden ${(isInternal || showSuggestedPrice) ? '' : 'cursor-help'}`} style={{ width: columnWidths[colId] || 'auto', minWidth: columnWidths[colId] || 'auto' }} title={(isInternal || showSuggestedPrice) ? undefined : `Valor base: ${formatPrice(price || 0)}`}>
                                                         {(!isInternal && showSuggestedPrice && price !== netoPrice) && (
                                                             <div className="text-[10px] text-gray-400 line-through mb-0.5 leading-none mr-0.5">{formatPrice(netoPrice || 0)}</div>
                                                         )}
-                                                        <span className={`text-base font-bold tracking-tight ${textColorClass}`}>
+                                                        <span className="text-base font-bold tracking-tight" style={{ color: activeSeasonColor, opacity }}>
                                                             {formatPrice(actualPrice || 0)}
                                                         </span>
                                                     </td>
@@ -993,30 +985,26 @@ export function ProductGrid({ products, isInternal, agencyInfo, initialPreferenc
                                     <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Tabela de Preços (Completa)</label>
                                     <div className={`grid gap-4 ${seasonsProp && seasonsProp.length > 2 ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-2'}`}>
                                         {(seasonsProp || []).map((s) => {
-                                            const isWinter = s.code.startsWith('INV');
-                                            const borderColor = isWinter ? 'border-blue-100' : 'border-orange-100';
-                                            const bgColor = isWinter ? 'bg-blue-50/20' : 'bg-orange-50/20';
-                                            const textColor = isWinter ? 'text-[#3b5998]' : 'text-orange-600';
-                                            const dotColor = isWinter ? 'bg-[#3b5998]' : 'bg-orange-500';
+                                            const sColor = s.color || '#3b82f6';
                                             const sp = (selectedDetailProduct as any)?.seasonPrices?.[s.code] || {};
                                             return (
-                                                <div key={s.code} className={`p-4 rounded-xl border ${borderColor} ${bgColor}`}>
-                                                    <h4 className={`text-[10px] font-black ${textColor} uppercase tracking-widest mb-3 flex items-center gap-2`}>
-                                                        <div className={`w-1.5 h-1.5 rounded-full ${dotColor}`} />
+                                                <div key={s.code} className="p-4 rounded-xl border" style={{ borderColor: `${sColor}20`, backgroundColor: `${sColor}08` }}>
+                                                    <h4 className="text-[10px] font-black uppercase tracking-widest mb-3 flex items-center gap-2" style={{ color: sColor }}>
+                                                        <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: sColor }} />
                                                         {s.label}
                                                     </h4>
                                                     <div className="space-y-3">
                                                         <div className="flex justify-between items-baseline">
                                                             <span className="text-xs text-gray-500 font-bold">Adulto</span>
-                                                            <span className={`text-sm font-black ${textColor}`}>{formatPrice((isInternal || showSuggestedPrice) ? (sp.priceAdulto ?? 0) : (sp.netoPriceAdulto ?? 0))}</span>
+                                                            <span className="text-sm font-black" style={{ color: sColor }}>{formatPrice((isInternal || showSuggestedPrice) ? (sp.priceAdulto ?? 0) : (sp.netoPriceAdulto ?? 0))}</span>
                                                         </div>
                                                         <div className="flex justify-between items-baseline">
                                                             <span className="text-xs text-gray-500 font-bold">Menor</span>
-                                                            <span className={`text-sm font-black ${textColor} opacity-80`}>{formatPrice((isInternal || showSuggestedPrice) ? (sp.priceMenor ?? 0) : (sp.netoPriceMenor ?? 0))}</span>
+                                                            <span className="text-sm font-black" style={{ color: sColor, opacity: 0.8 }}>{formatPrice((isInternal || showSuggestedPrice) ? (sp.priceMenor ?? 0) : (sp.netoPriceMenor ?? 0))}</span>
                                                         </div>
                                                         <div className="flex justify-between items-baseline">
                                                             <span className="text-xs text-gray-500 font-bold">Bebê</span>
-                                                            <span className={`text-sm font-black ${textColor} opacity-60`}>{formatPrice((isInternal || showSuggestedPrice) ? (sp.priceBebe ?? 0) : (sp.netoPriceBebe ?? 0))}</span>
+                                                            <span className="text-sm font-black" style={{ color: sColor, opacity: 0.6 }}>{formatPrice((isInternal || showSuggestedPrice) ? (sp.priceBebe ?? 0) : (sp.netoPriceBebe ?? 0))}</span>
                                                         </div>
                                                     </div>
                                                 </div>
