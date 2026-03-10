@@ -16,7 +16,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     }
 
     return (
-        <div className="min-h-screen bg-gray-50 flex flex-col">
+        <div className="h-screen bg-gray-50 flex flex-col overflow-hidden">
             <PortalHeader agency={agency} hasUnreadMural={hasUnreadMural} />
             <div className="flex flex-1 overflow-hidden">
                 <AdminSidebar />
