@@ -3,9 +3,9 @@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardHeader, CardTitle, CardContent, CardAction } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { X } from 'lucide-react';
-import { ManageableSelect } from './ManageableSelect';
+import { ManageableSelect, ManageableChipSelect } from './ManageableSelect';
 import { FormField } from './passeio-form/FormField';
 import { PricingTable } from './passeio-form/PricingTable';
 import { EcommerceSection } from './passeio-form/EcommerceSection';
@@ -110,7 +110,6 @@ interface PasseioFormProps {
     options: Record<string, string[]>;
     seasons: SeasonInfo[];
     onOptionsChanged: () => void;
-    onSeasonsChanged: () => void;
 }
 
 // ── DaysSelect ──
@@ -184,7 +183,7 @@ function DaysSelect({ value, onChange }: { value: string; onChange: (val: string
 
 // ── Formulário principal ──
 
-export function PasseioForm({ data, onChange, errors = {}, options, seasons, onOptionsChanged, onSeasonsChanged }: PasseioFormProps) {
+export function PasseioForm({ data, onChange, errors = {}, options, seasons, onOptionsChanged }: PasseioFormProps) {
     const set = (field: keyof PasseioFormData, value: string | boolean) => {
         onChange({ ...data, [field]: value });
     };
@@ -254,8 +253,8 @@ export function PasseioForm({ data, onChange, errors = {}, options, seasons, onO
                             />
                         </div>
 
-                        {/* Temporada + Moeda + Duração */}
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        {/* Temporada + Moeda */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <ManageableSelect
                                 label="Temporada"
                                 group="temporada"
@@ -272,20 +271,27 @@ export function PasseioForm({ data, onChange, errors = {}, options, seasons, onO
                                 options={options.moeda || []}
                                 onOptionsChanged={onOptionsChanged}
                             />
-                            <FormField label="Duração">
-                                <Input value={data.duracao} onChange={e => set('duracao', e.target.value)} placeholder="Ex: 08:00" />
-                            </FormField>
                         </div>
 
-                        {/* Pickup + Retorno */}
+                        {/* Pick up + Retorno */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <FormField label="Ponto de Embarque">
+                            <FormField label="Pick up">
                                 <Input value={data.pickup} onChange={e => set('pickup', e.target.value)} placeholder="HH:MM ou local" />
                             </FormField>
-                            <FormField label="Ponto de Retorno">
+                            <FormField label="Retorno">
                                 <Input value={data.retorno} onChange={e => set('retorno', e.target.value)} />
                             </FormField>
                         </div>
+
+                        {/* Duração (ManageableChipSelect) */}
+                        <ManageableChipSelect
+                            label="Duração"
+                            group="duracao"
+                            value={data.duracao}
+                            onChange={val => set('duracao', val)}
+                            options={options.duracao || []}
+                            onOptionsChanged={onOptionsChanged}
+                        />
 
                         {/* Descrição */}
                         <FormField label="Descrição do Passeio" required error={errors.description}>
@@ -303,70 +309,26 @@ export function PasseioForm({ data, onChange, errors = {}, options, seasons, onO
                             <Textarea value={data.observacoes} onChange={e => set('observacoes', e.target.value)} rows={3} />
                         </FormField>
 
-                        {/* O que levar + Restrições */}
+                        {/* O que levar + Restrições (ManageableChipSelect) */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <FormField label="O que Levar">
-                                <Textarea value={data.oQueLevar} onChange={e => set('oQueLevar', e.target.value)} rows={3} />
-                            </FormField>
-                            <FormField label="Restrições">
-                                <Textarea value={data.restricoes} onChange={e => set('restricoes', e.target.value)} rows={3} />
-                            </FormField>
+                            <ManageableChipSelect
+                                label="O que Levar"
+                                group="oqueLevar"
+                                value={data.oQueLevar}
+                                onChange={val => set('oQueLevar', val)}
+                                options={options.oqueLevar || []}
+                                onOptionsChanged={onOptionsChanged}
+                            />
+                            <ManageableChipSelect
+                                label="Restrições"
+                                group="restricao"
+                                value={data.restricoes}
+                                onChange={val => set('restricoes', val)}
+                                options={options.restricao || []}
+                                onOptionsChanged={onOptionsChanged}
+                            />
                         </div>
-                    </CardContent>
-                </Card>
 
-                {/* ─── SEÇÃO 2 — Preços ─── */}
-                <Card id="precos" className="shadow-sm">
-                    <CardHeader className="border-b border-gray-100 py-4">
-                        <CardTitle className="text-lg font-semibold text-gray-800">Preços e Regras Comerciais</CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-6 space-y-5">
-                        <PricingTable
-                            seasons={seasons}
-                            prices={data.prices}
-                            onPriceChange={setSeasonPrice}
-                            onSeasonsChanged={onSeasonsChanged}
-                        />
-
-                        {/* Dias Elegíveis */}
-                        <DaysSelect
-                            value={data.diasElegiveis}
-                            onChange={val => set('diasElegiveis', val)}
-                        />
-
-                        {/* Regras Comerciais */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                            <FormField label="Valor Neto" tooltip="Valor líquido após comissões">
-                                <Input type="text" value={data.valorNeto} onChange={e => set('valorNeto', e.target.value)} placeholder="0.00" />
-                            </FormField>
-                            <FormField label="Valor Extra" tooltip="Custos adicionais não inclusos no preço base">
-                                <Input type="text" value={data.valorExtra} onChange={e => set('valorExtra', e.target.value)} placeholder="0.00" />
-                            </FormField>
-                            <FormField label="Taxas Extras" tooltip="Taxas adicionais (ex: entrada em parques)">
-                                <Input type="text" value={data.taxasExtras} onChange={e => set('taxasExtras', e.target.value)} placeholder="0.00" />
-                            </FormField>
-                            <FormField label="Preço Convertido">
-                                <Input type="text" value={data.precoConvertido} onChange={e => set('precoConvertido', e.target.value)} placeholder="0.00" />
-                            </FormField>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                {/* ─── SEÇÃO 3 — E-commerce (Colapsável) ─── */}
-                <div id="ecommerce">
-                    <EcommerceSection
-                        data={data}
-                        set={(field, value) => set(field as keyof PasseioFormData, value)}
-                        errors={errors}
-                    />
-                </div>
-
-                {/* ─── SEÇÃO 4 — Configurações ─── */}
-                <Card id="configuracoes" className="shadow-sm">
-                    <CardHeader className="border-b border-gray-100 py-4">
-                        <CardTitle className="text-lg font-semibold text-gray-800">Configurações</CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-6 space-y-5">
                         {/* Tags */}
                         <TagsCombobox
                             value={data.tags}
@@ -386,6 +348,48 @@ export function PasseioForm({ data, onChange, errors = {}, options, seasons, onO
                         </div>
                     </CardContent>
                 </Card>
+
+                {/* ─── SEÇÃO 2 — Preços ─── */}
+                <Card id="precos" className="shadow-sm">
+                    <CardHeader className="border-b border-gray-100 py-4">
+                        <CardTitle className="text-lg font-semibold text-gray-800">Preços e Regras Comerciais</CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-6 space-y-5">
+                        <PricingTable
+                            seasons={seasons}
+                            prices={data.prices}
+                            onPriceChange={setSeasonPrice}
+                        />
+
+                        {/* Dias Elegíveis */}
+                        <DaysSelect
+                            value={data.diasElegiveis}
+                            onChange={val => set('diasElegiveis', val)}
+                        />
+
+                        {/* Regras Comerciais */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <FormField label="Valor Neto" tooltip="Valor líquido após comissões">
+                                <Input type="text" value={data.valorNeto} onChange={e => set('valorNeto', e.target.value)} placeholder="0.00" />
+                            </FormField>
+                            <FormField label="Valor Extra" tooltip="Custos adicionais não inclusos no preço base">
+                                <Input type="text" value={data.valorExtra} onChange={e => set('valorExtra', e.target.value)} placeholder="0.00" />
+                            </FormField>
+                            <FormField label="Taxas Extras" tooltip="Taxas adicionais (ex: entrada em parques)">
+                                <Input type="text" value={data.taxasExtras} onChange={e => set('taxasExtras', e.target.value)} placeholder="0.00" />
+                            </FormField>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                {/* ─── SEÇÃO 3 — E-commerce (Colapsável) ─── */}
+                <div id="ecommerce">
+                    <EcommerceSection
+                        data={data}
+                        set={(field, value) => set(field as keyof PasseioFormData, value)}
+                        errors={errors}
+                    />
+                </div>
 
             </div>
         </div>

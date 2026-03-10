@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { syncToursFromAirtable } from '@/lib/sync/airtableTours'
+import { syncToursToAirtable } from '@/lib/sync/airtableTours'
 import { currentUser } from '@clerk/nextjs/server'
 import { getUserCapabilities } from '@/lib/auth/getUserCapabilities'
 
@@ -23,7 +23,7 @@ export async function POST() {
             return NextResponse.json({ error: 'Forbidden. Admin access required.' }, { status: 403 })
         }
 
-        const result = await syncToursFromAirtable()
+        const result = await syncToursToAirtable()
 
         if (result.success) {
             return NextResponse.json({ message: 'Sync completed', count: result.count })

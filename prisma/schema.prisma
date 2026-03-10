@@ -3,8 +3,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 enum Role {
@@ -152,6 +153,7 @@ model Season {
   label     String
   sortOrder Int         @default(0)
   active    Boolean     @default(true)
+  color     String?     @default("#3b82f6")
   createdAt DateTime    @default(now())
   prices    TourPrice[]
 }

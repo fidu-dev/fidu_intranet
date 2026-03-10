@@ -1,14 +1,13 @@
 'use client';
 
 import { useScrollSpy } from '@/hooks/useScrollSpy';
-import { FileText, DollarSign, ShoppingCart, Settings } from 'lucide-react';
+import { FileText, DollarSign, ShoppingCart } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const SECTIONS = [
     { id: 'dados-gerais', label: 'Dados Gerais', icon: FileText },
     { id: 'precos', label: 'Preços', icon: DollarSign },
     { id: 'ecommerce', label: 'E-commerce', icon: ShoppingCart },
-    { id: 'configuracoes', label: 'Configurações', icon: Settings },
 ] as const;
 
 const SECTION_IDS = SECTIONS.map(s => s.id);

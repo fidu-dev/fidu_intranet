@@ -5,7 +5,7 @@ import { PasseioForm, type PasseioFormData, type SeasonInfo } from '@/components
 import { updatePasseio, getSelectOptionsMulti, getSeasons } from '@/app/admin/actions';
 import { StickyHeader } from '@/components/admin/passeio-form/StickyHeader';
 
-const OPTION_GROUPS = ['destino', 'categoria', 'operador', 'temporada', 'moeda', 'tag'];
+const OPTION_GROUPS = ['destino', 'categoria', 'operador', 'temporada', 'moeda', 'tag', 'duracao', 'restricao', 'oqueLevar'];
 
 function validate(data: PasseioFormData): Record<string, string> {
     const errors: Record<string, string> = {};
@@ -90,7 +90,6 @@ export function PasseioEditarClient({ passeio }: Props) {
                 options={options}
                 seasons={seasons}
                 onOptionsChanged={loadOptions}
-                onSeasonsChanged={loadSeasons}
             />
         </>
     );

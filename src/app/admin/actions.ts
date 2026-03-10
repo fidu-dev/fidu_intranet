@@ -276,6 +276,7 @@ export interface SeasonItem {
     label: string;
     sortOrder: number;
     active: boolean;
+    color: string | null;
 }
 
 export async function getSeasons(): Promise<SeasonItem[]> {
@@ -289,11 +290,11 @@ export async function getAllSeasons(): Promise<SeasonItem[]> {
     return prisma.season.findMany({ orderBy: { sortOrder: 'asc' } });
 }
 
-export async function createSeason(code: string, label: string): Promise<{ success: boolean; error?: string }> {
+export async function createSeason(code: string, label: string, color?: string): Promise<{ success: boolean; error?: string }> {
     try {
         const maxOrder = await prisma.season.aggregate({ _max: { sortOrder: true } });
         await prisma.season.create({
-            data: { code, label, sortOrder: (maxOrder._max.sortOrder ?? 0) + 1 },
+            data: { code, label, sortOrder: (maxOrder._max.sortOrder ?? 0) + 1, ...(color ? { color } : {}) },
         });
         return { success: true };
     } catch (e: any) {
@@ -302,7 +303,7 @@ export async function createSeason(code: string, label: string): Promise<{ succe
     }
 }
 
-export async function updateSeason(id: string, data: { code?: string; label?: string; active?: boolean; sortOrder?: number }): Promise<{ success: boolean; error?: string }> {
+export async function updateSeason(id: string, data: { code?: string; label?: string; active?: boolean; sortOrder?: number; color?: string }): Promise<{ success: boolean; error?: string }> {
     try {
         await prisma.season.update({ where: { id }, data });
         return { success: true };
