@@ -331,6 +331,7 @@ export interface PasseioListItem {
     statusIntranet: string;
     price: number | null;
     updatedAt: string;
+    featuredImage: string;
 }
 
 export async function getPasseios(): Promise<PasseioListItem[]> {
@@ -346,6 +347,7 @@ export async function getPasseios(): Promise<PasseioListItem[]> {
             statusIntranet: true,
             price: true,
             updatedAt: true,
+            featuredImage: true,
         }
     });
 
@@ -358,6 +360,7 @@ export async function getPasseios(): Promise<PasseioListItem[]> {
         statusIntranet: t.statusIntranet || 'Visível',
         price: t.price,
         updatedAt: t.updatedAt.toISOString(),
+        featuredImage: t.featuredImage || '',
     }));
 }
 
@@ -369,6 +372,20 @@ export async function getPasseiosDestinos(): Promise<string[]> {
         orderBy: { destino: 'asc' },
     });
     return tours.map(t => t.destino!).filter(Boolean);
+}
+
+export async function updatePasseioStatus(id: string, statusOperativo: string): Promise<{ success: boolean; error?: string }> {
+    try {
+        await prisma.tour.update({
+            where: { id },
+            data: { statusOperativo },
+        });
+        revalidatePath('/admin/settings/passeios');
+        return { success: true };
+    } catch (e: any) {
+        console.error('Update Passeio Status Error:', e);
+        return { success: false, error: e.message };
+    }
 }
 
 export async function deactivatePasseio(id: string): Promise<{ success: boolean; error?: string }> {
