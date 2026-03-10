@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Users, Package, Settings } from "lucide-react";
+import { Users, Package, Settings, Map } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const sidebarItems = [
     { icon: Users, label: "Controle de Acesso", href: "/admin/users" },
     { icon: Package, label: "Agências", href: "/admin/agencies" },
+    { icon: Map, label: "Passeios", href: "/admin/settings/passeios" },
     { icon: Settings, label: "Configurações", href: "/admin/settings" },
 ];
 
@@ -18,7 +19,7 @@ export function AdminSidebar() {
         <aside className="w-64 bg-white border-r hidden md:flex flex-col">
             <nav className="flex-1 p-4 space-y-1 mt-2">
                 {sidebarItems.map((item) => {
-                    const isActive = pathname === item.href;
+                    const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
                     return (
                         <Link
                             key={item.href}

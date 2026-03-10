@@ -15,12 +15,12 @@ export type UserCapabilities = {
 
 export type Product = {
     id: string
-    servico: string
+    title: string
+    description: string
+    statusOperativo: string
     categoria: string
     destino: string
-    atualizadoEm: string
     operador: string
-    status: string
     temporada: string
     pickup: string
     retorno: string
@@ -38,8 +38,8 @@ export type Product = {
     restricoes: string
     opcionais: string
     variantes: string
-    resumo: string
     observacoes: string
     oQueLevar: string
     midia: string
+    updatedAt: string
 }

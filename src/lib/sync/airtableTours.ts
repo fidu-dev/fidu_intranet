@@ -28,10 +28,9 @@ export async function syncToursFromAirtable(): Promise<{ count: number; success:
         for (const record of records) {
             const fields: any = record.fields
 
-            const servico = (fields['Serviço'] as string) || ''
+            const title = (fields['Serviço'] as string) || ''
             const categoria = (fields['Categoria do Serviço'] as string) || ''
             const destino = (fields['Destino'] as string) || ''
-            const atualizadoEm = fields['Atualizado em'] ? String(fields['Atualizado em']) : ''
 
             let operador = ''
             if (fields['Operador_Nome'] || fields['Operador Nome'] || fields['OPERADOR_NOME'] || fields['Operador (from Operadores)'] || fields['Operador (from Operador)'] || fields['OPERADOR'] || fields['Operador'] || fields['Fornecedor']) {
@@ -50,7 +49,7 @@ export async function syncToursFromAirtable(): Promise<{ count: number; success:
                 ) as string
             }
 
-            const status = fields['Status'] === true ? 'Ativo' : 'Inativo'
+            const statusOperativo = fields['Status'] === true ? 'Ativo' : 'Inativo'
             const temporada = Array.isArray(fields['Temporada']) ? fields['Temporada'].join(', ') : (fields['Temporada'] as string) || ''
 
             const pickup = formatDuration(fields['Pickup'] as number)
@@ -75,7 +74,7 @@ export async function syncToursFromAirtable(): Promise<{ count: number; success:
             const opcionais = (fields['Opcionais disponíveis'] || fields['Opcionais']) ? String(fields['Opcionais disponíveis'] || fields['Opcionais']) : ''
             const variantes = fields['Variantes'] ? String(fields['Variantes']) : ''
 
-            const resumo = fields['Resumo do Passeio'] || fields['Resumo'] ? String(fields['Resumo do Passeio'] || fields['Resumo']) : ''
+            const description = fields['Resumo do Passeio'] || fields['Resumo'] ? String(fields['Resumo do Passeio'] || fields['Resumo']) : ''
             const observacoes = fields['Observações'] ? String(fields['Observações']) : ''
             const oQueLevar = fields['O que levar'] ? String(fields['O que levar']) : ''
             const midia = fields['Mídia do Passeio']?.[0]?.url || ''
@@ -83,17 +82,17 @@ export async function syncToursFromAirtable(): Promise<{ count: number; success:
             await prisma.tour.upsert({
                 where: { airtableRecordId: record.id },
                 update: {
-                    servico, categoria, destino, atualizadoEm, operador, status, temporada, pickup, retorno,
+                    title, categoria, destino, operador, statusOperativo, temporada, pickup, retorno,
                     ver26Adu, ver26Chd, ver26Inf, inv26Adu, inv26Chd, inv26Inf,
                     diasElegiveis, valorExtra, taxasExtras, duracao, tags, restricoes, opcionais, variantes,
-                    resumo, observacoes, oQueLevar, midia
+                    description, observacoes, oQueLevar, midia
                 },
                 create: {
                     airtableRecordId: record.id,
-                    servico, categoria, destino, atualizadoEm, operador, status, temporada, pickup, retorno,
+                    title, categoria, destino, operador, statusOperativo, temporada, pickup, retorno,
                     ver26Adu, ver26Chd, ver26Inf, inv26Adu, inv26Chd, inv26Inf,
                     diasElegiveis, valorExtra, taxasExtras, duracao, tags, restricoes, opcionais, variantes,
-                    resumo, observacoes, oQueLevar, midia
+                    description, observacoes, oQueLevar, midia
                 }
             })
             count++

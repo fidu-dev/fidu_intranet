@@ -3,17 +3,18 @@ import { Product } from '../domain/types'
 
 export async function getProducts(): Promise<Product[]> {
     const tours = await prisma.tour.findMany({
+        where: { ativo: true, statusIntranet: 'Visível' },
         orderBy: { destino: 'asc' },
     })
 
     return tours.map((tour) => ({
         id: tour.airtableRecordId,
-        servico: tour.servico || '',
+        title: tour.title || '',
+        description: tour.description || '',
+        statusOperativo: tour.statusOperativo || '',
         categoria: tour.categoria || '',
         destino: tour.destino || '',
-        atualizadoEm: tour.atualizadoEm || '',
         operador: tour.operador || '',
-        status: tour.status || '',
         temporada: tour.temporada || '',
         pickup: tour.pickup || '',
         retorno: tour.retorno || '',
@@ -31,9 +32,9 @@ export async function getProducts(): Promise<Product[]> {
         restricoes: tour.restricoes || '',
         opcionais: tour.opcionais || '',
         variantes: tour.variantes || '',
-        resumo: tour.resumo || '',
         observacoes: tour.observacoes || '',
         oQueLevar: tour.oQueLevar || '',
         midia: tour.midia || '',
+        updatedAt: tour.updatedAt.toISOString(),
     }))
 }

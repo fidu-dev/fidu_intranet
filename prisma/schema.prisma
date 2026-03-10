@@ -62,14 +62,18 @@ model User {
 }
 
 model Tour {
-  id               String   @id @default(uuid())
-  airtableRecordId String   @unique
-  servico          String?
+  id               String    @id @default(uuid())
+  airtableRecordId String    @unique
+
+  // Campos renomeados (migração Prompt 2)
+  title            String?   // era: servico
+  description      String?   // era: resumo
+  statusOperativo  String?   // era: status
+
+  // Campos existentes mantidos
   categoria        String?
   destino          String?
-  atualizadoEm     String?
   operador         String?
-  status           String?
   temporada        String?
   pickup           String?
   retorno          String?
@@ -87,12 +91,41 @@ model Tour {
   restricoes       String?
   opcionais        String?
   variantes        String?
-  resumo           String?
   observacoes      String?
   oQueLevar        String?
   midia            String?
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+
+  // Novos campos operacionais
+  ativo            Boolean   @default(true)
+  statusIntranet   String?   @default("Visível")
+  moeda            String?   @default("BRL")
+  valorNeto        String?
+  precoConvertido  String?
+
+  // Novos campos do e-commerce
+  productId         String?
+  status            String?   @default("draft")
+  handle            String?
+  vendor            String?
+  productType       String?
+  featuredImage     String?
+  price             Float?
+  compareAtPrice    Float?
+  inventoryQuantity Int?      @default(0)
+  inventoryPolicy   String?   @default("deny")
+  requiresShipping  Boolean?  @default(false)
+  taxable           Boolean?  @default(false)
+  options           Json?
+  imageAltText      String?
+  adminGraphqlApiId String?
+  inventoryItemId   String?
+  publishedAt       DateTime?
+  variantsCount     Int?      @default(0)
+  imagesCount       Int?      @default(0)
+
+  // Timestamps
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 
   @@index([categoria])
   @@index([destino])
