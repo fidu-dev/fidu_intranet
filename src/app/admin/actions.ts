@@ -135,6 +135,18 @@ export async function updateAgency(agencyId: string, data: any) {
     }
 }
 
+export async function deleteAgency(agencyId: string) {
+    try {
+        // Remove associated users first
+        await prisma.user.deleteMany({ where: { agencyId } });
+        await prisma.agency.delete({ where: { id: agencyId } });
+        return { success: true };
+    } catch (e: any) {
+        console.error('Delete Agency Error:', e);
+        throw new Error(`Erro ao excluir agência: ${e.message}`);
+    }
+}
+
 export async function createNewAgency(data: any) {
     await prisma.agency.create({
         data: {

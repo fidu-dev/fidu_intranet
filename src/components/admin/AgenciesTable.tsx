@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { updateAgency, createNewAgency } from '@/app/admin/actions';
+import { updateAgency, createNewAgency, deleteAgency } from '@/app/admin/actions';
 import {
     Table,
     TableBody,
@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Plus, Pencil, Save, Loader2, X, CheckCircle, XCircle } from 'lucide-react';
+import { Plus, Pencil, Save, Loader2, X, CheckCircle, XCircle, Trash2 } from 'lucide-react';
 
 export interface AgencyFull {
     id: string;
@@ -133,6 +133,19 @@ export function AgenciesTable({ initialAgencies }: AgenciesTableProps) {
             setAgencies(agencies.map(a => a.id === id ? { ...a, status: 'REJECTED' } : a));
         } catch (e) {
             alert('Falha ao rejeitar agência');
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const handleDelete = async (id: string, name: string) => {
+        if (!confirm(`Deseja realmente excluir a agência "${name}"? Todos os usuários vinculados também serão removidos.`)) return;
+        setIsSaving(true);
+        try {
+            await deleteAgency(id);
+            setAgencies(agencies.filter(a => a.id !== id));
+        } catch (e: any) {
+            alert(`Falha ao excluir agência: ${e.message || e}`);
         } finally {
             setIsSaving(false);
         }
@@ -363,6 +376,16 @@ export function AgenciesTable({ initialAgencies }: AgenciesTableProps) {
                                                     onClick={() => handleEdit(agency)}
                                                 >
                                                     <Pencil className="h-4 w-4 text-gray-500" />
+                                                </Button>
+                                                <Button
+                                                    size="sm"
+                                                    variant="ghost"
+                                                    className="h-8 w-8 p-0 text-red-400 hover:text-red-600 hover:bg-red-50"
+                                                    onClick={() => handleDelete(agency.id, agency.name)}
+                                                    disabled={isSaving}
+                                                    title="Excluir Agência"
+                                                >
+                                                    <Trash2 className="h-4 w-4" />
                                                 </Button>
                                             </div>
                                         )}
