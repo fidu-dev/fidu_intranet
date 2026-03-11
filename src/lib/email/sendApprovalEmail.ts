@@ -9,35 +9,29 @@ export async function sendApprovalEmails(agencyName: string, emails: string[]) {
             <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: 700;">Fidu Viagens</h1>
         </div>
         <div style="padding: 32px 24px;">
-            <h2 style="color: #1a1a1a; font-size: 20px; margin: 0 0 16px;">Parabéns! Sua agência foi aprovada 🎉</h2>
-            <p style="color: #4a4a4a; font-size: 15px; line-height: 1.6; margin: 0 0 8px;">
-                A agência <strong>${agencyName}</strong> foi aprovada como parceira Fidu Viagens.
+            <h2 style="color: #1a1a1a; font-size: 20px; margin: 0 0 20px;">Cadastro aprovado</h2>
+            <p style="color: #4a4a4a; font-size: 15px; line-height: 1.6; margin: 0 0 12px;">
+                Informamos que o cadastro da <strong>${agencyName}</strong> foi aprovado como parceira da Fidu Viagens.
             </p>
             <p style="color: #4a4a4a; font-size: 15px; line-height: 1.6; margin: 0 0 24px;">
-                Agora você já pode acessar nossa intranet e começar a consultar o tarifário, simular orçamentos e realizar reservas.
+                Sua agência passa a integrar nossa rede de parceiros e já pode acessar a intranet para consultar tarifários, simular orçamentos e realizar reservas.
             </p>
 
             <div style="background: #f8f9fa; border-radius: 8px; padding: 24px; margin-bottom: 24px;">
-                <h3 style="color: #1a1a1a; font-size: 16px; margin: 0 0 16px;">Como acessar:</h3>
+                <h3 style="color: #1a1a1a; font-size: 16px; margin: 0 0 16px;">Acesso à intranet</h3>
                 <ol style="color: #4a4a4a; font-size: 14px; line-height: 1.8; margin: 0; padding-left: 20px;">
                     <li>Acesse <a href="https://intranet.fiduviagens.com" style="color: #3b5998; font-weight: 600;">intranet.fiduviagens.com</a></li>
                     <li>Clique em <strong>Entrar</strong></li>
-                    <li>Utilize o e-mail cadastrado para criar sua senha e fazer login</li>
+                    <li>Utilize o e-mail cadastrado para criar sua senha e acessar o sistema</li>
                 </ol>
             </div>
 
-            <div style="text-align: center; margin: 32px 0;">
-                <a href="https://intranet.fiduviagens.com" style="display: inline-block; background: #3b5998; color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-size: 15px; font-weight: 600;">
-                    Acessar a Intranet
-                </a>
-            </div>
-
             <p style="color: #999999; font-size: 13px; line-height: 1.5; margin: 24px 0 0; text-align: center;">
-                Em caso de dúvidas, entre em contato com nossa equipe.
+                Em caso de dúvidas no acesso ou utilização da plataforma, nossa equipe está à disposição.
             </p>
         </div>
         <div style="background: #f8f9fa; padding: 16px 24px; text-align: center; border-top: 1px solid #eee;">
-            <p style="color: #999999; font-size: 12px; margin: 0;">© ${new Date().getFullYear()} Fidu Viagens. Todos os direitos reservados.</p>
+            <p style="color: #999999; font-size: 12px; margin: 0;">Fidu Viagens</p>
         </div>
     </div>`;
 
@@ -47,7 +41,7 @@ export async function sendApprovalEmails(agencyName: string, emails: string[]) {
             const { data, error } = await resend.emails.send({
                 from: process.env.RESEND_FROM_EMAIL || 'Fidu Viagens <onboarding@resend.dev>',
                 to: email,
-                subject: `Agência ${agencyName} aprovada — Acesse a Intranet Fidu`,
+                subject: `Aprovação de cadastro — Fidu Viagens`,
                 html,
             });
             if (error) {
