@@ -133,21 +133,6 @@ export function ProductGrid({ products, isInternal, agencyInfo, initialPreferenc
     const [showSuggestedPrice, setShowSuggestedPrice] = useState(prefs.showSuggestedPrice || false);
     const [statusFilter, setStatusFilter] = useState(prefs.statusFilter || 'all');
 
-    // Debounced preferences save
-    useEffect(() => {
-        const timeout = setTimeout(() => {
-            saveUserPreferences({
-                visibleColumns,
-                columnWidths,
-                showSuggestedPrice,
-                statusFilter,
-                destinationFilter,
-                season,
-            }).catch(console.error);
-        }, 1000);
-        return () => clearTimeout(timeout);
-    }, [visibleColumns, columnWidths, showSuggestedPrice, statusFilter, destinationFilter, season]);
-
     // Resize handlers
     const resizingColumn = useRef<{ id: string; startX: number; startWidth: number } | null>(null);
 
@@ -227,6 +212,21 @@ export function ProductGrid({ products, isInternal, agencyInfo, initialPreferenc
     const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'tourName', direction: 'asc' });
     const [isSimulatorOpen, setIsSimulatorOpen] = useState(false);
     const [selectedDetailProduct, setSelectedDetailProduct] = useState<AgencyProduct | null>(null);
+
+    // Debounced preferences save
+    useEffect(() => {
+        const timeout = setTimeout(() => {
+            saveUserPreferences({
+                visibleColumns,
+                columnWidths,
+                showSuggestedPrice,
+                statusFilter,
+                destinationFilter,
+                season,
+            }).catch(console.error);
+        }, 1000);
+        return () => clearTimeout(timeout);
+    }, [visibleColumns, columnWidths, showSuggestedPrice, statusFilter, destinationFilter, season]);
 
     const getEffectiveStatus = (status?: any) => {
         if (!status) return 'Inativo';
