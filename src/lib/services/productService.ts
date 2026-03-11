@@ -5,7 +5,10 @@ export async function getProducts(): Promise<Product[]> {
     const tours = await prisma.tour.findMany({
         where: { ativo: true, statusIntranet: 'Visível' },
         orderBy: { destino: 'asc' },
-        include: { prices: { include: { season: true } } },
+        include: {
+            prices: { include: { season: true } },
+            images: { orderBy: { sortOrder: 'asc' }, select: { url: true, altText: true } },
+        },
     })
 
     return tours.map((tour) => {
@@ -46,6 +49,7 @@ export async function getProducts(): Promise<Product[]> {
             observacoes: tour.observacoes || '',
             oQueLevar: tour.oQueLevar || '',
             midia: tour.midia || '',
+            images: tour.images.map(img => ({ url: img.url, altText: img.altText })),
             updatedAt: tour.updatedAt.toISOString(),
         }
     })

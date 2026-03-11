@@ -11,6 +11,7 @@ import { PricingTable } from './passeio-form/PricingTable';
 import { EcommerceSection } from './passeio-form/EcommerceSection';
 import { TagsCombobox } from './passeio-form/TagsCombobox';
 import { SectionAnchorNav } from './passeio-form/SectionAnchorNav';
+import { ImageGallery, TourImageItem } from './passeio-form/ImageGallery';
 
 // ── Constantes locais (dias não precisam de gerenciamento DB) ──
 
@@ -110,6 +111,9 @@ interface PasseioFormProps {
     options: Record<string, string[]>;
     seasons: SeasonInfo[];
     onOptionsChanged: () => void;
+    tourId?: string;
+    images?: TourImageItem[];
+    onImagesChanged?: () => void;
 }
 
 // ── DaysSelect ──
@@ -183,7 +187,7 @@ function DaysSelect({ value, onChange }: { value: string; onChange: (val: string
 
 // ── Formulário principal ──
 
-export function PasseioForm({ data, onChange, errors = {}, options, seasons, onOptionsChanged }: PasseioFormProps) {
+export function PasseioForm({ data, onChange, errors = {}, options, seasons, onOptionsChanged, tourId, images = [], onImagesChanged }: PasseioFormProps) {
     const set = (field: keyof PasseioFormData, value: string | boolean) => {
         onChange({ ...data, [field]: value });
     };
@@ -222,6 +226,13 @@ export function PasseioForm({ data, onChange, errors = {}, options, seasons, onO
                                 className={errors.title ? 'border-red-300' : ''}
                             />
                         </FormField>
+
+                        {/* Imagens */}
+                        <ImageGallery
+                            tourId={tourId}
+                            images={images}
+                            onImagesChanged={onImagesChanged || (() => {})}
+                        />
 
                         {/* Destino + Categoria + Operador */}
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

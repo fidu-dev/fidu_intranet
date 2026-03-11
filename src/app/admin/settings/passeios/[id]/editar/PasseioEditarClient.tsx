@@ -2,8 +2,9 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { PasseioForm, type PasseioFormData, type SeasonInfo } from '@/components/admin/PasseioForm';
-import { updatePasseio, getSelectOptionsMulti, getSeasons } from '@/app/admin/actions';
+import { updatePasseio, getSelectOptionsMulti, getSeasons, getTourImages } from '@/app/admin/actions';
 import { StickyHeader } from '@/components/admin/passeio-form/StickyHeader';
+import type { TourImageItem } from '@/components/admin/passeio-form/ImageGallery';
 
 const OPTION_GROUPS = ['destino', 'categoria', 'operador', 'temporada', 'moeda', 'tag', 'duracao', 'restricao', 'oqueLevar'];
 
@@ -28,6 +29,7 @@ export function PasseioEditarClient({ passeio }: Props) {
     const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
     const [options, setOptions] = useState<Record<string, string[]>>({});
     const [seasons, setSeasons] = useState<SeasonInfo[]>([]);
+    const [images, setImages] = useState<TourImageItem[]>([]);
 
     const loadOptions = useCallback(async () => {
         const opts = await getSelectOptionsMulti(OPTION_GROUPS);
@@ -39,10 +41,16 @@ export function PasseioEditarClient({ passeio }: Props) {
         setSeasons(s);
     }, []);
 
+    const loadImages = useCallback(async () => {
+        const imgs = await getTourImages(passeio.id);
+        setImages(imgs);
+    }, [passeio.id]);
+
     useEffect(() => {
         loadOptions();
         loadSeasons();
-    }, [loadOptions, loadSeasons]);
+        loadImages();
+    }, [loadOptions, loadSeasons, loadImages]);
 
     const handleSave = async () => {
         const validationErrors = validate(formData);
@@ -90,6 +98,9 @@ export function PasseioEditarClient({ passeio }: Props) {
                 options={options}
                 seasons={seasons}
                 onOptionsChanged={loadOptions}
+                tourId={passeio.id}
+                images={images}
+                onImagesChanged={loadImages}
             />
         </>
     );

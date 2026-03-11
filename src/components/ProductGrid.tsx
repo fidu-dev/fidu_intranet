@@ -4,7 +4,7 @@ import { AgencyProduct } from '@/lib/airtable/types';
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, ShoppingCart, ArrowUpDown, ChevronUp, ChevronDown, Plus, X, Settings, CheckCircle2, ArrowUp, ArrowDown, RefreshCw, SlidersHorizontal, Filter, Info, Eye } from 'lucide-react';
+import { Search, ShoppingCart, ArrowUpDown, ChevronUp, ChevronDown, Plus, X, Settings, CheckCircle2, ArrowUp, ArrowDown, RefreshCw, SlidersHorizontal, Filter, Info, Eye, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetClose } from '@/components/ui/sheet';
 import { SalesSimulator } from './SalesSimulator';
@@ -76,6 +76,52 @@ const SortIcon = ({ columnKey, sortConfig }: { columnKey: keyof AgencyProduct | 
         <ChevronDown className="ml-1 h-3 w-3 text-[#3b5998]" />;
 };
 
+
+function DetailImageGallery({ images }: { images: { url: string; altText: string | null }[] }) {
+    const [activeIdx, setActiveIdx] = useState(0);
+    if (!images.length) return null;
+
+    return (
+        <div className="space-y-2">
+            <div className="relative aspect-[16/9] rounded-xl overflow-hidden bg-gray-100">
+                <img
+                    src={images[activeIdx].url}
+                    alt={images[activeIdx].altText || ''}
+                    className="w-full h-full object-cover"
+                />
+                {images.length > 1 && (
+                    <>
+                        <button
+                            onClick={() => setActiveIdx(i => (i - 1 + images.length) % images.length)}
+                            className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/60 text-white rounded-full p-1.5 transition-colors"
+                        >
+                            <ChevronLeft className="h-4 w-4" />
+                        </button>
+                        <button
+                            onClick={() => setActiveIdx(i => (i + 1) % images.length)}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/60 text-white rounded-full p-1.5 transition-colors"
+                        >
+                            <ChevronRight className="h-4 w-4" />
+                        </button>
+                    </>
+                )}
+            </div>
+            {images.length > 1 && (
+                <div className="flex gap-1.5 justify-center">
+                    {images.map((img, i) => (
+                        <button
+                            key={i}
+                            onClick={() => setActiveIdx(i)}
+                            className={`w-14 h-10 rounded-md overflow-hidden border-2 transition-colors ${i === activeIdx ? 'border-[#3b5998]' : 'border-transparent opacity-60 hover:opacity-100'}`}
+                        >
+                            <img src={img.url} alt={img.altText || ''} className="w-full h-full object-cover" />
+                        </button>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+}
 
 export function ProductGrid({ products, isInternal, agencyInfo, initialPreferences, seasons: seasonsProp }: ProductGridProps) {
     const { selectedProducts, addToCart, clearCart } = useCart();
@@ -905,6 +951,11 @@ export function ProductGrid({ products, isInternal, agencyInfo, initialPreferenc
                             </SheetHeader>
 
                             <div className="flex-1 overflow-y-auto p-6 space-y-8 pb-32">
+                                {/* Image Gallery */}
+                                {selectedDetailProduct.images && selectedDetailProduct.images.length > 0 && (
+                                    <DetailImageGallery images={selectedDetailProduct.images} />
+                                )}
+
                                 {/* Details Grid */}
                                 <div className="grid grid-cols-2 gap-6">
                                     <div className="space-y-1">

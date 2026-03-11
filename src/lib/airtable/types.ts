@@ -40,6 +40,7 @@ export interface Product {
     optionals?: string; // Column 'Opcionais disponíveis'
     restrictions?: string; // Column 'Restrições'
     observations?: string; // Column 'Observações'
+    images?: { url: string; altText: string | null }[];
 }
 
 export interface AgencyProduct extends Product {

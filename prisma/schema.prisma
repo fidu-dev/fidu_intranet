@@ -126,6 +126,7 @@ model Tour {
 
   // Relações
   prices           TourPrice[]
+  images           TourImage[]
 
   // Timestamps
   createdAt        DateTime  @default(now())
@@ -169,6 +170,18 @@ model TourPrice {
   season   Season  @relation(fields: [seasonId], references: [id], onDelete: Cascade)
 
   @@unique([tourId, seasonId])
+  @@index([tourId])
+}
+
+model TourImage {
+  id        String   @id @default(uuid())
+  tourId    String
+  url       String
+  altText   String?
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  tour      Tour     @relation(fields: [tourId], references: [id], onDelete: Cascade)
+
   @@index([tourId])
 }
 

@@ -159,6 +159,7 @@ export async function getAgencyProducts(): Promise<{ products: any[], agency?: A
                     optionals: product.opcionais,
                     restrictions: product.restricoes,
                     observations: product.observacoes,
+                    images: product.images,
                 };
             });
 

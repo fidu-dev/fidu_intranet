@@ -44,5 +44,6 @@ export type Product = {
     observacoes: string
     oQueLevar: string
     midia: string
+    images: { url: string; altText: string | null }[]
     updatedAt: string
 }

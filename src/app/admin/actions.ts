@@ -580,3 +580,12 @@ export async function updatePasseio(id: string, data: any): Promise<{ success: b
         return { success: false, error: e.message };
     }
 }
+
+export async function getTourImages(tourId: string) {
+    const images = await prisma.tourImage.findMany({
+        where: { tourId },
+        orderBy: { sortOrder: 'asc' },
+        select: { id: true, url: true, altText: true, sortOrder: true },
+    });
+    return images;
+}
