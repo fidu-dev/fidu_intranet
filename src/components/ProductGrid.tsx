@@ -141,10 +141,12 @@ export function ProductGrid({ products, isInternal, agencyInfo, initialPreferenc
                 columnWidths,
                 showSuggestedPrice,
                 statusFilter,
+                destinationFilter,
+                season,
             }).catch(console.error);
         }, 1000);
         return () => clearTimeout(timeout);
-    }, [visibleColumns, columnWidths, showSuggestedPrice, statusFilter]);
+    }, [visibleColumns, columnWidths, showSuggestedPrice, statusFilter, destinationFilter, season]);
 
     // Resize handlers
     const resizingColumn = useRef<{ id: string; startX: number; startWidth: number } | null>(null);
@@ -215,10 +217,10 @@ export function ProductGrid({ products, isInternal, agencyInfo, initialPreferenc
 
     const [searchTerm, setSearchTerm] = useState('');
     const [categoryFilter, setCategoryFilter] = useState('REG');
-    const [destinationFilter, setDestinationFilter] = useState('all');
+    const [destinationFilter, setDestinationFilter] = useState(prefs.destinationFilter || 'all');
     const [subCategoryFilter, setSubCategoryFilter] = useState<string[]>([]);
     const [providerFilter, setProviderFilter] = useState('all');
-    const [season, setSeason] = useState<string>(seasonsProp?.[0]?.code || 'VER26'); // This is Pricing Mode
+    const [season, setSeason] = useState<string>(prefs.season || seasonsProp?.[0]?.code || 'VER26'); // This is Pricing Mode
     const activeSeasonColor = seasonsProp?.find(s => s.code === season)?.color || '#3b82f6';
     const [temporadaFilter, setTemporadaFilter] = useState('all'); // This is Data Filtering
     const [diasElegiveisFilter, setDiasElegiveisFilter] = useState<string[]>([]);
