@@ -768,7 +768,7 @@ export function ProductGrid({ products, isInternal, agencyInfo, initialPreferenc
                             {filteredProducts.map((product) => {
                                 const isSelected = selectedProducts.find(p => p.id === product.id);
                                 return (
-                                    <tr key={product.id} className={`hover:bg-[#3b5998]/5 transition-colors group cursor-pointer ${isSelected ? 'bg-[#3b5998]/5' : ''}`} onClick={() => handleProductClick(product)}>
+                                    <tr key={product.id} className={`hover:bg-[#3b5998]/5 transition-colors group cursor-pointer ${isSelected ? 'bg-[#3b5998]/5' : ''}`} onClick={() => setSelectedDetailProduct(product)}>
                                         {visibleColumns.filter(c => c !== 'status' && c !== 'category').map(colId => {
                                             if (colId === 'destination') return (
                                                 <td key={colId} className="px-4 py-4 whitespace-nowrap overflow-hidden" style={{ width: columnWidths[colId] || 'auto', minWidth: columnWidths[colId] || 'auto' }}>
