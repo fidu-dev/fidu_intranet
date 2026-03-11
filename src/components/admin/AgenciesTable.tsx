@@ -114,6 +114,10 @@ export function AgenciesTable({ initialAgencies }: AgenciesTableProps) {
     };
 
     const handleApprove = async (id: string, currentRate: number) => {
+        if (!currentRate || currentRate <= 0) {
+            alert('É necessário definir a Comissão Base antes de aprovar a agência. Edite a agência e preencha o campo.');
+            return;
+        }
         setIsSaving(true);
         try {
             await updateAgency(id, { status: 'APPROVED', commissionRate: currentRate });
