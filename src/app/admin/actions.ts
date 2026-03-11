@@ -3,6 +3,7 @@
 import { getProducts } from '@/lib/services/productService';
 import { prisma } from '@/lib/db/prisma';
 import { revalidatePath } from 'next/cache';
+import { sendApprovalEmails } from '@/lib/email/sendApprovalEmail';
 
 // Admin routes are now publicly accessible - consider adding IP whitelist or password protection
 export async function getAdminProducts() {
@@ -74,20 +75,38 @@ export async function updateAgency(agencyId: string, data: any) {
 
         // Auto-create initial users upon agency approval
         if (data.status === 'APPROVED' && existingAgency.status !== 'APPROVED') {
+            const createdEmails: string[] = [];
+
+            // Create user for the agency responsible
+            if (updatedAgency.responsibleEmail) {
+                const respEmail = updatedAgency.responsibleEmail.trim().toLowerCase();
+                const existingResp = await prisma.user.findUnique({ where: { email: respEmail } });
+                if (!existingResp) {
+                    await prisma.user.create({
+                        data: {
+                            email: respEmail,
+                            name: updatedAgency.responsibleName || updatedAgency.name,
+                            agencyId: updatedAgency.id,
+                            role: 'AGENCIA_PARCEIRA',
+                            status: 'ACTIVE',
+                        }
+                    });
+                }
+                createdEmails.push(respEmail);
+            }
+
+            // Create users from requestedUsers (sellers)
             const reqUsers = updatedAgency.requestedUsers as any;
             if (Array.isArray(reqUsers) && reqUsers.length > 0) {
                 for (const reqUser of reqUsers) {
                     if (!reqUser.email || !reqUser.name) continue;
+                    const email = String(reqUser.email).trim().toLowerCase();
 
-                    // Avoid duplicating existing users
-                    const existingUser = await prisma.user.findUnique({
-                        where: { email: String(reqUser.email).trim().toLowerCase() }
-                    });
-
+                    const existingUser = await prisma.user.findUnique({ where: { email } });
                     if (!existingUser) {
                         await prisma.user.create({
                             data: {
-                                email: String(reqUser.email).trim().toLowerCase(),
+                                email,
                                 name: String(reqUser.name),
                                 agencyId: updatedAgency.id,
                                 role: 'AGENCIA_PARCEIRA',
@@ -95,7 +114,17 @@ export async function updateAgency(agencyId: string, data: any) {
                             }
                         });
                     }
+                    if (!createdEmails.includes(email)) {
+                        createdEmails.push(email);
+                    }
                 }
+            }
+
+            // Send approval emails to all users
+            if (createdEmails.length > 0) {
+                sendApprovalEmails(updatedAgency.name, createdEmails).catch(err =>
+                    console.error('Erro ao enviar e-mails de aprovação:', err)
+                );
             }
         }
 

@@ -33,7 +33,8 @@ model Agency {
   cnpj            String?
   cadastur        String?
   address         String?
-  responsibleName String?
+  responsibleName  String?
+  responsibleEmail String?
   responsiblePhone String?
   instagram        String?
   bankDetails      String?

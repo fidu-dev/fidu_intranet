@@ -5,6 +5,7 @@ import { submitAgencyRegistration, AgencyRegistrationData, RequestedUser } from 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, Plus, Trash2, CheckCircle2 } from 'lucide-react';
 
@@ -20,6 +21,7 @@ export default function CadastroForm() {
         cadastur: '',
         address: '',
         responsibleName: '',
+        responsibleEmail: '',
         responsiblePhone: '',
         instagram: '',
         bankDetails: '',
@@ -47,8 +49,8 @@ export default function CadastroForm() {
         setErrorMsg('');
 
         // Basic validation
-        if (!formData.name || !formData.cnpj || !formData.responsibleName) {
-            setErrorMsg('Por favor, preencha os campos obrigatórios (Fantasia, CNPJ, Responsável).');
+        if (!formData.name || !formData.legalName || !formData.cnpj || !formData.cadastur || !formData.address || !formData.instagram || !formData.responsibleName || !formData.responsibleEmail || !formData.responsiblePhone) {
+            setErrorMsg('Por favor, preencha todos os campos obrigatórios.');
             setIsLoading(false);
             return;
         }
@@ -111,16 +113,24 @@ export default function CadastroForm() {
                                 <Input id="cnpj" required value={formData.cnpj} onChange={e => setFormData({ ...formData, cnpj: e.target.value })} placeholder="00.000.000/0000-00" />
                             </div>
                             <div className="space-y-2">
-                                <Label htmlFor="cadastur">Cadastur</Label>
-                                <Input id="cadastur" value={formData.cadastur} onChange={e => setFormData({ ...formData, cadastur: e.target.value })} />
+                                <Label htmlFor="cadastur">Cadastur *</Label>
+                                <Select value={formData.cadastur} onValueChange={value => setFormData({ ...formData, cadastur: value })}>
+                                    <SelectTrigger id="cadastur">
+                                        <SelectValue placeholder="Selecione" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="Sim">Sim</SelectItem>
+                                        <SelectItem value="Não">Não</SelectItem>
+                                    </SelectContent>
+                                </Select>
                             </div>
                             <div className="space-y-2">
-                                <Label htmlFor="instagram">Instagram</Label>
-                                <Input id="instagram" value={formData.instagram} onChange={e => setFormData({ ...formData, instagram: e.target.value })} placeholder="@agencia" />
+                                <Label htmlFor="instagram">Instagram *</Label>
+                                <Input id="instagram" required value={formData.instagram} onChange={e => setFormData({ ...formData, instagram: e.target.value })} placeholder="@agencia" />
                             </div>
                             <div className="space-y-2 md:col-span-2">
-                                <Label htmlFor="address">Endereço Físico</Label>
-                                <Input id="address" value={formData.address} onChange={e => setFormData({ ...formData, address: e.target.value })} placeholder="Rua, Número, Bairro, Cidade - UF" />
+                                <Label htmlFor="address">Endereço Físico *</Label>
+                                <Input id="address" required value={formData.address} onChange={e => setFormData({ ...formData, address: e.target.value })} placeholder="Rua, Número, Bairro, Cidade - UF" />
                             </div>
                         </div>
                     </div>
@@ -134,8 +144,12 @@ export default function CadastroForm() {
                                 <Input id="respName" required value={formData.responsibleName} onChange={e => setFormData({ ...formData, responsibleName: e.target.value })} />
                             </div>
                             <div className="space-y-2">
-                                <Label htmlFor="respPhone">Telefone (WhatsApp)</Label>
-                                <Input id="respPhone" value={formData.responsiblePhone} onChange={e => setFormData({ ...formData, responsiblePhone: e.target.value })} placeholder="(11) 99999-9999" />
+                                <Label htmlFor="respEmail">E-mail *</Label>
+                                <Input id="respEmail" type="email" required value={formData.responsibleEmail} onChange={e => setFormData({ ...formData, responsibleEmail: e.target.value })} placeholder="responsavel@agencia.com" />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="respPhone">Telefone (WhatsApp) *</Label>
+                                <Input id="respPhone" required value={formData.responsiblePhone} onChange={e => setFormData({ ...formData, responsiblePhone: e.target.value })} placeholder="(11) 99999-9999" />
                             </div>
                         </div>
                     </div>

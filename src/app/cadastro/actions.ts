@@ -15,6 +15,7 @@ export interface AgencyRegistrationData {
     cadastur: string;
     address: string;
     responsibleName: string;
+    responsibleEmail: string;
     responsiblePhone: string;
     instagram: string;
     bankDetails: string;
@@ -31,6 +32,7 @@ export async function submitAgencyRegistration(data: AgencyRegistrationData) {
                 cadastur: data.cadastur,
                 address: data.address,
                 responsibleName: data.responsibleName,
+                responsibleEmail: data.responsibleEmail,
                 responsiblePhone: data.responsiblePhone,
                 instagram: data.instagram,
                 bankDetails: data.bankDetails,
