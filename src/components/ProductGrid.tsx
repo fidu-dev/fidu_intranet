@@ -914,7 +914,7 @@ export function ProductGrid({ products, isInternal, agencyInfo, initialPreferenc
                                             {isSelected ? (
                                                 <div className="bg-[#3b5998] text-white p-1.5 rounded-full inline-flex"><CheckCircle2 className="h-4 w-4" /></div>
                                             ) : (
-                                                <div className="text-gray-300 group-hover:text-[#3b5998] transition-colors p-1.5 rounded-full inline-flex border border-transparent group-hover:border-[#3b5998]/10"><Plus className="h-4 w-4" /></div>
+                                                <button onClick={(e) => { e.stopPropagation(); handleProductClick(product); }} className="text-gray-300 hover:text-[#3b5998] transition-colors p-1.5 rounded-full inline-flex border border-transparent hover:border-[#3b5998]/10 cursor-pointer"><Plus className="h-4 w-4" /></button>
                                             )}
                                         </td>
                                     </tr>
